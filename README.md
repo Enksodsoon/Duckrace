@@ -1,13 +1,6 @@
 # Duck Race Randomizer
 
-A lightweight React + Vite duck race app.
+Fixed Vite project for deployment to Vercel.
 
-## Run locally
-1. Install Node.js
-2. Open this folder in Terminal
-3. Run:
-   npm install
-   npm run dev
-
-## Build
-npm run build
+## Deploy
+Upload the whole folder contents to GitHub, then import the repo into Vercel.
