@@ -1301,6 +1301,7 @@ export default function App() {
                     <span style={{ fontSize: 14, color: "#334155" }}>{duration} sec</span>
                   </div>
                   <Range min={3} max={30} step={1} value={duration} onChange={setDuration} />
+                  <div style={{ fontSize: 12, color: "#64748b" }}>Range: 3 to 30 seconds</div>
                 </div>
 
                 <div style={{ display: "grid", gap: 8 }}>
@@ -1331,6 +1332,7 @@ export default function App() {
                     <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
                   </div>
                   <Range min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
+                  <div style={{ fontSize: 12, color: "#64748b" }}>Range: 0% to 200% (boost)</div>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
