@@ -639,6 +639,8 @@ export default function App() {
     return {
       seedParam,
       audienceParam,
+      overlayOnlyParam: params?.get("view") === "overlay",
+      overlayTheme: params?.get("theme") || "default",
       shuffleParam: parseBooleanParam(params?.get("shuffle"), true),
       soundParam: parseBooleanParam(params?.get("sound"), false),
       compactOverlayParam: parseBooleanParam(params?.get("minimal"), false),
@@ -653,6 +655,11 @@ export default function App() {
   const [shuffleBeforeRace, setShuffleBeforeRace] = useState(initialConfig.shuffleParam);
   const [soundEnabled, setSoundEnabled] = useState(initialConfig.soundParam);
   const [soundVolume, setSoundVolume] = useState(70);
+  const [soundPreset, setSoundPreset] = useState("sport");
+  const [countdownChannelVolume, setCountdownChannelVolume] = useState(100);
+  const [startChannelVolume, setStartChannelVolume] = useState(100);
+  const [raceChannelVolume, setRaceChannelVolume] = useState(100);
+  const [finishChannelVolume, setFinishChannelVolume] = useState(100);
   const [rerollAvatarsEachRound, setRerollAvatarsEachRound] = useState(false);
   const [avatarSeed, setAvatarSeed] = useState(0);
   const [podiumCountInput, setPodiumCountInput] = useState("3");
@@ -672,6 +679,12 @@ export default function App() {
   const [motionTime, setMotionTime] = useState(0);
   const [raceSeedInput, setRaceSeedInput] = useState(initialConfig.seedParam);
   const [copyNotice, setCopyNotice] = useState("");
+  const [fairnessMode, setFairnessMode] = useState(false);
+  const [raceLogs, setRaceLogs] = useState([]);
+  const [roundHistory, setRoundHistory] = useState([]);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [dedupeEntries, setDedupeEntries] = useState(true);
+  const [entryFilter, setEntryFilter] = useState("");
 
   const fileImportRef = useRef(null);
 
@@ -682,7 +695,23 @@ export default function App() {
   const raceSoundIntervalRef = useRef(null);
   const persistenceEnabledRef = useRef(true);
 
-  const parsedEntries = useMemo(() => splitEntries(entriesText), [entriesText]);
+  const rawEntries = useMemo(() => splitEntries(entriesText), [entriesText]);
+  const normalizedEntries = useMemo(() => {
+    if (!dedupeEntries) return rawEntries;
+    const seen = new Set();
+    return rawEntries.filter((entry) => {
+      const key = entry.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [rawEntries, dedupeEntries]);
+  const parsedEntries = useMemo(() => {
+    const term = entryFilter.trim().toLowerCase();
+    if (!term) return normalizedEntries;
+    return normalizedEntries.filter((entry) => entry.toLowerCase().includes(term));
+  }, [normalizedEntries, entryFilter]);
+  const duplicateCount = Math.max(0, rawEntries.length - normalizedEntries.length);
   const activeEntryCount = Math.max(parsedEntries.length, racers.length, 1);
   const parsedPodiumInput = Number(podiumCountInput);
   const podiumRequested = Number.isFinite(parsedPodiumInput) ? Math.floor(parsedPodiumInput) : 3;
@@ -691,6 +720,7 @@ export default function App() {
   const displayProgress = progress.length === displayRacers.length ? progress : displayRacers.map(() => 0);
   const podiumWinners = placements.slice().sort((a, b) => a.place - b.place).map((item) => ({ place: item.place, name: displayRacers[item.raceIndex] }));
   const activeSeed = raceSeedInput.trim();
+  const isOverlayRoute = initialConfig.overlayOnlyParam;
   const sharedUrl = useMemo(() => {
     const safeWindow = typeof window !== "undefined" ? window : null;
     if (!safeWindow) return "";
@@ -742,12 +772,23 @@ export default function App() {
       if (typeof parsed.shuffleBeforeRace === "boolean") setShuffleBeforeRace(parsed.shuffleBeforeRace);
       if (typeof parsed.soundEnabled === "boolean") setSoundEnabled(parsed.soundEnabled);
       if (typeof parsed.soundVolume === "number") setSoundVolume(clamp(parsed.soundVolume, 0, 200));
+      if (typeof parsed.soundPreset === "string") setSoundPreset(parsed.soundPreset);
+      if (typeof parsed.countdownChannelVolume === "number") setCountdownChannelVolume(clamp(parsed.countdownChannelVolume, 0, 200));
+      if (typeof parsed.startChannelVolume === "number") setStartChannelVolume(clamp(parsed.startChannelVolume, 0, 200));
+      if (typeof parsed.raceChannelVolume === "number") setRaceChannelVolume(clamp(parsed.raceChannelVolume, 0, 200));
+      if (typeof parsed.finishChannelVolume === "number") setFinishChannelVolume(clamp(parsed.finishChannelVolume, 0, 200));
       if (typeof parsed.rerollAvatarsEachRound === "boolean") setRerollAvatarsEachRound(parsed.rerollAvatarsEachRound);
       if (typeof parsed.podiumCountInput === "string") setPodiumCountInput(parsed.podiumCountInput);
       if (Array.isArray(parsed.eliminationPlaces)) setEliminationPlaces(parsed.eliminationPlaces.filter((n) => Number.isInteger(n) && n >= 0));
       if (Array.isArray(parsed.lastResults)) setLastResults(parsed.lastResults.slice(0, 8).map(String));
       if (typeof parsed.raceSeedInput === "string" && !initialConfig.seedParam) setRaceSeedInput(parsed.raceSeedInput);
       if (typeof parsed.isCompactOverlay === "boolean") setIsCompactOverlay(parsed.isCompactOverlay);
+      if (typeof parsed.fairnessMode === "boolean") setFairnessMode(parsed.fairnessMode);
+      if (typeof parsed.dedupeEntries === "boolean") setDedupeEntries(parsed.dedupeEntries);
+      if (typeof parsed.entryFilter === "string") setEntryFilter(parsed.entryFilter);
+      if (Array.isArray(parsed.raceLogs)) setRaceLogs(parsed.raceLogs.slice(0, 40));
+      if (Array.isArray(parsed.roundHistory)) setRoundHistory(parsed.roundHistory.slice(0, 40));
+      if (typeof parsed.roundNumber === "number") setRoundNumber(Math.max(1, Math.floor(parsed.roundNumber)));
     } catch {
       // Ignore malformed saved data.
     }
@@ -766,12 +807,23 @@ export default function App() {
       shuffleBeforeRace,
       soundEnabled,
       soundVolume,
+      soundPreset,
+      countdownChannelVolume,
+      startChannelVolume,
+      raceChannelVolume,
+      finishChannelVolume,
       rerollAvatarsEachRound,
       podiumCountInput,
       eliminationPlaces,
       lastResults,
       raceSeedInput,
       isCompactOverlay,
+      fairnessMode,
+      dedupeEntries,
+      entryFilter,
+      raceLogs,
+      roundHistory,
+      roundNumber,
     };
     safeWindow.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [
@@ -783,12 +835,23 @@ export default function App() {
     shuffleBeforeRace,
     soundEnabled,
     soundVolume,
+    soundPreset,
+    countdownChannelVolume,
+    startChannelVolume,
+    raceChannelVolume,
+    finishChannelVolume,
     rerollAvatarsEachRound,
     podiumCountInput,
     eliminationPlaces,
     lastResults,
     raceSeedInput,
     isCompactOverlay,
+    fairnessMode,
+    dedupeEntries,
+    entryFilter,
+    raceLogs,
+    roundHistory,
+    roundNumber,
   ]);
 
   useEffect(() => {
@@ -851,7 +914,11 @@ export default function App() {
         osc.frequency.setValueAtTime(tone.freq, start + tone.at);
         gain.gain.setValueAtTime(0.0001, start + tone.at);
         const normalizedVolume = clamp(soundVolume / 200, 0, 1);
-        const volumeScale = Math.pow(normalizedVolume, 0.58) * 2.6;
+        const presetBoost =
+          soundPreset === "minimal" ? 0.8 :
+          soundPreset === "cinematic" ? 1.25 :
+          1;
+        const volumeScale = Math.pow(normalizedVolume, 0.58) * 2.6 * presetBoost;
         gain.gain.exponentialRampToValueAtTime((tone.volume || 0.04) * volumeScale, start + tone.at + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + tone.at + tone.duration);
         osc.connect(gain);
@@ -865,28 +932,31 @@ export default function App() {
   }
 
   function playStartSound() {
+    const channelScale = clamp(startChannelVolume / 100, 0, 2);
     playToneSequence([
-      { freq: 330, at: 0, duration: 0.08, volume: 0.04, type: "triangle" },
-      { freq: 440, at: 0.1, duration: 0.08, volume: 0.04, type: "triangle" },
-      { freq: 554, at: 0.2, duration: 0.1, volume: 0.05, type: "triangle" },
+      { freq: 330, at: 0, duration: 0.08, volume: 0.04 * channelScale, type: "triangle" },
+      { freq: 440, at: 0.1, duration: 0.08, volume: 0.04 * channelScale, type: "triangle" },
+      { freq: 554, at: 0.2, duration: 0.1, volume: 0.05 * channelScale, type: "triangle" },
     ]);
   }
 
   function playCountdownTick(value) {
+    const channelScale = clamp(countdownChannelVolume / 100, 0, 2);
     const tones = {
-      3: [{ freq: 330, at: 0, duration: 0.08, volume: 0.05, type: "square" }],
-      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.06, type: "square" }],
-      1: [{ freq: 523, at: 0, duration: 0.1, volume: 0.08, type: "triangle" }],
+      3: [{ freq: 330, at: 0, duration: 0.08, volume: 0.05 * channelScale, type: "square" }],
+      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.06 * channelScale, type: "square" }],
+      1: [{ freq: 523, at: 0, duration: 0.1, volume: 0.08 * channelScale, type: "triangle" }],
     };
     playToneSequence(tones[value] || tones[1]);
   }
 
   function startRaceLoopSound() {
     if (raceSoundIntervalRef.current) clearInterval(raceSoundIntervalRef.current);
+    const channelScale = clamp(raceChannelVolume / 100, 0, 2);
     raceSoundIntervalRef.current = setInterval(() => {
       playToneSequence([
-        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.04, type: "sawtooth" },
-        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.032, type: "triangle" },
+        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.04 * channelScale, type: "sawtooth" },
+        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.032 * channelScale, type: "triangle" },
       ]);
     }, 520);
   }
@@ -898,11 +968,12 @@ export default function App() {
   }
 
   function playFinishSound() {
+    const channelScale = clamp(finishChannelVolume / 100, 0, 2);
     playToneSequence([
-      { freq: 523, at: 0, duration: 0.12, volume: 0.09, type: "triangle" },
-      { freq: 659, at: 0.08, duration: 0.12, volume: 0.09, type: "triangle" },
-      { freq: 784, at: 0.16, duration: 0.18, volume: 0.11, type: "triangle" },
-      { freq: 1046, at: 0.3, duration: 0.24, volume: 0.12, type: "sine" },
+      { freq: 523, at: 0, duration: 0.12, volume: 0.09 * channelScale, type: "triangle" },
+      { freq: 659, at: 0.08, duration: 0.12, volume: 0.09 * channelScale, type: "triangle" },
+      { freq: 784, at: 0.16, duration: 0.18, volume: 0.11 * channelScale, type: "triangle" },
+      { freq: 1046, at: 0.3, duration: 0.24, volume: 0.12 * channelScale, type: "sine" },
     ]);
   }
 
@@ -948,11 +1019,43 @@ export default function App() {
     );
   }
 
-  function storeResults(winners) {
+  function storeResults(winners, raceContext = {}) {
     if (!winners.length) return;
     setLastWinners(winners);
     const summary = winners.map((name, index) => `${placeLabel(index)} ${name}`).join(" • ");
     setLastResults((prev) => [summary, ...prev.filter((item) => item !== summary)].slice(0, 8));
+
+    const participantSnapshot = raceContext.participants || parsedEntries;
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      round: roundNumber,
+      seed: activeSeed || null,
+      fairnessMode,
+      entriesHash: hashString(participantSnapshot.join("|")),
+      participants: participantSnapshot,
+      winners,
+      summary,
+      settings: {
+        duration,
+        podiumSlots,
+        shuffleBeforeRace,
+        soundPreset,
+      },
+    };
+
+    setRaceLogs((prev) => [logEntry, ...prev].slice(0, 40));
+
+    const eliminated = eliminationPlaces.map((place) => winners[place]).filter(Boolean);
+    setRoundHistory((prev) => [
+      ...prev,
+      {
+        round: roundNumber,
+        participants: participantSnapshot,
+        winners,
+        eliminated,
+      },
+    ].slice(-40));
+    setRoundNumber((prev) => prev + 1);
   }
 
   function maybeEliminateWinners(winnersByPlace) {
@@ -1010,6 +1113,15 @@ export default function App() {
     downloadText("results-history.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
   }
 
+  function exportRaceLogJson() {
+    const payload = {
+      createdAt: new Date().toISOString(),
+      fairnessMode,
+      logs: raceLogs,
+    };
+    downloadText("race-log.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  }
+
   function copyShareLink() {
     if (!sharedUrl) return;
     const done = () => {
@@ -1047,6 +1159,11 @@ export default function App() {
     setShuffleBeforeRace(initialConfig.shuffleParam);
     setSoundEnabled(initialConfig.soundParam);
     setSoundVolume(70);
+    setSoundPreset("sport");
+    setCountdownChannelVolume(100);
+    setStartChannelVolume(100);
+    setRaceChannelVolume(100);
+    setFinishChannelVolume(100);
     setRerollAvatarsEachRound(false);
     setAvatarSeed(0);
     setPodiumCountInput("3");
@@ -1065,6 +1182,12 @@ export default function App() {
     setRaceSeedInput(initialConfig.seedParam);
     setIsCompactOverlay(initialConfig.compactOverlayParam);
     setIsAudienceMode(initialConfig.audienceParam);
+    setFairnessMode(false);
+    setRaceLogs([]);
+    setRoundHistory([]);
+    setRoundNumber(1);
+    setDedupeEntries(true);
+    setEntryFilter("");
     setCopyNotice("Saved data cleared");
     setTimeout(() => setCopyNotice(""), 1400);
     setTimeout(() => {
@@ -1096,7 +1219,7 @@ export default function App() {
     setPlacements(placementMap);
     setShowBurst(true);
     setIsRacing(false);
-    storeResults(winnersByPlace);
+    storeResults(winnersByPlace, { participants: displayList });
     maybeEliminateWinners(winnersByPlace);
     stopRaceLoopSound();
     playFinishSound();
@@ -1158,7 +1281,7 @@ export default function App() {
       setPlacements(placementMap);
       setIsRacing(false);
       setShowBurst(true);
-      storeResults(winnersByPlace);
+      storeResults(winnersByPlace, { participants: raceList });
       maybeEliminateWinners(winnersByPlace);
       stopRaceLoopSound();
       playFinishSound();
@@ -1270,6 +1393,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f8fbff 0%, #edf4ff 46%, #eef2ff 100%)", padding: 14 }}>
       <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
+      {!isOverlayRoute ? (
       <div style={{ maxWidth: 1680, margin: "0 auto", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap" }}>
           <div>
@@ -1295,6 +1419,13 @@ export default function App() {
               <div style={{ display: "grid", gap: 8 }}>
                 <label style={{ fontWeight: 700, color: "#0f172a" }}>Names / groups / case numbers</label>
                 <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 128, resize: "vertical" }} />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center" }}>
+                  <input value={entryFilter} onChange={(e) => setEntryFilter(e.target.value)} placeholder="Filter entries used in race..." style={inputStyle()} />
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155" }}>
+                    <input type="checkbox" checked={dedupeEntries} onChange={(e) => setDedupeEntries(e.target.checked)} /> Dedupe
+                  </label>
+                </div>
+                {duplicateCount > 0 ? <div style={{ fontSize: 12, color: "#b45309" }}>{duplicateCount} duplicate entries removed from race pool.</div> : null}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
@@ -1361,6 +1492,21 @@ export default function App() {
                   <div style={{ fontSize: 12, color: "#64748b" }}>Range: 0% to 200% (boost)</div>
                 </div>
 
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label style={{ fontWeight: 700, color: "#0f172a" }}>Sound preset</label>
+                  <select value={soundPreset} onChange={(e) => setSoundPreset(e.target.value)} style={inputStyle()}>
+                    <option value="sport">Sport</option>
+                    <option value="cinematic">Cinematic</option>
+                    <option value="minimal">Minimal</option>
+                  </select>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
+                    <div><div style={{ fontSize: 12, color: "#475569" }}>Countdown</div><Range min={0} max={200} step={5} value={countdownChannelVolume} onChange={setCountdownChannelVolume} /></div>
+                    <div><div style={{ fontSize: 12, color: "#475569" }}>Start</div><Range min={0} max={200} step={5} value={startChannelVolume} onChange={setStartChannelVolume} /></div>
+                    <div><div style={{ fontSize: 12, color: "#475569" }}>Race loop</div><Range min={0} max={200} step={5} value={raceChannelVolume} onChange={setRaceChannelVolume} /></div>
+                    <div><div style={{ fontSize: 12, color: "#475569" }}>Finish</div><Range min={0} max={200} step={5} value={finishChannelVolume} onChange={setFinishChannelVolume} /></div>
+                  </div>
+                </div>
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
                   <div>
                     <div style={{ fontWeight: 700, color: "#0f172a" }}>Reroll avatar style each round</div>
@@ -1373,6 +1519,9 @@ export default function App() {
               <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>Seeded reproducibility</div>
                 <div style={{ fontSize: 12, color: "#64748b" }}>Use the same seed + entries + settings to reproduce identical race outcomes.</div>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155" }}>
+                  <input type="checkbox" checked={fairnessMode} onChange={(e) => setFairnessMode(e.target.checked)} /> Fairness mode (track hash + round logs)
+                </label>
                 <input
                   value={raceSeedInput}
                   onChange={(e) => setRaceSeedInput(e.target.value.replace(/\s+/g, ""))}
@@ -1385,6 +1534,7 @@ export default function App() {
                   <button type="button" onClick={copyShareLink} style={baseButton("outline")}>Copy share link</button>
                 </div>
                 {copyNotice ? <div style={{ fontSize: 12, color: "#0f766e" }}>{copyNotice}</div> : null}
+                <div style={{ fontSize: 12, color: "#64748b" }}>Round: {roundNumber} • Logs: {raceLogs.length}</div>
               </div>
 
               <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
@@ -1430,6 +1580,7 @@ export default function App() {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button type="button" onClick={exportResultsCsv} disabled={!lastWinners.length} style={baseButton("outline")}>Export results CSV</button>
                   <button type="button" onClick={exportHistoryJson} disabled={!lastResults.length} style={baseButton("outline")}>Export history JSON</button>
+                  <button type="button" onClick={exportRaceLogJson} disabled={!raceLogs.length} style={baseButton("outline")}>Export race log</button>
                   <button type="button" onClick={exportEntriesTxt} disabled={!parsedEntries.length} style={baseButton("outline")}>Export TXT</button>
                   <button type="button" onClick={clearSavedState} style={baseButton("outline")}>Clear saved data</button>
                 </div>
@@ -1513,13 +1664,34 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              <div style={card()}>
+                <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Tournament rounds</div>
+                <div style={{ padding: 14, display: "grid", gap: 10 }}>
+                  <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("secondary")}>Run next round</button>
+                  {roundHistory.length ? (
+                    <div style={{ display: "grid", gap: 8, maxHeight: 220, overflow: "auto", paddingRight: 4 }}>
+                      {roundHistory.slice().reverse().map((round) => (
+                        <div key={`round-${round.round}-${round.winners.join("|")}`} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Round {round.round}</div>
+                          <div style={{ fontSize: 13, color: "#0f172a", marginTop: 4 }}>Winners: {round.winners.join(", ") || "-"}</div>
+                          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Eliminated: {round.eliminated.join(", ") || "None"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ border: "1px dashed #cbd5e1", borderRadius: 14, padding: 14, color: "#64748b", textAlign: "center" }}>Run races to build bracket history.</div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+      ) : null}
 
-      {isAudienceMode ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: isCompactOverlay ? "rgba(2,6,23,0.75)" : "rgba(2,6,23,0.94)", padding: isCompactOverlay ? 10 : 16 }}>
+      {isAudienceMode || isOverlayRoute ? (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: initialConfig.overlayTheme === "chroma" ? "#00ff00" : isCompactOverlay ? "rgba(2,6,23,0.75)" : "rgba(2,6,23,0.94)", padding: isCompactOverlay ? 10 : 16 }}>
           <div style={{ maxWidth: 1800, margin: "0 auto", height: "100%", display: "grid", gap: isCompactOverlay ? 10 : 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
               <div>
@@ -1531,7 +1703,7 @@ export default function App() {
                   <Play size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />
                   {countdownValue !== null ? "Counting..." : isRacing ? "Racing..." : "Start"}
                 </button>
-                <button onClick={() => setIsAudienceMode(false)} style={baseButton("secondary")}><Minimize size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Close</button>
+                {!isOverlayRoute ? <button onClick={() => setIsAudienceMode(false)} style={baseButton("secondary")}><Minimize size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Close</button> : null}
               </div>
             </div>
 
