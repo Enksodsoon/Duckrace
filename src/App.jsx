@@ -1168,7 +1168,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f8fbff 0%, #edf4ff 46%, #eef2ff 100%)", padding: 14 }}>
       <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
-      <div style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 16 }}>
+      <div style={{ maxWidth: 1680, margin: "0 auto", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap" }}>
           <div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -1185,13 +1185,13 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "350px minmax(0,1fr)" }}>
-          <div style={card()}>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(320px,390px) minmax(0,1fr)", alignItems: "start" }}>
+          <div style={{ ...card(), position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
             <div style={{ padding: "16px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Setup</div>
             <div style={{ padding: 16, display: "grid", gap: 14 }}>
               <div style={{ display: "grid", gap: 8 }}>
                 <label style={{ fontWeight: 700, color: "#0f172a" }}>Names / groups / case numbers</label>
-                <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 170, resize: "vertical" }} />
+                <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 128, resize: "vertical" }} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
@@ -1333,8 +1333,8 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={card()}>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0,1.65fr) minmax(320px,1fr)", alignItems: "start" }}>
+            <div style={{ ...card(), gridRow: "span 2" }}>
               <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5edff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Shared race track</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#64748b" }}>
@@ -1361,7 +1361,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
               <div style={card()}>
                 <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Podium</div>
                 <div style={{ padding: 14 }}>
