@@ -1416,13 +1416,12 @@ export default function App() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap" }}>
           <div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-              <span style={pill("#fff", "#475569", "#e2e8f0")}>Shared race track</span>
+              <span style={pill("#fff", "#475569", "#e2e8f0")}>Race</span>
               <span style={pill("#fff", "#475569", "#e2e8f0")}>Procedural duck avatars</span>
             </div>
             <div style={{ fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>Duck Race Randomizer</div>
-            <div style={{ marginTop: 6, color: "#475569", fontSize: 14 }}>Minimal control panel, modern race visuals, and deterministic outcomes when seeded.</div>
-            <div style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}>© Piyakawin Sodsoon</div>
-            {audioBlocked ? <div style={{ marginTop: 8, fontSize: 12, color: "#b45309" }}>Sound is unavailable in this environment, so the race stays silent.</div> : null}
+                        <div style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}>© Piyakawin Sodsoon</div>
+            {audioBlocked ? <div style={{ marginTop: 8, fontSize: 12, color: "#b45309" }}>Sound off</div> : null}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span style={pill("#fff", "#334155", "#e2e8f0")}>{parsedEntries.length} entries</span>
@@ -1444,7 +1443,7 @@ export default function App() {
             <div style={{ padding: 16, display: "grid", gap: 14 }}>
               {setupTab === "entries" ? <>
               <div style={{ display: "grid", gap: 8 }}>
-                <label style={{ fontWeight: 700, color: "#0f172a" }}>Names / groups / case numbers</label>
+                <label style={{ fontWeight: 700, color: "#0f172a" }}>Entries</label>
                 <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 128, resize: "vertical" }} />
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center" }}>
                   <input value={entryFilter} onChange={(e) => setEntryFilter(e.target.value)} placeholder="Filter entries used in race..." style={inputStyle()} />
@@ -1488,8 +1487,7 @@ export default function App() {
                     <span style={{ fontSize: 14, color: "#334155" }}>{duration} sec</span>
                   </div>
                   <Range min={3} max={30} step={1} value={duration} onChange={setDuration} />
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Range: 3 to 30 seconds</div>
-                </div>
+                                  </div>
 
                 <div style={{ display: "grid", gap: 8 }}>
                   <label style={{ fontWeight: 700, color: "#0f172a" }}>Podium size</label>
@@ -1500,8 +1498,7 @@ export default function App() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
                   <div>
                     <div style={{ fontWeight: 700, color: "#0f172a" }}>Shuffle entries</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Random order for each race</div>
-                  </div>
+                                      </div>
                   <Toggle checked={shuffleBeforeRace} onChange={setShuffleBeforeRace} />
                 </div>
 
@@ -1519,8 +1516,7 @@ export default function App() {
                     <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
                   </div>
                   <Range min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Range: 0% to 200% (boost)</div>
-                </div>
+                                  </div>
 
                 <div style={{ display: "grid", gap: 8 }}>
                   <label style={{ fontWeight: 700, color: "#0f172a" }}>Sound preset</label>
@@ -1539,9 +1535,8 @@ export default function App() {
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
                   <div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Reroll avatar style each round</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Off = same duck style per group name. On = new style every race.</div>
-                  </div>
+                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Reroll avatars</div>
+                                      </div>
                   <Toggle checked={rerollAvatarsEachRound} onChange={setRerollAvatarsEachRound} />
                 </div>
               </div>
@@ -1551,9 +1546,8 @@ export default function App() {
               {setupTab === "fairness" ? <>
               <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>Seeded reproducibility</div>
-                <div style={{ fontSize: 12, color: "#64748b" }}>Use the same seed + entries + settings to reproduce identical race outcomes.</div>
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155" }}>
-                  <input type="checkbox" checked={fairnessMode} onChange={(e) => setFairnessMode(e.target.checked)} /> Fairness mode (track hash + round logs)
+                                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155" }}>
+                  <input type="checkbox" checked={fairnessMode} onChange={(e) => setFairnessMode(e.target.checked)} /> Fairness mode
                 </label>
                 <input
                   value={raceSeedInput}
@@ -1572,7 +1566,7 @@ export default function App() {
 
               <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>Eliminate after each round</div>
-                <div style={{ fontSize: 12, color: "#64748b" }}>Choose exactly which podium places should be removed before the next round.</div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>Eliminate places after race</div>
                 <PlaceSelectionRow
                   podiumSlots={podiumSlots}
                   eliminationPlaces={eliminationPlaces}
@@ -1606,8 +1600,7 @@ export default function App() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
                   <div>
                     <div style={{ fontWeight: 700, color: "#0f172a" }}>Compact overlay mode</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Smaller presenter controls for stream overlays.</div>
-                  </div>
+                                      </div>
                   <Toggle checked={isCompactOverlay} onChange={setIsCompactOverlay} />
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1617,7 +1610,7 @@ export default function App() {
                   <button type="button" onClick={exportEntriesTxt} disabled={!parsedEntries.length} style={baseButton("outline")}>Export TXT</button>
                   <button type="button" onClick={clearSavedState} style={baseButton("outline")}>Clear saved data</button>
                 </div>
-                <div style={{ fontSize: 12, color: "#64748b" }}>Hotkeys: <strong>R</strong> start race, <strong>I</strong> instant pick, <strong>M</strong> toggle sound.</div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>R • start, I • pick, M • mute</div>
               </div>
               </> : null}
             </div>
@@ -1626,10 +1619,10 @@ export default function App() {
           <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0,1.65fr) minmax(320px,1fr)", alignItems: "start" }}>
             <div style={{ ...card(), gridRow: "span 2" }}>
               <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5edff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Shared race track</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Race</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#64748b" }}>
                   {soundEnabled && !audioBlocked ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                  <Sparkles size={14} /> custom duck avatars
+                  <Sparkles size={14} />avatars
                 </div>
               </div>
               <div style={{ padding: 14 }}>
@@ -1646,7 +1639,7 @@ export default function App() {
                     motionTime={motionTime}
                   />
                 ) : (
-                  <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 48, textAlign: "center", color: "#64748b" }}>Add entries, then start the race.</div>
+                  <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 48, textAlign: "center", color: "#64748b" }}>Add entries</div>
                 )}
               </div>
             </div>
@@ -1684,7 +1677,7 @@ export default function App() {
                           })}
                         </div>
                       ) : (
-                        <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 40, textAlign: "center", color: "#64748b" }}>No podium yet.</div>
+                        <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 40, textAlign: "center", color: "#64748b" }}>No results</div>
                       )}
                     </div>
                   </div>
@@ -1702,7 +1695,7 @@ export default function App() {
                           ))}
                         </div>
                       ) : (
-                        <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 40, textAlign: "center", color: "#64748b" }}>Result history will appear here.</div>
+                        <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 40, textAlign: "center", color: "#64748b" }}>No history</div>
                       )}
                     </div>
                   </div>
@@ -1725,7 +1718,7 @@ export default function App() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{ border: "1px dashed #cbd5e1", borderRadius: 14, padding: 14, color: "#64748b", textAlign: "center" }}>Run races to build bracket history.</div>
+                      <div style={{ border: "1px dashed #cbd5e1", borderRadius: 14, padding: 14, color: "#64748b", textAlign: "center" }}>No rounds yet</div>
                     )}
                   </div>
                 </div>
@@ -1735,9 +1728,9 @@ export default function App() {
                 <div style={card()}>
                   <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Race controls</div>
                   <div style={{ padding: 14, color: "#475569", fontSize: 14, display: "grid", gap: 8 }}>
-                    <div>Use the left panel to adjust entrants, sound and fairness settings.</div>
-                    <div>Then press <strong>Start race</strong> to begin.</div>
-                    <div>Switch tabs to view results and tournament bracket history.</div>
+                    <div>Use setup to configure.</div>
+                    <div>Start race to run.</div>
+                    <div>Use tabs for results.</div>
                   </div>
                 </div>
               ) : null}
@@ -1753,7 +1746,7 @@ export default function App() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
               <div>
                 <div style={{ fontSize: isCompactOverlay ? 22 : 32, fontWeight: 900, color: "#fff" }}>{isCompactOverlay ? "Overlay Mode" : "Audience Mode"}</div>
-                {!isCompactOverlay ? <div style={{ fontSize: 14, color: "#cbd5e1" }}>This version uses only plain React + native controls, so it is safer to deploy on Vercel.</div> : null}
+                
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("light")}>
@@ -1778,7 +1771,7 @@ export default function App() {
                   motionTime={motionTime}
                 />
               ) : (
-                <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 36, background: "rgba(255,255,255,0.95)", color: "#64748b" }}>Add entries, then start the race.</div>
+                <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 36, background: "rgba(255,255,255,0.95)", color: "#64748b" }}>Add entries</div>
               )}
 
               <div style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, width: isCompactOverlay ? 230 : 280, maxWidth: "42vw", display: "grid", gap: 8, pointerEvents: "none" }}>
@@ -1793,7 +1786,7 @@ export default function App() {
                     );
                   })
                 ) : (
-                  <div style={{ border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.85)", borderRadius: 22, padding: "12px 16px", color: "#475569", boxShadow: "0 10px 30px rgba(15,23,42,0.16)" }}>Podium will appear here.</div>
+                  <div style={{ border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.85)", borderRadius: 22, padding: "12px 16px", color: "#475569", boxShadow: "0 10px 30px rgba(15,23,42,0.16)" }}>No podium</div>
                 )}
               </div>
             </div>
