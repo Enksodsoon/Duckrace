@@ -411,6 +411,7 @@ function DuckSprite({ winner, place, active, progress, index, scale, variant, mo
   const legA = active ? Math.sin(motion * 1.15 + seed) * 5 : 0;
   const legB = active ? Math.sin(motion * 1.15 + seed + Math.PI) * 5 : 0;
   const shadowScale = 0.94 + Math.abs(Math.sin(motion * 0.35 + seed)) * 0.08;
+  const speedStretch = active ? 1 + Math.abs(Math.sin(motion * 0.9 + seed)) * 0.06 : 1;
   const isPodium = place > -1;
 
   return (
@@ -418,11 +419,14 @@ function DuckSprite({ winner, place, active, progress, index, scale, variant, mo
       position: "absolute",
       left: 0,
       top: 0,
-      transform: `translate(-50%, calc(-50% - ${bob}px)) scale(${scale}) rotate(${tilt * variant.tiltAccent}deg)`,
+      transform: `translate(-50%, calc(-50% - ${bob}px)) scale(${scale}) rotate(${tilt * variant.tiltAccent}deg) skewX(${tilt * 0.35}deg) scaleX(${speedStretch})`,
       transformOrigin: "center center",
+      transformStyle: "preserve-3d",
     }}>
-      <div style={{ position: "absolute", left: 16, top: 40, width: 48, height: 12, borderRadius: 999, background: winner ? "rgba(245,158,11,0.15)" : "rgba(15,23,42,0.1)", transform: `scale(${shadowScale})` }} />
+      <div style={{ position: "absolute", left: 10, top: 44, width: 62, height: 14, borderRadius: 999, background: winner ? "rgba(245,158,11,0.2)" : "rgba(15,23,42,0.12)", filter: "blur(1px)", transform: `scale(${shadowScale}) perspective(80px) rotateX(54deg)` }} />
+      {active ? <div style={{ position: "absolute", left: 2, top: 26, width: 18, height: 20, borderRadius: "999px 0 0 999px", background: "linear-gradient(90deg, rgba(56,189,248,0.0), rgba(56,189,248,0.35))", filter: "blur(1px)" }} /> : null}
       <div style={{ position: "relative", width: 80, height: 64 }}>
+        <div style={{ position: "absolute", left: 8, top: 18, width: 56, height: 32, borderRadius: 999, background: "rgba(15,23,42,0.08)", filter: "blur(6px)", transform: "translateZ(-10px)" }} />
         <div style={{
           position: "absolute",
           left: 12,
@@ -431,12 +435,12 @@ function DuckSprite({ winner, place, active, progress, index, scale, variant, mo
           height: 36,
           borderRadius: 999,
           border: `1px solid ${winner ? "#fcd34d" : isPodium ? "#cbd5e1" : "#e2e8f0"}`,
-          background: `linear-gradient(180deg, ${variant.palette.bodyA} 0%, ${variant.palette.bodyB} 100%)`,
-          boxShadow: winner ? "0 8px 24px rgba(245,158,11,0.18)" : "0 8px 20px rgba(15,23,42,0.08)",
+          background: `radial-gradient(circle at 35% 20%, rgba(255,255,255,0.9), transparent 40%), linear-gradient(165deg, ${variant.palette.bodyA} 0%, ${variant.palette.bodyB} 70%, #cbd5e1 100%)`,
+          boxShadow: winner ? "0 10px 30px rgba(245,158,11,0.24), inset -6px -6px 12px rgba(15,23,42,0.07)" : "0 8px 20px rgba(15,23,42,0.08), inset -6px -6px 12px rgba(15,23,42,0.06)",
         }}>
-          <div style={{ position: "absolute", left: 8, right: 8, top: 4, height: 8, borderRadius: 999, background: "rgba(255,255,255,0.7)" }} />
+          <div style={{ position: "absolute", left: 8, right: 8, top: 4, height: 8, borderRadius: 999, background: "rgba(255,255,255,0.7)", filter: "blur(0.2px)" }} />
           <DuckPattern variant={variant} />
-          <div style={{ position: "absolute", left: 4, top: 12, width: 24, height: 20, borderRadius: 999, border: "1px solid rgba(226,232,240,0.8)", background: variant.palette.wing, transform: `rotate(${wing}deg)` }} />
+          <div style={{ position: "absolute", left: 4, top: 12, width: 24, height: 20, borderRadius: 999, border: "1px solid rgba(226,232,240,0.8)", background: `linear-gradient(165deg, ${variant.palette.wing}, ${variant.palette.accentSoft})`, transform: `rotate(${wing}deg)` }} />
           <div style={{ position: "absolute", left: -2, top: 20, width: 8, height: 12, borderRadius: "0 999px 999px 0", background: "rgba(148,163,184,0.6)" }} />
         </div>
         <div style={{
@@ -447,13 +451,14 @@ function DuckSprite({ winner, place, active, progress, index, scale, variant, mo
           height: 32,
           borderRadius: 999,
           border: `1px solid ${winner ? "#fcd34d" : isPodium ? "#cbd5e1" : "#e2e8f0"}`,
-          background: `linear-gradient(180deg, ${variant.palette.bodyA} 0%, ${variant.palette.bodyB} 100%)`,
+          background: `radial-gradient(circle at 40% 20%, rgba(255,255,255,0.85), transparent 42%), linear-gradient(165deg, ${variant.palette.bodyA} 0%, ${variant.palette.bodyB} 95%)`,
+          boxShadow: "inset -4px -4px 10px rgba(15,23,42,0.08)",
         }}>
           <div style={{ position: "absolute", left: 16, top: 12, width: 2, height: 2, borderRadius: 999, background: "#0f172a", transform: `scale(${variant.eyeSize})` }} />
           <div style={{ position: "absolute", left: 12, top: 8, width: 8, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.7)" }} />
         </div>
-        <div style={{ position: "absolute", left: 68, top: 16, width: 16, height: 12, borderRadius: "3px 999px 999px 3px", background: variant.palette.bill }} />
-        <div style={{ position: "absolute", left: 68, top: 23, width: 14, height: 10, opacity: 0.85, borderRadius: "3px 999px 999px 3px", background: variant.palette.bill }} />
+        <div style={{ position: "absolute", left: 68, top: 16, width: 16, height: 12, borderRadius: "3px 999px 999px 3px", background: `linear-gradient(165deg, #fff7ed, ${variant.palette.bill})` }} />
+        <div style={{ position: "absolute", left: 68, top: 23, width: 14, height: 10, opacity: 0.9, borderRadius: "3px 999px 999px 3px", background: `linear-gradient(165deg, ${variant.palette.bill}, #fb923c)` }} />
         <div style={{ position: "absolute", left: 24, top: 48, width: 4, height: 16, borderRadius: 999, background: variant.palette.bill, transform: `rotate(${legA}deg)`, transformOrigin: "top center" }} />
         <div style={{ position: "absolute", left: 40, top: 48, width: 4, height: 16, borderRadius: 999, background: variant.palette.bill, transform: `rotate(${legB}deg)`, transformOrigin: "top center" }} />
         <DuckAccessory variant={variant} />
@@ -488,8 +493,9 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
   const winnerName = firstPlace ? racers[firstPlace.raceIndex] : "";
 
   return (
-    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 24, border: "1px solid rgba(191,219,254,0.65)", background: "linear-gradient(180deg, #f8fbff 0%, #ecf4ff 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 20px 48px rgba(15,23,42,0.12)" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 10%, rgba(255,255,255,0.8), transparent 55%), radial-gradient(circle at 90% 90%, rgba(147,197,253,0.2), transparent 60%)" }} />
+    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 24, border: "1px solid rgba(191,219,254,0.65)", background: "linear-gradient(180deg, #f8fbff 0%, #dbeafe 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 24px 60px rgba(15,23,42,0.16)" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 10%, rgba(255,255,255,0.9), transparent 55%), radial-gradient(circle at 90% 90%, rgba(59,130,246,0.22), transparent 60%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.12), transparent 25%, rgba(30,58,138,0.08) 100%)" }} />
       <WinnerBanner name={winnerName} show={Boolean(winnerName && !isRacing && countdownValue === null)} audience={audience} />
       <CountdownOverlay value={countdownValue} audience={audience} />
 
@@ -497,8 +503,9 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
         <div style={{ position: "absolute", top: 16, left: audience ? 24 : 20, zIndex: 10 }}><div style={pill()}>Start</div></div>
         <div style={{ position: "absolute", top: 16, right: audience ? 24 : 20, zIndex: 10 }}><div style={pill("#fffbeb", "#b45309", "#fde68a")}>Finish</div></div>
 
-        <div style={{ position: "absolute", top: "16%", bottom: "7%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, border: "1px solid rgba(148,163,184,0.28)", background: "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(219,234,254,0.62))" }} />
-        <div style={{ position: "absolute", top: "16%", bottom: "7%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, opacity: 0.5, backgroundImage: "repeating-linear-gradient(120deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 10px, transparent 10px, transparent 24px)" }} />
+        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, border: "1px solid rgba(148,163,184,0.3)", background: "linear-gradient(180deg, rgba(255,255,255,0.78), rgba(147,197,253,0.5))", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
+        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, opacity: 0.55, backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.35) 0px, rgba(255,255,255,0.35) 3px, transparent 3px, transparent 48px), repeating-linear-gradient(120deg, rgba(255,255,255,0.45) 0px, rgba(255,255,255,0.45) 9px, transparent 9px, transparent 22px)", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
+        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, boxShadow: "inset 0 -18px 22px rgba(30,58,138,0.16), inset 0 10px 14px rgba(255,255,255,0.5)", pointerEvents: "none" }} />
 
         {racers.map((name, index) => {
           const yPct = metrics.topPct + metrics.laneStepPct * (index + 0.5);
@@ -511,7 +518,8 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
 
           return (
             <div key={`${name}-${index}`}>
-              <div style={{ position: "absolute", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, top: `${yPct}%`, borderTop: `1px dashed ${place > -1 ? colors.border : "rgba(148,163,184,0.35)"}` }} />
+              <div style={{ position: "absolute", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, top: `${yPct}%`, borderTop: `1px dashed ${place > -1 ? colors.border : "rgba(148,163,184,0.35)"}`, opacity: 0.8 }} />
+              <div style={{ position: "absolute", top: `${yPct}%`, left: `${metrics.startX + 0.5}%`, width: `${Math.max(0, xPct - metrics.startX - 0.5)}%`, height: 10, transform: "translateY(-50%)", borderRadius: 999, background: "linear-gradient(90deg, rgba(56,189,248,0.08), rgba(59,130,246,0.28), rgba(56,189,248,0.08))", filter: "blur(0.4px)", opacity: isRacing ? 0.9 : 0.55 }} />
               <div style={{
                 position: "absolute",
                 top: `${yPct}%`,
@@ -587,7 +595,8 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
           );
         })}
 
-        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 10, transform: "translateX(-50%)", borderRadius: 999, background: "repeating-linear-gradient(180deg, #f59e0b 0px, #f59e0b 10px, #fff 10px, #fff 20px)", boxShadow: "0 0 0 3px rgba(255,255,255,0.5)" }} />
+        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 10, transform: "translateX(-50%)", borderRadius: 999, background: "repeating-linear-gradient(180deg, #f59e0b 0px, #f59e0b 10px, #fff 10px, #fff 20px)", boxShadow: "0 0 0 3px rgba(255,255,255,0.5), 0 0 24px rgba(245,158,11,0.55)" }} />
+        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 80, transform: "translateX(-50%)", background: "radial-gradient(circle at center, rgba(251,191,36,0.26), transparent 70%)", pointerEvents: "none" }} />
       </div>
     </div>
   );
