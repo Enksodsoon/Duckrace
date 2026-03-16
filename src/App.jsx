@@ -1125,6 +1125,7 @@ export default function App() {
       rhythm: 0.6 + rng() * 1.9,
       pulse: rng() * Math.PI * 2,
       progress: 0,
+      speedNow: targetAvgSpeed * (0.78 + rng() * 0.22),
       burstAt: 0.12 + rng() * 0.76,
       burstUsed: false,
       staminaDrop: 0.45 + rng() * 0.45,
@@ -1198,11 +1199,19 @@ export default function App() {
           Math.sin(elapsed * 0.0034 * (state.rhythm + 0.4) + state.pulse * 0.55) * (0.25 + state.jitterBias);
         const jitter = (rng() - 0.5) * targetAvgSpeed * 1.5 * state.volatility;
         const staminaFactor = t < state.staminaDrop ? 1 : Math.max(0.74, 1 - (t - state.staminaDrop) * 0.62);
-        let speed = Math.max(targetAvgSpeed * 0.45, (state.baseSpeed + chaos * targetAvgSpeed * 0.75 + jitter) * state.laneLuck) * staminaFactor * catchupBoost;
+        const desiredSpeed = Math.max(
+          targetAvgSpeed * 0.38,
+          (state.baseSpeed + chaos * targetAvgSpeed * 0.62 + jitter) * state.laneLuck,
+        ) * staminaFactor * catchupBoost;
+
+        // Smooth abrupt speed changes so ducks don't look jittery.
+        state.speedNow = state.speedNow * 0.84 + desiredSpeed * 0.16;
+        let speed = state.speedNow;
 
         if (!state.burstUsed && t >= state.burstAt) {
           state.burstUsed = true;
-          speed += targetAvgSpeed * (1.2 + rng() * 2.2);
+          speed += targetAvgSpeed * (0.9 + rng() * 1.5);
+          state.speedNow = speed;
         }
 
         const stride = speed * delta;
@@ -1216,6 +1225,12 @@ export default function App() {
       progressRef.current = nextProgress;
       setProgress(nextProgress);
       setPlacements(getPlacementMap(nextProgress));
+
+      const leaderNow = nextProgress.length ? Math.max(...nextProgress) : 0;
+      if (leaderNow >= 100) {
+        finalizeRace();
+        return;
+      }
 
       if (t >= 1.03) {
         finalizeRace();
