@@ -20,6 +20,59 @@ Group 4
 Group 5
 Group 6`;
 
+const STORAGE_KEY = "duck-race-randomizer:v1";
+const RESULTS_EXPORT_HEADERS = ["rank", "name"];
+
+function parseBooleanParam(value, fallback = false) {
+  if (value == null) return fallback;
+  const normalized = String(value).toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
+function seededShuffle(arr, rng) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function toCsvRow(values) {
+  return values
+    .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
+    .join(",");
+}
+
+function parseCsvOrTextEntries(content) {
+  const raw = String(content || "").replace(/\r\n/g, "\n");
+  const lines = raw.split("\n").map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) return [];
+
+  const looksLikeCsv = lines.some((line) => line.includes(","));
+  if (!looksLikeCsv) return splitEntries(raw);
+
+  return lines
+    .map((line) => {
+      const firstCell = line.match(/^\s*"((?:[^"]|"")*)"\s*(?:,|$)/);
+      if (firstCell) return firstCell[1].replace(/""/g, '"').trim();
+      return line.split(",")[0]?.trim() || "";
+    })
+    .filter(Boolean);
+}
+
+function downloadText(filename, content, type = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
 function splitEntries(text) {
   return String(text || "")
     .split(/[\n,;\t]+/)
@@ -572,13 +625,28 @@ function PlaceSelectionRow({ podiumSlots, eliminationPlaces, onToggle, onClear, 
 }
 
 export default function App() {
+  const initialConfig = useMemo(() => {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    const params = safeWindow ? new URLSearchParams(safeWindow.location.search) : null;
+    const seedParam = params?.get("seed") ?? "";
+    const audienceParam = parseBooleanParam(params?.get("audience"), false) || params?.get("view") === "overlay";
+    return {
+      seedParam,
+      audienceParam,
+      shuffleParam: parseBooleanParam(params?.get("shuffle"), true),
+      soundParam: parseBooleanParam(params?.get("sound"), false),
+      compactOverlayParam: parseBooleanParam(params?.get("minimal"), false),
+    };
+  }, []);
+
   const [entriesText, setEntriesText] = useState(SAMPLE);
   const [numberStart, setNumberStart] = useState("1");
   const [numberEnd, setNumberEnd] = useState("10");
   const [prefix, setPrefix] = useState("Group ");
   const [duration, setDuration] = useState(7);
-  const [shuffleBeforeRace, setShuffleBeforeRace] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [shuffleBeforeRace, setShuffleBeforeRace] = useState(initialConfig.shuffleParam);
+  const [soundEnabled, setSoundEnabled] = useState(initialConfig.soundParam);
+  const [soundVolume, setSoundVolume] = useState(70);
   const [rerollAvatarsEachRound, setRerollAvatarsEachRound] = useState(false);
   const [avatarSeed, setAvatarSeed] = useState(0);
   const [podiumCountInput, setPodiumCountInput] = useState("3");
@@ -587,12 +655,19 @@ export default function App() {
   const [progress, setProgress] = useState([]);
   const [placements, setPlacements] = useState([]);
   const [lastResults, setLastResults] = useState([]);
+  const [lastWinners, setLastWinners] = useState([]);
+  const [lastEliminationUndo, setLastEliminationUndo] = useState(null);
   const [isRacing, setIsRacing] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
-  const [isAudienceMode, setIsAudienceMode] = useState(false);
+  const [isAudienceMode, setIsAudienceMode] = useState(initialConfig.audienceParam);
+  const [isCompactOverlay, setIsCompactOverlay] = useState(initialConfig.compactOverlayParam);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
   const [motionTime, setMotionTime] = useState(0);
+  const [raceSeedInput, setRaceSeedInput] = useState(initialConfig.seedParam);
+  const [copyNotice, setCopyNotice] = useState("");
+
+  const fileImportRef = useRef(null);
 
   const animationRef = useRef(null);
   const progressRef = useRef([]);
@@ -607,6 +682,26 @@ export default function App() {
   const displayRacers = racers.length ? racers : parsedEntries;
   const displayProgress = progress.length === displayRacers.length ? progress : displayRacers.map(() => 0);
   const podiumWinners = placements.slice().sort((a, b) => a.place - b.place).map((item) => ({ place: item.place, name: displayRacers[item.raceIndex] }));
+  const activeSeed = raceSeedInput.trim();
+  const sharedUrl = useMemo(() => {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    if (!safeWindow) return "";
+    const url = new URL(safeWindow.location.href);
+    if (activeSeed) url.searchParams.set("seed", activeSeed);
+    else url.searchParams.delete("seed");
+    if (isAudienceMode) url.searchParams.set("audience", "1");
+    else url.searchParams.delete("audience");
+    if (isCompactOverlay) url.searchParams.set("minimal", "1");
+    else url.searchParams.delete("minimal");
+    if (shuffleBeforeRace) url.searchParams.set("shuffle", "1");
+    else url.searchParams.delete("shuffle");
+    return url.toString();
+  }, [activeSeed, isAudienceMode, isCompactOverlay, shuffleBeforeRace]);
+
+  function makeRaceRng(scope) {
+    if (!activeSeed) return Math.random;
+    return mulberry32(hashString(`${activeSeed}::${scope}::${parsedEntries.join("|")}`));
+  }
 
   useEffect(() => {
     return () => {
@@ -621,6 +716,94 @@ export default function App() {
   useEffect(() => {
     setEliminationPlaces((prev) => prev.filter((place) => place < podiumSlots));
   }, [podiumSlots]);
+
+  useEffect(() => {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    if (!safeWindow) return;
+    try {
+      const raw = safeWindow.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return;
+      if (typeof parsed.entriesText === "string") setEntriesText(parsed.entriesText);
+      if (typeof parsed.numberStart === "string") setNumberStart(parsed.numberStart);
+      if (typeof parsed.numberEnd === "string") setNumberEnd(parsed.numberEnd);
+      if (typeof parsed.prefix === "string") setPrefix(parsed.prefix);
+      if (typeof parsed.duration === "number") setDuration(clamp(parsed.duration, 3, 12));
+      if (typeof parsed.shuffleBeforeRace === "boolean") setShuffleBeforeRace(parsed.shuffleBeforeRace);
+      if (typeof parsed.soundEnabled === "boolean") setSoundEnabled(parsed.soundEnabled);
+      if (typeof parsed.soundVolume === "number") setSoundVolume(clamp(parsed.soundVolume, 0, 100));
+      if (typeof parsed.rerollAvatarsEachRound === "boolean") setRerollAvatarsEachRound(parsed.rerollAvatarsEachRound);
+      if (typeof parsed.podiumCountInput === "string") setPodiumCountInput(parsed.podiumCountInput);
+      if (Array.isArray(parsed.eliminationPlaces)) setEliminationPlaces(parsed.eliminationPlaces.filter((n) => Number.isInteger(n) && n >= 0));
+      if (Array.isArray(parsed.lastResults)) setLastResults(parsed.lastResults.slice(0, 8).map(String));
+      if (typeof parsed.raceSeedInput === "string" && !initialConfig.seedParam) setRaceSeedInput(parsed.raceSeedInput);
+      if (typeof parsed.isCompactOverlay === "boolean") setIsCompactOverlay(parsed.isCompactOverlay);
+    } catch {
+      // Ignore malformed saved data.
+    }
+  }, [initialConfig.seedParam]);
+
+  useEffect(() => {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    if (!safeWindow) return;
+    const payload = {
+      entriesText,
+      numberStart,
+      numberEnd,
+      prefix,
+      duration,
+      shuffleBeforeRace,
+      soundEnabled,
+      soundVolume,
+      rerollAvatarsEachRound,
+      podiumCountInput,
+      eliminationPlaces,
+      lastResults,
+      raceSeedInput,
+      isCompactOverlay,
+    };
+    safeWindow.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  }, [
+    entriesText,
+    numberStart,
+    numberEnd,
+    prefix,
+    duration,
+    shuffleBeforeRace,
+    soundEnabled,
+    soundVolume,
+    rerollAvatarsEachRound,
+    podiumCountInput,
+    eliminationPlaces,
+    lastResults,
+    raceSeedInput,
+    isCompactOverlay,
+  ]);
+
+  useEffect(() => {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    if (!safeWindow) return undefined;
+    const onKeyDown = (event) => {
+      const targetTag = event.target?.tagName?.toLowerCase();
+      const typing = targetTag === "textarea" || targetTag === "input" || event.target?.isContentEditable;
+      if (typing) return;
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        startRaceWithCountdown();
+      }
+      if (event.key.toLowerCase() === "i") {
+        event.preventDefault();
+        instantPick();
+      }
+      if (event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        setSoundEnabled((prev) => !prev);
+      }
+    };
+    safeWindow.addEventListener("keydown", onKeyDown);
+    return () => safeWindow.removeEventListener("keydown", onKeyDown);
+  });
 
   function getNextAvatarSeed() {
     return Math.floor(Date.now() % 1000000000);
@@ -657,7 +840,8 @@ export default function App() {
         osc.type = tone.type || "sine";
         osc.frequency.setValueAtTime(tone.freq, start + tone.at);
         gain.gain.setValueAtTime(0.0001, start + tone.at);
-        gain.gain.exponentialRampToValueAtTime(tone.volume || 0.04, start + tone.at + 0.01);
+        const volumeScale = clamp(soundVolume / 100, 0, 1);
+        gain.gain.exponentialRampToValueAtTime((tone.volume || 0.04) * volumeScale, start + tone.at + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + tone.at + tone.duration);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -729,6 +913,7 @@ export default function App() {
 
   function storeResults(winners) {
     if (!winners.length) return;
+    setLastWinners(winners);
     const summary = winners.map((name, index) => `${placeLabel(index)} ${name}`).join(" • ");
     setLastResults((prev) => [summary, ...prev.filter((item) => item !== summary)].slice(0, 8));
   }
@@ -736,20 +921,96 @@ export default function App() {
   function maybeEliminateWinners(winnersByPlace) {
     const targets = eliminationPlaces.map((place) => winnersByPlace[place]).filter(Boolean);
     if (!targets.length) return;
+    setLastEliminationUndo(parsedEntries.join("\n"));
     const remaining = removeManyOccurrences(parsedEntries, targets);
     setEntriesText(remaining.join("\n"));
+  }
+
+  function undoLastElimination() {
+    if (!lastEliminationUndo) return;
+    setEntriesText(lastEliminationUndo);
+    setLastEliminationUndo(null);
+  }
+
+  function triggerImportFilePicker() {
+    if (!fileImportRef.current) return;
+    fileImportRef.current.click();
+  }
+
+  function handleImportEntries(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextEntries = parseCsvOrTextEntries(reader.result);
+      if (nextEntries.length) setEntriesText(nextEntries.join("\n"));
+      event.target.value = "";
+    };
+    reader.readAsText(file);
+  }
+
+  function exportEntriesTxt() {
+    downloadText("entries.txt", parsedEntries.join("\n"));
+  }
+
+  function exportEntriesCsv() {
+    const csv = [toCsvRow(["entry"]), ...parsedEntries.map((entry) => toCsvRow([entry]))].join("\n");
+    downloadText("entries.csv", csv, "text/csv;charset=utf-8");
+  }
+
+  function exportResultsCsv() {
+    const rows = [toCsvRow(RESULTS_EXPORT_HEADERS), ...lastWinners.map((name, index) => toCsvRow([placeLabel(index), name]))].join("\n");
+    downloadText("results.csv", rows, "text/csv;charset=utf-8");
+  }
+
+  function exportHistoryJson() {
+    const payload = {
+      createdAt: new Date().toISOString(),
+      seed: activeSeed || null,
+      lastWinners,
+      lastResults,
+    };
+    downloadText("results-history.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  }
+
+  function copyShareLink() {
+    if (!sharedUrl) return;
+    const done = () => {
+      setCopyNotice("Copied share link");
+      setTimeout(() => setCopyNotice(""), 1400);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(sharedUrl).then(done).catch(() => {
+        downloadText("share-link.txt", sharedUrl);
+        done();
+      });
+      return;
+    }
+    downloadText("share-link.txt", sharedUrl);
+    done();
+  }
+
+  function randomizeSeed() {
+    setRaceSeedInput(String(Math.floor(Date.now() % 1000000000)));
+  }
+
+  function clearSavedState() {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    if (!safeWindow) return;
+    safeWindow.localStorage.removeItem(STORAGE_KEY);
   }
 
   function instantPick() {
     const nextAvatarSeed = rerollAvatarsEachRound ? getNextAvatarSeed() : 0;
     const list = parsedEntries;
     if (!list.length) return;
+    const rng = makeRaceRng("instant");
 
     clearAnimation();
     clearCountdown();
 
-    const displayList = shuffleBeforeRace ? shuffleArray(list) : [...list];
-    const winnerIndexes = shuffleArray(displayList.map((_, index) => index)).slice(0, Math.min(podiumSlots, displayList.length));
+    const displayList = shuffleBeforeRace ? seededShuffle(list, rng) : [...list];
+    const winnerIndexes = seededShuffle(displayList.map((_, index) => index), rng).slice(0, Math.min(podiumSlots, displayList.length));
     const placementMap = winnerIndexes.map((raceIndex, place) => ({ raceIndex, place }));
     const winnersByPlace = placementMap.map(({ raceIndex }) => displayList[raceIndex]);
 
@@ -757,7 +1018,7 @@ export default function App() {
     setRacers(displayList);
     setProgress(displayList.map((_, index) => {
       const found = placementMap.find((item) => item.raceIndex === index);
-      if (!found) return 22 + Math.random() * 68;
+      if (!found) return 22 + rng() * 68;
       return 100 - found.place * 2;
     }));
     setPlacements(placementMap);
@@ -772,11 +1033,12 @@ export default function App() {
     const nextAvatarSeed = rerollAvatarsEachRound ? getNextAvatarSeed() : 0;
     const list = parsedEntries;
     if (!list.length) return;
+    const rng = makeRaceRng("race");
 
     clearAnimation();
 
-    const raceList = shuffleBeforeRace ? shuffleArray(list) : [...list];
-    const finishOrder = shuffleArray(raceList.map((_, index) => index));
+    const raceList = shuffleBeforeRace ? seededShuffle(list, rng) : [...list];
+    const finishOrder = seededShuffle(raceList.map((_, index) => index), rng);
     const podiumOrder = finishOrder.slice(0, Math.min(podiumSlots, raceList.length));
     const durationMs = Math.max(3, duration) * 1000;
     const startAt = performance.now();
@@ -789,26 +1051,26 @@ export default function App() {
         place === 1 ? 97 :
         place === 2 ? 94 :
         place > -1 ? 92 - Math.min(place - 2, 6) * 1.6 :
-        80 + Math.random() * 8;
+        80 + rng() * 8;
       return {
         place,
         target,
-        phase: Math.random() * Math.PI * 2,
-        wobbleA: 0.7 + Math.random() * 0.9,
-        wobbleB: 0.8 + Math.random() * 0.8,
+        phase: rng() * Math.PI * 2,
+        wobbleA: 0.7 + rng() * 0.9,
+        wobbleB: 0.8 + rng() * 0.8,
         surgeAt:
           place === 0 ? 0.72 :
           place === 1 ? 0.69 :
           place === 2 ? 0.66 :
           place > -1 ? 0.62 :
-          0.42 + Math.random() * 0.25,
-        surgeWidth: 0.11 + Math.random() * 0.08,
+          0.42 + rng() * 0.25,
+        surgeWidth: 0.11 + rng() * 0.08,
         surgeBoost:
-          place === 0 ? 9 + Math.random() * 4 :
-          place === 1 ? 6 + Math.random() * 3 :
-          place === 2 ? 4 + Math.random() * 2 :
-          place > -1 ? 2 + Math.random() * 2 :
-          1.5 + Math.random() * 3,
+          place === 0 ? 9 + rng() * 4 :
+          place === 1 ? 6 + rng() * 3 :
+          place === 2 ? 4 + rng() * 2 :
+          place > -1 ? 2 + rng() * 2 :
+          1.5 + rng() * 3,
       };
     });
 
@@ -891,6 +1153,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top, rgba(255,255,255,1), rgba(248,250,252,1) 45%, rgba(241,245,249,1) 100%)", padding: 16 }}>
+      <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
       <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gap: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap" }}>
           <div>
@@ -934,6 +1197,8 @@ export default function App() {
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={generateNumbers} style={baseButton("secondary")}><Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Generate</button>
+                <button onClick={triggerImportFilePicker} style={baseButton("outline")}>Import CSV/TXT</button>
+                <button onClick={exportEntriesCsv} disabled={!parsedEntries.length} style={baseButton("outline")}>Export CSV</button>
                 <button onClick={() => setEntriesText(SAMPLE)} style={baseButton("outline")}>Sample</button>
                 <button onClick={() => setEntriesText("")} style={baseButton("outline")}>Clear</button>
               </div>
@@ -969,6 +1234,14 @@ export default function App() {
                   <Toggle checked={soundEnabled && !audioBlocked} onChange={setSoundEnabled} disabled={audioBlocked} />
                 </div>
 
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>Sound volume</span>
+                    <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
+                  </div>
+                  <Range min={0} max={100} step={5} value={soundVolume} onChange={setSoundVolume} />
+                </div>
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
                   <div>
                     <div style={{ fontWeight: 700, color: "#0f172a" }}>Reroll avatar style each round</div>
@@ -976,6 +1249,23 @@ export default function App() {
                   </div>
                   <Toggle checked={rerollAvatarsEachRound} onChange={setRerollAvatarsEachRound} />
                 </div>
+              </div>
+
+              <div style={{ border: "1px solid #e2e8f0", borderRadius: 24, padding: 16, display: "grid", gap: 10 }}>
+                <div style={{ fontWeight: 700, color: "#0f172a" }}>Seeded reproducibility</div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>Use the same seed + entries + settings to reproduce identical race outcomes.</div>
+                <input
+                  value={raceSeedInput}
+                  onChange={(e) => setRaceSeedInput(e.target.value.replace(/\s+/g, ""))}
+                  placeholder="Optional race seed"
+                  style={inputStyle()}
+                  aria-label="Race seed"
+                />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" onClick={randomizeSeed} style={baseButton("outline")}>Randomize seed</button>
+                  <button type="button" onClick={copyShareLink} style={baseButton("outline")}>Copy share link</button>
+                </div>
+                {copyNotice ? <div style={{ fontSize: 12, color: "#0f766e" }}>{copyNotice}</div> : null}
               </div>
 
               <div style={{ border: "1px solid #e2e8f0", borderRadius: 24, padding: 16, display: "grid", gap: 8 }}>
@@ -989,6 +1279,7 @@ export default function App() {
                   onFirstOnly={() => setEliminationPlaces([0])}
                   onAll={() => setEliminationPlaces(Array.from({ length: podiumSlots }).map((_, index) => index))}
                 />
+                <button type="button" onClick={undoLastElimination} disabled={!lastEliminationUndo} style={baseButton("outline")}>Undo last elimination</button>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1007,6 +1298,23 @@ export default function App() {
                   {(isAudienceMode ? <Minimize size={16} /> : <Expand size={16} />)}
                   <span style={{ marginLeft: 6 }}>{isAudienceMode ? "Close audience" : "Audience mode"}</span>
                 </button>
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Compact overlay mode</div>
+                    <div style={{ fontSize: 12, color: "#64748b" }}>Smaller presenter controls for stream overlays.</div>
+                  </div>
+                  <Toggle checked={isCompactOverlay} onChange={setIsCompactOverlay} />
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" onClick={exportResultsCsv} disabled={!lastWinners.length} style={baseButton("outline")}>Export results CSV</button>
+                  <button type="button" onClick={exportHistoryJson} disabled={!lastResults.length} style={baseButton("outline")}>Export history JSON</button>
+                  <button type="button" onClick={exportEntriesTxt} disabled={!parsedEntries.length} style={baseButton("outline")}>Export TXT</button>
+                  <button type="button" onClick={clearSavedState} style={baseButton("outline")}>Clear saved data</button>
+                </div>
+                <div style={{ fontSize: 12, color: "#64748b" }}>Hotkeys: <strong>R</strong> start race, <strong>I</strong> instant pick, <strong>M</strong> toggle sound.</div>
               </div>
             </div>
           </div>
@@ -1092,12 +1400,12 @@ export default function App() {
       </div>
 
       {isAudienceMode ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(2,6,23,0.94)", padding: 16 }}>
-          <div style={{ maxWidth: 1800, margin: "0 auto", height: "100%", display: "grid", gap: 16 }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: isCompactOverlay ? "rgba(2,6,23,0.75)" : "rgba(2,6,23,0.94)", padding: isCompactOverlay ? 10 : 16 }}>
+          <div style={{ maxWidth: 1800, margin: "0 auto", height: "100%", display: "grid", gap: isCompactOverlay ? 10 : 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
               <div>
-                <div style={{ fontSize: 32, fontWeight: 900, color: "#fff" }}>Audience Mode</div>
-                <div style={{ fontSize: 14, color: "#cbd5e1" }}>This version uses only plain React + native controls, so it is safer to deploy on Vercel.</div>
+                <div style={{ fontSize: isCompactOverlay ? 22 : 32, fontWeight: 900, color: "#fff" }}>{isCompactOverlay ? "Overlay Mode" : "Audience Mode"}</div>
+                {!isCompactOverlay ? <div style={{ fontSize: 14, color: "#cbd5e1" }}>This version uses only plain React + native controls, so it is safer to deploy on Vercel.</div> : null}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("light")}>
@@ -1125,14 +1433,14 @@ export default function App() {
                 <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 36, background: "rgba(255,255,255,0.95)", color: "#64748b" }}>Add entries, then start the race.</div>
               )}
 
-              <div style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, width: 280, maxWidth: "42vw", display: "grid", gap: 8, pointerEvents: "none" }}>
+              <div style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, width: isCompactOverlay ? 230 : 280, maxWidth: "42vw", display: "grid", gap: 8, pointerEvents: "none" }}>
                 {podiumWinners.length ? (
                   podiumWinners.map((item) => {
                     const colors = getPlaceColors(item.place);
                     return (
-                      <div key={`overlay-${item.place}-${item.name}`} style={{ border: `1px solid ${colors.border}`, background: colors.bg, borderRadius: 22, padding: "12px 16px", boxShadow: "0 10px 30px rgba(15,23,42,0.16)", backdropFilter: "blur(8px)" }}>
+                      <div key={`overlay-${item.place}-${item.name}`} style={{ border: `1px solid ${colors.border}`, background: colors.bg, borderRadius: 22, padding: isCompactOverlay ? "10px 12px" : "12px 16px", boxShadow: "0 10px 30px rgba(15,23,42,0.16)", backdropFilter: "blur(8px)" }}>
                         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#64748b" }}>{placeLabel(item.place)}</div>
-                        <div style={{ marginTop: 4, fontSize: 22, fontWeight: 800, color: "#0f172a", wordBreak: "break-word" }}>{item.name}</div>
+                        <div style={{ marginTop: 4, fontSize: isCompactOverlay ? 18 : 22, fontWeight: 800, color: "#0f172a", wordBreak: "break-word" }}>{item.name}</div>
                       </div>
                     );
                   })
