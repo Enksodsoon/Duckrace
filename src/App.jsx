@@ -93,14 +93,6 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function easeInOut(t) {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
 function placeLabel(index) {
   const n = index + 1;
   const mod10 = n % 10;
@@ -746,10 +738,10 @@ export default function App() {
       if (typeof parsed.numberStart === "string") setNumberStart(parsed.numberStart);
       if (typeof parsed.numberEnd === "string") setNumberEnd(parsed.numberEnd);
       if (typeof parsed.prefix === "string") setPrefix(parsed.prefix);
-      if (typeof parsed.duration === "number") setDuration(clamp(parsed.duration, 3, 12));
+      if (typeof parsed.duration === "number") setDuration(clamp(parsed.duration, 3, 30));
       if (typeof parsed.shuffleBeforeRace === "boolean") setShuffleBeforeRace(parsed.shuffleBeforeRace);
       if (typeof parsed.soundEnabled === "boolean") setSoundEnabled(parsed.soundEnabled);
-      if (typeof parsed.soundVolume === "number") setSoundVolume(clamp(parsed.soundVolume, 0, 100));
+      if (typeof parsed.soundVolume === "number") setSoundVolume(clamp(parsed.soundVolume, 0, 200));
       if (typeof parsed.rerollAvatarsEachRound === "boolean") setRerollAvatarsEachRound(parsed.rerollAvatarsEachRound);
       if (typeof parsed.podiumCountInput === "string") setPodiumCountInput(parsed.podiumCountInput);
       if (Array.isArray(parsed.eliminationPlaces)) setEliminationPlaces(parsed.eliminationPlaces.filter((n) => Number.isInteger(n) && n >= 0));
@@ -858,7 +850,8 @@ export default function App() {
         osc.type = tone.type || "sine";
         osc.frequency.setValueAtTime(tone.freq, start + tone.at);
         gain.gain.setValueAtTime(0.0001, start + tone.at);
-        const volumeScale = clamp(soundVolume / 100, 0, 1);
+        const normalizedVolume = clamp(soundVolume / 200, 0, 1);
+        const volumeScale = Math.pow(normalizedVolume, 0.65) * 1.7;
         gain.gain.exponentialRampToValueAtTime((tone.volume || 0.04) * volumeScale, start + tone.at + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + tone.at + tone.duration);
         osc.connect(gain);
@@ -873,17 +866,17 @@ export default function App() {
 
   function playStartSound() {
     playToneSequence([
-      { freq: 330, at: 0, duration: 0.08, volume: 0.03, type: "triangle" },
-      { freq: 440, at: 0.1, duration: 0.08, volume: 0.03, type: "triangle" },
-      { freq: 554, at: 0.2, duration: 0.1, volume: 0.035, type: "triangle" },
+      { freq: 330, at: 0, duration: 0.08, volume: 0.04, type: "triangle" },
+      { freq: 440, at: 0.1, duration: 0.08, volume: 0.04, type: "triangle" },
+      { freq: 554, at: 0.2, duration: 0.1, volume: 0.05, type: "triangle" },
     ]);
   }
 
   function playCountdownTick(value) {
     const tones = {
       3: [{ freq: 330, at: 0, duration: 0.08, volume: 0.03, type: "square" }],
-      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.03, type: "square" }],
-      1: [{ freq: 523, at: 0, duration: 0.09, volume: 0.04, type: "triangle" }],
+      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.038, type: "square" }],
+      1: [{ freq: 523, at: 0, duration: 0.09, volume: 0.052, type: "triangle" }],
     };
     playToneSequence(tones[value] || tones[1]);
   }
@@ -892,8 +885,8 @@ export default function App() {
     if (raceSoundIntervalRef.current) clearInterval(raceSoundIntervalRef.current);
     raceSoundIntervalRef.current = setInterval(() => {
       playToneSequence([
-        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.015, type: "sawtooth" },
-        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.012, type: "triangle" },
+        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.022, type: "sawtooth" },
+        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.018, type: "triangle" },
       ]);
     }, 520);
   }
@@ -906,10 +899,10 @@ export default function App() {
 
   function playFinishSound() {
     playToneSequence([
-      { freq: 523, at: 0, duration: 0.12, volume: 0.04, type: "triangle" },
-      { freq: 659, at: 0.08, duration: 0.12, volume: 0.04, type: "triangle" },
-      { freq: 784, at: 0.16, duration: 0.18, volume: 0.05, type: "triangle" },
-      { freq: 1046, at: 0.3, duration: 0.24, volume: 0.05, type: "sine" },
+      { freq: 523, at: 0, duration: 0.12, volume: 0.055, type: "triangle" },
+      { freq: 659, at: 0.08, duration: 0.12, volume: 0.055, type: "triangle" },
+      { freq: 784, at: 0.16, duration: 0.18, volume: 0.065, type: "triangle" },
+      { freq: 1046, at: 0.3, duration: 0.24, volume: 0.07, type: "sine" },
     ]);
   }
 
@@ -1118,49 +1111,44 @@ export default function App() {
     clearAnimation();
 
     const raceList = shuffleBeforeRace ? seededShuffle(list, rng) : [...list];
-    const finishOrder = seededShuffle(raceList.map((_, index) => index), rng);
-    const podiumOrder = finishOrder.slice(0, Math.min(podiumSlots, raceList.length));
     const durationMs = Math.max(3, duration) * 1000;
     const startAt = performance.now();
+    let lastAt = startAt;
     let finalized = false;
 
-    const plans = raceList.map((_, index) => {
-      const place = podiumOrder.indexOf(index);
-      const target =
-        place === 0 ? 100 :
-        place === 1 ? 97 :
-        place === 2 ? 94 :
-        place > -1 ? 92 - Math.min(place - 2, 6) * 1.6 :
-        80 + rng() * 8;
-      return {
-        place,
-        target,
-        phase: rng() * Math.PI * 2,
-        wobbleA: 0.7 + rng() * 0.9,
-        wobbleB: 0.8 + rng() * 0.8,
-        surgeAt:
-          place === 0 ? 0.72 :
-          place === 1 ? 0.69 :
-          place === 2 ? 0.66 :
-          place > -1 ? 0.62 :
-          0.42 + rng() * 0.25,
-        surgeWidth: 0.11 + rng() * 0.08,
-        surgeBoost:
-          place === 0 ? 9 + rng() * 4 :
-          place === 1 ? 6 + rng() * 3 :
-          place === 2 ? 4 + rng() * 2 :
-          place > -1 ? 2 + rng() * 2 :
-          1.5 + rng() * 3,
-      };
-    });
+    const racerState = raceList.map(() => ({
+      baseSpeed: 16 + rng() * 12,
+      volatility: 0.2 + rng() * 0.7,
+      rhythm: 0.6 + rng() * 1.9,
+      pulse: rng() * Math.PI * 2,
+      progress: 0,
+      burstAt: 0.25 + rng() * 0.6,
+      burstUsed: false,
+      staminaDrop: 0.5 + rng() * 0.45,
+      jitterBias: rng() * 0.35,
+    }));
+
+    const finishOrder = [];
+
+    const getPlacementMap = (nextProgress) => {
+      const finishedFirst = [...finishOrder];
+      const remaining = raceList
+        .map((_, index) => index)
+        .filter((index) => !finishedFirst.includes(index))
+        .sort((a, b) => (nextProgress[b] ?? 0) - (nextProgress[a] ?? 0));
+      return [...finishedFirst, ...remaining]
+        .slice(0, Math.min(podiumSlots, raceList.length))
+        .map((raceIndex, place) => ({ raceIndex, place }));
+    };
 
     const finalizeRace = () => {
       if (finalized) return;
       finalized = true;
-      const placementMap = podiumOrder.map((raceIndex, place) => ({ raceIndex, place }));
+      const placementMap = getPlacementMap(progressRef.current);
       const winnersByPlace = placementMap.map(({ raceIndex }) => raceList[raceIndex]);
-      progressRef.current = plans.map((plan) => plan.target);
-      setProgress(plans.map((plan) => plan.target));
+      const settledProgress = racerState.map((state, index) => (finishOrder.includes(index) ? 100 : state.progress));
+      progressRef.current = settledProgress;
+      setProgress(settledProgress);
       setPlacements(placementMap);
       setIsRacing(false);
       setShowBurst(true);
@@ -1183,28 +1171,41 @@ export default function App() {
 
     const frame = (now) => {
       setMotionTime(now);
-      const t = clamp((now - startAt) / durationMs, 0, 1);
+      const elapsed = now - startAt;
+      const t = clamp(elapsed / durationMs, 0, 1.4);
+      const delta = clamp((now - lastAt) / 1000, 0.010, 0.04);
+      lastAt = now;
 
-      const nextProgress = plans.map((plan, index) => {
-        const main = plan.target * (0.3 * easeOutCubic(t) + 0.7 * easeInOut(t));
-        const surgeDistance = Math.abs(t - plan.surgeAt);
-        const surgeFactor = Math.max(0, 1 - surgeDistance / plan.surgeWidth);
-        const surge = surgeFactor * plan.surgeBoost;
-        const wobble =
-          (Math.sin(now * 0.006 * plan.wobbleA + plan.phase) +
-            Math.sin(now * 0.0038 * plan.wobbleB + plan.phase * 0.6)) *
-          (1 - t) * 0.45;
-        const computed = clamp(main + surge + wobble, 0, plan.target);
-        const previous = progressRef.current[index] ?? 0;
-        return Math.min(Math.max(previous, computed), plan.target);
+      const nextProgress = racerState.map((state, index) => {
+        if (finishOrder.includes(index)) {
+          state.progress = 100;
+          return 100;
+        }
+
+        const chaos =
+          Math.sin(elapsed * 0.0019 * state.rhythm + state.pulse) * (0.7 + state.volatility) +
+          Math.sin(elapsed * 0.0034 * (state.rhythm + 0.4) + state.pulse * 0.55) * (0.25 + state.jitterBias);
+        const jitter = (rng() - 0.5) * 12 * state.volatility;
+        const staminaFactor = t < state.staminaDrop ? 1 : Math.max(0.72, 1 - (t - state.staminaDrop) * 0.85);
+        let speed = Math.max(7, state.baseSpeed + chaos * 6 + jitter) * staminaFactor;
+
+        if (!state.burstUsed && t >= state.burstAt) {
+          state.burstUsed = true;
+          speed += 20 + rng() * 30;
+        }
+
+        const stride = speed * delta;
+        state.progress = clamp(state.progress + stride, 0, 100);
+
+        if (state.progress >= 100 && !finishOrder.includes(index)) finishOrder.push(index);
+        return state.progress;
       });
 
       progressRef.current = nextProgress;
       setProgress(nextProgress);
+      setPlacements(getPlacementMap(nextProgress));
 
-      const leaderIndex = podiumOrder[0];
-      const leaderProgress = leaderIndex !== undefined ? nextProgress[leaderIndex] : 0;
-      if (leaderProgress >= 99.4 || t >= 0.992) {
+      if (finishOrder.length >= Math.min(podiumSlots, raceList.length) || t >= 1.35) {
         finalizeRace();
         return;
       }
@@ -1299,7 +1300,7 @@ export default function App() {
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>Race duration</span>
                     <span style={{ fontSize: 14, color: "#334155" }}>{duration} sec</span>
                   </div>
-                  <Range min={3} max={12} step={1} value={duration} onChange={setDuration} />
+                  <Range min={3} max={30} step={1} value={duration} onChange={setDuration} />
                 </div>
 
                 <div style={{ display: "grid", gap: 8 }}>
@@ -1329,7 +1330,7 @@ export default function App() {
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>Sound volume</span>
                     <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
                   </div>
-                  <Range min={0} max={100} step={5} value={soundVolume} onChange={setSoundVolume} />
+                  <Range min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
