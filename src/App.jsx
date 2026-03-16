@@ -687,6 +687,7 @@ export default function App() {
   const [entryFilter, setEntryFilter] = useState("");
   const [isSetupCollapsed, setIsSetupCollapsed] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState("race");
+  const [setupTab, setSetupTab] = useState("entries");
 
   const fileImportRef = useRef(null);
 
@@ -793,6 +794,7 @@ export default function App() {
       if (typeof parsed.roundNumber === "number") setRoundNumber(Math.max(1, Math.floor(parsed.roundNumber)));
       if (typeof parsed.isSetupCollapsed === "boolean") setIsSetupCollapsed(parsed.isSetupCollapsed);
       if (["race", "results", "tournament"].includes(parsed.activeWorkspaceTab)) setActiveWorkspaceTab(parsed.activeWorkspaceTab);
+      if (["entries", "race", "fairness"].includes(parsed.setupTab)) setSetupTab(parsed.setupTab);
     } catch {
       // Ignore malformed saved data.
     }
@@ -830,6 +832,7 @@ export default function App() {
       roundNumber,
       isSetupCollapsed,
       activeWorkspaceTab,
+      setupTab,
     };
     safeWindow.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [
@@ -860,6 +863,7 @@ export default function App() {
     roundNumber,
     isSetupCollapsed,
     activeWorkspaceTab,
+    setupTab,
   ]);
 
   useEffect(() => {
@@ -1198,6 +1202,7 @@ export default function App() {
     setEntryFilter("");
     setIsSetupCollapsed(false);
     setActiveWorkspaceTab("race");
+    setSetupTab("entries");
     setCopyNotice("Saved data cleared");
     setTimeout(() => setCopyNotice(""), 1400);
     requestAnimationFrame(() => {
@@ -1429,9 +1434,15 @@ export default function App() {
         </div>
 
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: isSetupCollapsed ? "1fr" : "minmax(320px,390px) minmax(0,1fr)", alignItems: "start" }}>
-          {!isSetupCollapsed ? <div style={{ ...card(), position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
+          {!isSetupCollapsed ? <div style={{ ...card(), position: "sticky", top: 10 }}>
             <div style={{ padding: "16px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Setup</div>
+            <div style={{ padding: "10px 16px 0", display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" onClick={() => setSetupTab("entries")} style={baseButton(setupTab === "entries" ? "secondary" : "outline")}>Entries</button>
+              <button type="button" onClick={() => setSetupTab("race")} style={baseButton(setupTab === "race" ? "secondary" : "outline")}>Race & Sound</button>
+              <button type="button" onClick={() => setSetupTab("fairness")} style={baseButton(setupTab === "fairness" ? "secondary" : "outline")}>Fairness & Data</button>
+            </div>
             <div style={{ padding: 16, display: "grid", gap: 14 }}>
+              {setupTab === "entries" ? <>
               <div style={{ display: "grid", gap: 8 }}>
                 <label style={{ fontWeight: 700, color: "#0f172a" }}>Names / groups / case numbers</label>
                 <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 128, resize: "vertical" }} />
@@ -1467,6 +1478,9 @@ export default function App() {
                 <button onClick={() => setEntriesText("")} style={baseButton("outline")}>Clear</button>
               </div>
 
+              </> : null}
+
+              {setupTab === "race" ? <>
               <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 12 }}>
                 <div style={{ display: "grid", gap: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1532,6 +1546,9 @@ export default function App() {
                 </div>
               </div>
 
+              </> : null}
+
+              {setupTab === "fairness" ? <>
               <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>Seeded reproducibility</div>
                 <div style={{ fontSize: 12, color: "#64748b" }}>Use the same seed + entries + settings to reproduce identical race outcomes.</div>
@@ -1602,6 +1619,7 @@ export default function App() {
                 </div>
                 <div style={{ fontSize: 12, color: "#64748b" }}>Hotkeys: <strong>R</strong> start race, <strong>I</strong> instant pick, <strong>M</strong> toggle sound.</div>
               </div>
+              </> : null}
             </div>
           </div> : null}
 
