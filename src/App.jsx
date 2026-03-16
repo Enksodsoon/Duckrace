@@ -1215,8 +1215,7 @@ export default function App() {
         }
 
         const stride = speed * delta;
-        const nearEndCap = t < 0.92 ? 99.2 : t < 0.98 ? 99.7 : 100;
-        state.progress = clamp(state.progress + stride, 0, nearEndCap);
+        state.progress = clamp(state.progress + stride, 0, 100);
 
         if (state.progress >= 100 && !finishOrder.includes(index)) finishOrder.push(index);
         return state.progress;
