@@ -687,6 +687,7 @@ export default function App() {
   const progressRef = useRef([]);
   const audioContextRef = useRef(null);
   const countdownTimeoutsRef = useRef([]);
+  const raceSoundIntervalRef = useRef(null);
   const persistenceEnabledRef = useRef(true);
 
   const parsedEntries = useMemo(() => splitEntries(entriesText), [entriesText]);
@@ -722,6 +723,7 @@ export default function App() {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       countdownTimeoutsRef.current.forEach(clearTimeout);
+      if (raceSoundIntervalRef.current) clearInterval(raceSoundIntervalRef.current);
       if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close().catch(() => {});
       }
@@ -877,6 +879,31 @@ export default function App() {
     ]);
   }
 
+  function playCountdownTick(value) {
+    const tones = {
+      3: [{ freq: 330, at: 0, duration: 0.08, volume: 0.03, type: "square" }],
+      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.03, type: "square" }],
+      1: [{ freq: 523, at: 0, duration: 0.09, volume: 0.04, type: "triangle" }],
+    };
+    playToneSequence(tones[value] || tones[1]);
+  }
+
+  function startRaceLoopSound() {
+    if (raceSoundIntervalRef.current) clearInterval(raceSoundIntervalRef.current);
+    raceSoundIntervalRef.current = setInterval(() => {
+      playToneSequence([
+        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.015, type: "sawtooth" },
+        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.012, type: "triangle" },
+      ]);
+    }, 520);
+  }
+
+  function stopRaceLoopSound() {
+    if (!raceSoundIntervalRef.current) return;
+    clearInterval(raceSoundIntervalRef.current);
+    raceSoundIntervalRef.current = null;
+  }
+
   function playFinishSound() {
     playToneSequence([
       { freq: 523, at: 0, duration: 0.12, volume: 0.04, type: "triangle" },
@@ -896,6 +923,7 @@ export default function App() {
     if (animationRef.current) cancelAnimationFrame(animationRef.current);
     animationRef.current = null;
     progressRef.current = [];
+    stopRaceLoopSound();
   }
 
   function generateNumbers() {
@@ -1077,6 +1105,7 @@ export default function App() {
     setIsRacing(false);
     storeResults(winnersByPlace);
     maybeEliminateWinners(winnersByPlace);
+    stopRaceLoopSound();
     playFinishSound();
   }
 
@@ -1137,6 +1166,7 @@ export default function App() {
       setShowBurst(true);
       storeResults(winnersByPlace);
       maybeEliminateWinners(winnersByPlace);
+      stopRaceLoopSound();
       playFinishSound();
       animationRef.current = null;
     };
@@ -1149,6 +1179,7 @@ export default function App() {
     setShowBurst(false);
     setIsRacing(true);
     playStartSound();
+    startRaceLoopSound();
 
     const frame = (now) => {
       setMotionTime(now);
@@ -1194,9 +1225,16 @@ export default function App() {
     setPlacements([]);
 
     setCountdownValue(3);
+    playCountdownTick(3);
     countdownTimeoutsRef.current = [
-      setTimeout(() => setCountdownValue(2), 900),
-      setTimeout(() => setCountdownValue(1), 1800),
+      setTimeout(() => {
+        setCountdownValue(2);
+        playCountdownTick(2);
+      }, 900),
+      setTimeout(() => {
+        setCountdownValue(1);
+        playCountdownTick(1);
+      }, 1800),
       setTimeout(() => setCountdownValue(null), 2700),
       setTimeout(() => runRace(), 2750),
     ];
