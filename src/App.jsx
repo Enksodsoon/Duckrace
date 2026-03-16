@@ -210,17 +210,20 @@ function getArenaMetrics(count, audience) {
 
 function baseButton(kind = "primary") {
   const styles = {
-    primary: { background: "#0f172a", color: "#fff", border: "1px solid #0f172a" },
-    secondary: { background: "#e2e8f0", color: "#0f172a", border: "1px solid #cbd5e1" },
-    outline: { background: "#fff", color: "#0f172a", border: "1px solid #cbd5e1" },
-    light: { background: "#fff", color: "#0f172a", border: "1px solid #fff" },
+    primary: { background: "linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)", color: "#fff", border: "1px solid #1e3a8a" },
+    secondary: { background: "#eff6ff", color: "#0f172a", border: "1px solid #bfdbfe" },
+    outline: { background: "#fff", color: "#1e293b", border: "1px solid #dbe7ff" },
+    light: { background: "rgba(255,255,255,0.92)", color: "#0f172a", border: "1px solid rgba(255,255,255,0.95)" },
   };
   return {
     ...styles[kind],
-    borderRadius: 16,
-    padding: "10px 14px",
+    borderRadius: 12,
+    padding: "10px 12px",
     fontWeight: 700,
     cursor: "pointer",
+    fontSize: 13,
+    letterSpacing: "0.01em",
+    boxShadow: kind === "primary" ? "0 10px 24px rgba(30,64,175,0.26)" : "none",
   };
 }
 
@@ -233,29 +236,30 @@ function pill(bg = "#fff", color = "#334155", border = "#e2e8f0") {
     background: bg,
     color,
     borderRadius: 999,
-    padding: "6px 12px",
-    fontSize: 12,
+    padding: "4px 10px",
+    fontSize: 11,
     fontWeight: 700,
   };
 }
 
 function card() {
   return {
-    background: "rgba(255,255,255,0.88)",
-    border: "1px solid #e2e8f0",
-    borderRadius: 28,
-    boxShadow: "0 20px 60px rgba(15,23,42,0.06)",
-    backdropFilter: "blur(8px)",
+    background: "rgba(255,255,255,0.94)",
+    border: "1px solid #e5edff",
+    borderRadius: 18,
+    boxShadow: "0 18px 44px rgba(15,23,42,0.08)",
+    backdropFilter: "blur(10px)",
   };
 }
 
 function inputStyle() {
   return {
     width: "100%",
-    borderRadius: 16,
-    border: "1px solid #cbd5e1",
+    borderRadius: 12,
+    border: "1px solid #cfe0ff",
     padding: "10px 12px",
-    background: "#fff",
+    background: "#f8fbff",
+    color: "#0f172a",
   };
 }
 
@@ -484,8 +488,8 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
   const winnerName = firstPlace ? racers[firstPlace.raceIndex] : "";
 
   return (
-    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 32, border: "1px solid #e2e8f0", background: "rgba(255,255,255,0.9)", boxShadow: "0 20px 60px rgba(15,23,42,0.06)" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at top, rgba(255,255,255,0.98), rgba(248,250,252,0.94) 46%, rgba(241,245,249,0.98) 100%)" }} />
+    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 24, border: "1px solid rgba(191,219,254,0.65)", background: "linear-gradient(180deg, #f8fbff 0%, #ecf4ff 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 20px 48px rgba(15,23,42,0.12)" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 10%, rgba(255,255,255,0.8), transparent 55%), radial-gradient(circle at 90% 90%, rgba(147,197,253,0.2), transparent 60%)" }} />
       <WinnerBanner name={winnerName} show={Boolean(winnerName && !isRacing && countdownValue === null)} audience={audience} />
       <CountdownOverlay value={countdownValue} audience={audience} />
 
@@ -493,7 +497,8 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
         <div style={{ position: "absolute", top: 16, left: audience ? 24 : 20, zIndex: 10 }}><div style={pill()}>Start</div></div>
         <div style={{ position: "absolute", top: 16, right: audience ? 24 : 20, zIndex: 10 }}><div style={pill("#fffbeb", "#b45309", "#fde68a")}>Finish</div></div>
 
-        <div style={{ position: "absolute", top: "16%", bottom: "7%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, border: "1px solid rgba(203,213,225,0.7)", background: "rgba(248,250,252,0.75)" }} />
+        <div style={{ position: "absolute", top: "16%", bottom: "7%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, border: "1px solid rgba(148,163,184,0.28)", background: "linear-gradient(180deg, rgba(255,255,255,0.72), rgba(219,234,254,0.62))" }} />
+        <div style={{ position: "absolute", top: "16%", bottom: "7%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, opacity: 0.5, backgroundImage: "repeating-linear-gradient(120deg, rgba(255,255,255,0.6) 0px, rgba(255,255,255,0.6) 10px, transparent 10px, transparent 24px)" }} />
 
         {racers.map((name, index) => {
           const yPct = metrics.topPct + metrics.laneStepPct * (index + 0.5);
@@ -506,20 +511,20 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
 
           return (
             <div key={`${name}-${index}`}>
-              <div style={{ position: "absolute", left: 0, right: 0, top: `${yPct}%`, borderTop: `1px solid ${place > -1 ? colors.border : "rgba(226,232,240,0.8)"}` }} />
+              <div style={{ position: "absolute", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, top: `${yPct}%`, borderTop: `1px dashed ${place > -1 ? colors.border : "rgba(148,163,184,0.35)"}` }} />
               <div style={{
                 position: "absolute",
                 top: `${yPct}%`,
                 left: `calc(${metrics.startX}% - 0.75rem)`,
                 transform: "translateY(-50%)",
                 maxWidth: audience ? "18rem" : "14rem",
-                padding: "6px 10px",
+                padding: "4px 10px",
                 borderRadius: 999,
-                border: `1px solid ${place > -1 ? colors.border : "#e2e8f0"}`,
-                background: place > -1 ? colors.bg : "rgba(255,255,255,0.85)",
+                border: `1px solid ${place > -1 ? colors.border : "#dbeafe"}`,
+                background: place > -1 ? colors.bg : "rgba(255,255,255,0.9)",
                 backdropFilter: "blur(4px)",
                 zIndex: 10,
-                fontSize: metrics.labelSize,
+                fontSize: metrics.labelSize - 1,
                 fontWeight: 600,
                 color: "#334155",
                 whiteSpace: "nowrap",
@@ -529,7 +534,7 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
                 {name}
               </div>
 
-              <div style={{ position: "absolute", top: `${yPct}%`, right: audience ? 20 : 16, transform: "translateY(-50%)", zIndex: 10, color: "#64748b", fontWeight: 700, fontSize: metrics.percentSize }}>
+              <div style={{ position: "absolute", top: `${yPct}%`, right: audience ? 20 : 16, transform: "translateY(-50%)", zIndex: 10, color: "#1e3a8a", fontWeight: 700, fontSize: metrics.percentSize }}>
                 {Math.round(pct)}%
               </div>
 
@@ -552,13 +557,13 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
                 </div>
               ) : null}
 
-              <div style={{ position: "absolute", top: `${yPct}%`, left: `${xPct}%`, zIndex: 20, filter: winner && showBurst ? "drop-shadow(0 0 25px rgba(251,191,36,0.65))" : "none" }}>
+              <div style={{ position: "absolute", top: `${yPct}%`, left: `${xPct}%`, zIndex: 20, filter: winner && showBurst ? "drop-shadow(0 0 28px rgba(251,191,36,0.75))" : "drop-shadow(0 6px 8px rgba(15,23,42,0.15))" }}>
                 <DuckSprite winner={winner} place={place} active={isRacing} progress={pct} index={index} scale={metrics.duckScale} variant={variant} motionTime={motionTime} />
               </div>
 
               {winner && showBurst ? (
                 <>
-                  <div style={{ position: "absolute", top: `${yPct}%`, left: `${metrics.finishX}%`, transform: "translate(-50%,-50%)", zIndex: 10, width: audience ? 128 : 80, height: audience ? 128 : 80, borderRadius: 999, background: "rgba(253,224,71,0.18)", filter: "blur(18px)" }} />
+                  <div style={{ position: "absolute", top: `${yPct}%`, left: `${metrics.finishX}%`, transform: "translate(-50%,-50%)", zIndex: 10, width: audience ? 144 : 96, height: audience ? 144 : 96, borderRadius: 999, background: "rgba(253,224,71,0.26)", filter: "blur(18px)" }} />
                   {Array.from({ length: 10 }).map((_, burstIndex) => (
                     <div
                       key={`burst-${index}-${burstIndex}`}
@@ -582,7 +587,7 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
           );
         })}
 
-        <div style={{ position: "absolute", top: "16%", bottom: "7%", left: `${metrics.finishX}%`, borderRight: "4px dashed rgba(251,191,36,0.9)", zIndex: 10 }} />
+        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 10, transform: "translateX(-50%)", borderRadius: 999, background: "repeating-linear-gradient(180deg, #f59e0b 0px, #f59e0b 10px, #fff 10px, #fff 20px)", boxShadow: "0 0 0 3px rgba(255,255,255,0.5)" }} />
       </div>
     </div>
   );
@@ -1152,17 +1157,17 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top, rgba(255,255,255,1), rgba(248,250,252,1) 45%, rgba(241,245,249,1) 100%)", padding: 16 }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f8fbff 0%, #edf4ff 46%, #eef2ff 100%)", padding: 14 }}>
       <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
-      <div style={{ maxWidth: 1280, margin: "0 auto", display: "grid", gap: 24 }}>
+      <div style={{ maxWidth: 1240, margin: "0 auto", display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap" }}>
           <div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
               <span style={pill("#fff", "#475569", "#e2e8f0")}>Shared race track</span>
               <span style={pill("#fff", "#475569", "#e2e8f0")}>Procedural duck avatars</span>
             </div>
-            <div style={{ fontSize: 40, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>Duck Race Randomizer</div>
-            <div style={{ marginTop: 8, color: "#475569" }}>Lightweight procedurally generated duck avatars with deterministic outfits, colors, and patterns for each group.</div>
+            <div style={{ fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>Duck Race Randomizer</div>
+            <div style={{ marginTop: 6, color: "#475569", fontSize: 14 }}>Minimal control panel, modern race visuals, and deterministic outcomes when seeded.</div>
             {audioBlocked ? <div style={{ marginTop: 8, fontSize: 12, color: "#b45309" }}>Sound is unavailable in this environment, so the race stays silent.</div> : null}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1171,13 +1176,13 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 24, gridTemplateColumns: "380px minmax(0,1fr)" }}>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "350px minmax(0,1fr)" }}>
           <div style={card()}>
-            <div style={{ padding: "22px 22px 0", fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Setup</div>
-            <div style={{ padding: 22, display: "grid", gap: 20 }}>
+            <div style={{ padding: "16px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Setup</div>
+            <div style={{ padding: 16, display: "grid", gap: 14 }}>
               <div style={{ display: "grid", gap: 8 }}>
                 <label style={{ fontWeight: 700, color: "#0f172a" }}>Names / groups / case numbers</label>
-                <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 220, resize: "vertical" }} />
+                <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 170, resize: "vertical" }} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
@@ -1203,7 +1208,7 @@ export default function App() {
                 <button onClick={() => setEntriesText("")} style={baseButton("outline")}>Clear</button>
               </div>
 
-              <div style={{ border: "1px solid #e2e8f0", borderRadius: 24, padding: 16, display: "grid", gap: 16 }}>
+              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 12 }}>
                 <div style={{ display: "grid", gap: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontWeight: 700, color: "#0f172a" }}>Race duration</span>
@@ -1251,7 +1256,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ border: "1px solid #e2e8f0", borderRadius: 24, padding: 16, display: "grid", gap: 10 }}>
+              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 10 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>Seeded reproducibility</div>
                 <div style={{ fontSize: 12, color: "#64748b" }}>Use the same seed + entries + settings to reproduce identical race outcomes.</div>
                 <input
@@ -1268,7 +1273,7 @@ export default function App() {
                 {copyNotice ? <div style={{ fontSize: 12, color: "#0f766e" }}>{copyNotice}</div> : null}
               </div>
 
-              <div style={{ border: "1px solid #e2e8f0", borderRadius: 24, padding: 16, display: "grid", gap: 8 }}>
+              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
                 <div style={{ fontWeight: 700, color: "#0f172a" }}>Eliminate after each round</div>
                 <div style={{ fontSize: 12, color: "#64748b" }}>Choose exactly which podium places should be removed before the next round.</div>
                 <PlaceSelectionRow
@@ -1319,16 +1324,16 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 24 }}>
+          <div style={{ display: "grid", gap: 16 }}>
             <div style={card()}>
-              <div style={{ padding: "20px 22px", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5edff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Shared race track</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#64748b" }}>
                   {soundEnabled && !audioBlocked ? <Volume2 size={14} /> : <VolumeX size={14} />}
                   <Sparkles size={14} /> custom duck avatars
                 </div>
               </div>
-              <div style={{ padding: 22 }}>
+              <div style={{ padding: 14 }}>
                 {displayRacers.length ? (
                   <RaceArena
                     racers={displayRacers}
@@ -1347,10 +1352,10 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div style={card()}>
-                <div style={{ padding: "20px 22px 0", fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Podium</div>
-                <div style={{ padding: 22 }}>
+                <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Podium</div>
+                <div style={{ padding: 14 }}>
                   {podiumWinners.length ? (
                     <div style={{ display: "grid", gap: 12 }}>
                       {podiumWinners.map((item) => {
@@ -1378,8 +1383,8 @@ export default function App() {
               </div>
 
               <div style={card()}>
-                <div style={{ padding: "20px 22px 0", fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Recent results</div>
-                <div style={{ padding: 22 }}>
+                <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Recent results</div>
+                <div style={{ padding: 14 }}>
                   {lastResults.length ? (
                     <div style={{ display: "grid", gap: 8 }}>
                       {lastResults.map((item, index) => (
