@@ -687,6 +687,7 @@ export default function App() {
   const progressRef = useRef([]);
   const audioContextRef = useRef(null);
   const countdownTimeoutsRef = useRef([]);
+  const persistenceEnabledRef = useRef(true);
 
   const parsedEntries = useMemo(() => splitEntries(entriesText), [entriesText]);
   const activeEntryCount = Math.max(parsedEntries.length, racers.length, 1);
@@ -761,6 +762,7 @@ export default function App() {
   useEffect(() => {
     const safeWindow = typeof window !== "undefined" ? window : null;
     if (!safeWindow) return;
+    if (!persistenceEnabledRef.current) return;
     const payload = {
       entriesText,
       numberStart,
@@ -1011,7 +1013,42 @@ export default function App() {
   function clearSavedState() {
     const safeWindow = typeof window !== "undefined" ? window : null;
     if (!safeWindow) return;
+    persistenceEnabledRef.current = false;
     safeWindow.localStorage.removeItem(STORAGE_KEY);
+
+    clearAnimation();
+    clearCountdown();
+    setEntriesText(SAMPLE);
+    setNumberStart("1");
+    setNumberEnd("10");
+    setPrefix("Group ");
+    setDuration(7);
+    setShuffleBeforeRace(initialConfig.shuffleParam);
+    setSoundEnabled(initialConfig.soundParam);
+    setSoundVolume(70);
+    setRerollAvatarsEachRound(false);
+    setAvatarSeed(0);
+    setPodiumCountInput("3");
+    setEliminationPlaces([0]);
+    setRacers([]);
+    setProgress([]);
+    setPlacements([]);
+    setLastResults([]);
+    setLastWinners([]);
+    setLastEliminationUndo(null);
+    setIsRacing(false);
+    setShowBurst(false);
+    setAudioBlocked(false);
+    setCountdownValue(null);
+    setMotionTime(0);
+    setRaceSeedInput(initialConfig.seedParam);
+    setIsCompactOverlay(initialConfig.compactOverlayParam);
+    setIsAudienceMode(initialConfig.audienceParam);
+    setCopyNotice("Saved data cleared");
+    setTimeout(() => setCopyNotice(""), 1400);
+    setTimeout(() => {
+      persistenceEnabledRef.current = true;
+    }, 0);
   }
 
   function instantPick() {
