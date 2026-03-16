@@ -1578,24 +1578,6 @@ export default function App() {
                 <button type="button" onClick={undoLastElimination} disabled={!lastEliminationUndo} style={baseButton("outline")}>Undo last elimination</button>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("primary")}>
-                  <Play size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />
-                  {countdownValue !== null ? "Counting..." : isRacing ? "Racing..." : "Start race"}
-                </button>
-                <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("secondary")}>
-                  <Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Instant pick
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button onClick={resetVisual} style={baseButton("outline")}><RotateCcw size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Reset stage</button>
-                <button onClick={() => setIsAudienceMode((v) => !v)} style={baseButton("outline")}>
-                  {(isAudienceMode ? <Minimize size={16} /> : <Expand size={16} />)}
-                  <span style={{ marginLeft: 6 }}>{isAudienceMode ? "Close audience" : "Audience mode"}</span>
-                </button>
-              </div>
-
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
                   <div>
@@ -1613,6 +1595,26 @@ export default function App() {
                 <div style={{ fontSize: 12, color: "#64748b" }}>R • start, I • pick, M • mute</div>
               </div>
               </> : null}
+
+              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
+                <div style={{ fontWeight: 700, color: "#0f172a" }}>Race actions</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("primary")}>
+                    <Play size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />
+                    {countdownValue !== null ? "Counting..." : isRacing ? "Racing..." : "Start race"}
+                  </button>
+                  <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("secondary")}>
+                    <Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Instant pick
+                  </button>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button onClick={resetVisual} style={baseButton("outline")}><RotateCcw size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Reset stage</button>
+                  <button onClick={() => setIsAudienceMode((v) => !v)} style={baseButton("outline")}>
+                    {(isAudienceMode ? <Minimize size={16} /> : <Expand size={16} />)}
+                    <span style={{ marginLeft: 6 }}>{isAudienceMode ? "Close audience" : "Audience mode"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div> : null}
 
