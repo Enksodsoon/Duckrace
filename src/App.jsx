@@ -1214,6 +1214,7 @@ export default function App() {
             </div>
             <div style={{ fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>Duck Race Randomizer</div>
             <div style={{ marginTop: 6, color: "#475569", fontSize: 14 }}>Minimal control panel, modern race visuals, and deterministic outcomes when seeded.</div>
+            <div style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}>© Piyakawin Sodsoon</div>
             {audioBlocked ? <div style={{ marginTop: 8, fontSize: 12, color: "#b45309" }}>Sound is unavailable in this environment, so the race stays silent.</div> : null}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
