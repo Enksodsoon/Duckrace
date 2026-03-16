@@ -851,7 +851,7 @@ export default function App() {
         osc.frequency.setValueAtTime(tone.freq, start + tone.at);
         gain.gain.setValueAtTime(0.0001, start + tone.at);
         const normalizedVolume = clamp(soundVolume / 200, 0, 1);
-        const volumeScale = Math.pow(normalizedVolume, 0.65) * 1.7;
+        const volumeScale = Math.pow(normalizedVolume, 0.58) * 2.6;
         gain.gain.exponentialRampToValueAtTime((tone.volume || 0.04) * volumeScale, start + tone.at + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + tone.at + tone.duration);
         osc.connect(gain);
@@ -874,9 +874,9 @@ export default function App() {
 
   function playCountdownTick(value) {
     const tones = {
-      3: [{ freq: 330, at: 0, duration: 0.08, volume: 0.03, type: "square" }],
-      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.038, type: "square" }],
-      1: [{ freq: 523, at: 0, duration: 0.09, volume: 0.052, type: "triangle" }],
+      3: [{ freq: 330, at: 0, duration: 0.08, volume: 0.05, type: "square" }],
+      2: [{ freq: 415, at: 0, duration: 0.08, volume: 0.06, type: "square" }],
+      1: [{ freq: 523, at: 0, duration: 0.1, volume: 0.08, type: "triangle" }],
     };
     playToneSequence(tones[value] || tones[1]);
   }
@@ -885,8 +885,8 @@ export default function App() {
     if (raceSoundIntervalRef.current) clearInterval(raceSoundIntervalRef.current);
     raceSoundIntervalRef.current = setInterval(() => {
       playToneSequence([
-        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.022, type: "sawtooth" },
-        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.018, type: "triangle" },
+        { freq: 180 + Math.random() * 35, at: 0, duration: 0.06, volume: 0.04, type: "sawtooth" },
+        { freq: 240 + Math.random() * 45, at: 0.05, duration: 0.05, volume: 0.032, type: "triangle" },
       ]);
     }, 520);
   }
@@ -899,10 +899,10 @@ export default function App() {
 
   function playFinishSound() {
     playToneSequence([
-      { freq: 523, at: 0, duration: 0.12, volume: 0.055, type: "triangle" },
-      { freq: 659, at: 0.08, duration: 0.12, volume: 0.055, type: "triangle" },
-      { freq: 784, at: 0.16, duration: 0.18, volume: 0.065, type: "triangle" },
-      { freq: 1046, at: 0.3, duration: 0.24, volume: 0.07, type: "sine" },
+      { freq: 523, at: 0, duration: 0.12, volume: 0.09, type: "triangle" },
+      { freq: 659, at: 0.08, duration: 0.12, volume: 0.09, type: "triangle" },
+      { freq: 784, at: 0.16, duration: 0.18, volume: 0.11, type: "triangle" },
+      { freq: 1046, at: 0.3, duration: 0.24, volume: 0.12, type: "sine" },
     ]);
   }
 
@@ -1116,16 +1116,21 @@ export default function App() {
     let lastAt = startAt;
     let finalized = false;
 
+    const durationSeconds = Math.max(3, duration);
+    const targetAvgSpeed = 100 / durationSeconds;
+
     const racerState = raceList.map(() => ({
-      baseSpeed: 16 + rng() * 12,
-      volatility: 0.2 + rng() * 0.7,
+      baseSpeed: targetAvgSpeed * (0.84 + rng() * 0.34),
+      volatility: 0.35 + rng() * 0.85,
       rhythm: 0.6 + rng() * 1.9,
       pulse: rng() * Math.PI * 2,
       progress: 0,
-      burstAt: 0.25 + rng() * 0.6,
+      burstAt: 0.12 + rng() * 0.76,
       burstUsed: false,
-      staminaDrop: 0.5 + rng() * 0.45,
-      jitterBias: rng() * 0.35,
+      staminaDrop: 0.45 + rng() * 0.45,
+      jitterBias: rng() * 0.5,
+      catchup: 0.94 + rng() * 0.2,
+      laneLuck: 0.9 + rng() * 0.22,
     }));
 
     const finishOrder = [];
@@ -1146,7 +1151,7 @@ export default function App() {
       finalized = true;
       const placementMap = getPlacementMap(progressRef.current);
       const winnersByPlace = placementMap.map(({ raceIndex }) => raceList[raceIndex]);
-      const settledProgress = racerState.map((state, index) => (finishOrder.includes(index) ? 100 : state.progress));
+      const settledProgress = racerState.map((state, index) => (finishOrder.includes(index) ? 100 : Math.min(99.5, state.progress)));
       progressRef.current = settledProgress;
       setProgress(settledProgress);
       setPlacements(placementMap);
@@ -1172,9 +1177,12 @@ export default function App() {
     const frame = (now) => {
       setMotionTime(now);
       const elapsed = now - startAt;
-      const t = clamp(elapsed / durationMs, 0, 1.4);
+      const t = clamp(elapsed / durationMs, 0, 1.25);
       const delta = clamp((now - lastAt) / 1000, 0.010, 0.04);
       lastAt = now;
+
+      const currentProgress = racerState.map((state) => state.progress);
+      const leaderProgress = currentProgress.length ? Math.max(...currentProgress) : 0;
 
       const nextProgress = racerState.map((state, index) => {
         if (finishOrder.includes(index)) {
@@ -1182,20 +1190,24 @@ export default function App() {
           return 100;
         }
 
+        const current = state.progress;
+        const behindLeader = Math.max(0, leaderProgress - current);
+        const catchupBoost = 1 + Math.min(0.45, (behindLeader / 100) * state.catchup);
         const chaos =
           Math.sin(elapsed * 0.0019 * state.rhythm + state.pulse) * (0.7 + state.volatility) +
           Math.sin(elapsed * 0.0034 * (state.rhythm + 0.4) + state.pulse * 0.55) * (0.25 + state.jitterBias);
-        const jitter = (rng() - 0.5) * 12 * state.volatility;
-        const staminaFactor = t < state.staminaDrop ? 1 : Math.max(0.72, 1 - (t - state.staminaDrop) * 0.85);
-        let speed = Math.max(7, state.baseSpeed + chaos * 6 + jitter) * staminaFactor;
+        const jitter = (rng() - 0.5) * targetAvgSpeed * 1.5 * state.volatility;
+        const staminaFactor = t < state.staminaDrop ? 1 : Math.max(0.74, 1 - (t - state.staminaDrop) * 0.62);
+        let speed = Math.max(targetAvgSpeed * 0.45, (state.baseSpeed + chaos * targetAvgSpeed * 0.75 + jitter) * state.laneLuck) * staminaFactor * catchupBoost;
 
         if (!state.burstUsed && t >= state.burstAt) {
           state.burstUsed = true;
-          speed += 20 + rng() * 30;
+          speed += targetAvgSpeed * (1.2 + rng() * 2.2);
         }
 
         const stride = speed * delta;
-        state.progress = clamp(state.progress + stride, 0, 100);
+        const nearEndCap = t < 0.92 ? 99.2 : t < 0.98 ? 99.7 : 100;
+        state.progress = clamp(state.progress + stride, 0, nearEndCap);
 
         if (state.progress >= 100 && !finishOrder.includes(index)) finishOrder.push(index);
         return state.progress;
@@ -1205,7 +1217,7 @@ export default function App() {
       setProgress(nextProgress);
       setPlacements(getPlacementMap(nextProgress));
 
-      if (finishOrder.length >= Math.min(podiumSlots, raceList.length) || t >= 1.35) {
+      if (t >= 1.03) {
         finalizeRace();
         return;
       }
