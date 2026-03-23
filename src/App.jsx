@@ -1498,7 +1498,7 @@ export default function App() {
 
       {!isOverlayRoute ? (
         <div style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18 }}>
-          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
               <div style={{ fontSize: 22, fontWeight: 900, color: "#172033" }}>Quack Velocity</div>
               <div style={{ width: 1, height: 28, background: "rgba(100,116,139,0.24)" }} />
