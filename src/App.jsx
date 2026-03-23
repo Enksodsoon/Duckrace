@@ -1516,7 +1516,7 @@ export default function App() {
               <button type="button" aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"} onClick={() => setIsSidebarOpen((value) => !value)} style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: isSidebarOpen ? "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)" : "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: isSidebarOpen ? "#64748b" : "#7c4a00", backdropFilter: "blur(16px)", cursor: "pointer" }}>
                 <SlidersHorizontal size={16} />
               </button>
-              <button type="button" aria-label="Open quick actions" onClick={() => setIsProfileMenuOpen((value) => !value)} style={{ minWidth: 52, height: 52, borderRadius: 999, border: "none", background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#172033", fontWeight: 900, boxShadow: "0 14px 28px rgba(255,191,0,0.2)", cursor: "pointer" }}>JD</button>
+              <button type="button" aria-label="Open quick actions" onClick={() => setIsProfileMenuOpen((value) => !value)} style={{ minWidth: 52, height: 52, borderRadius: 999, border: "none", background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#172033", fontWeight: 900, fontSize: 13, letterSpacing: "0.08em", boxShadow: "0 14px 28px rgba(255,191,0,0.2)", cursor: "pointer" }}>MENU</button>
             </div>
 
             {isProfileMenuOpen ? (
