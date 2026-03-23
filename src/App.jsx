@@ -1910,6 +1910,7 @@ export default function App() {
             <div><strong>Copyright:</strong> © 2026 Piyakawin Sodsoon. No part of this document may be reproduced or distributed without permission.</div>
           </div>
         </div>
+        </div>
       ) : null}
 
       {isAudienceMode || isOverlayRoute ? (
