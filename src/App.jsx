@@ -762,6 +762,8 @@ export default function App() {
   const [dedupeEntries, setDedupeEntries] = useState(true);
   const [entryFilter, setEntryFilter] = useState("");
   const [activeView, setActiveView] = useState("dashboard");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const fileImportRef = useRef(null);
 
@@ -1484,13 +1486,19 @@ export default function App() {
     ];
   }
 
+  function rerollAvatarsFromHeader() {
+    setAvatarSeed((value) => value + 1);
+    setActiveView("stable");
+    setIsProfileMenuOpen(false);
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #d7f8ff 0%, #8fe6f3 24%, #31bbd3 58%, #0f7489 100%)", padding: 14 }}>
       <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
 
       {!isOverlayRoute ? (
         <div style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
               <div style={{ fontSize: 22, fontWeight: 900, color: "#172033" }}>Quack Velocity</div>
               <div style={{ width: 1, height: 28, background: "rgba(100,116,139,0.24)" }} />
@@ -1502,17 +1510,28 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <button type="button" style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)" }}>
+              <button type="button" aria-label="Reroll duck outfits" onClick={rerollAvatarsFromHeader} style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)", cursor: "pointer" }}>
                 <Sparkles size={16} />
               </button>
-              <button type="button" style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)" }}>
+              <button type="button" aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"} onClick={() => setIsSidebarOpen((value) => !value)} style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: isSidebarOpen ? "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)" : "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: isSidebarOpen ? "#64748b" : "#7c4a00", backdropFilter: "blur(16px)", cursor: "pointer" }}>
                 <SlidersHorizontal size={16} />
               </button>
-              <div style={{ minWidth: 52, height: 52, borderRadius: 999, background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#172033", fontWeight: 900, boxShadow: "0 14px 28px rgba(255,191,0,0.2)" }}>JD</div>
+              <button type="button" aria-label="Open quick actions" onClick={() => setIsProfileMenuOpen((value) => !value)} style={{ minWidth: 52, height: 52, borderRadius: 999, border: "none", background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#172033", fontWeight: 900, boxShadow: "0 14px 28px rgba(255,191,0,0.2)", cursor: "pointer" }}>JD</button>
             </div>
+
+            {isProfileMenuOpen ? (
+              <div style={{ position: "absolute", right: 18, top: "calc(100% + 12px)", zIndex: 30, width: 240, padding: 14, borderRadius: 22, border: "1px solid rgba(255,255,255,0.58)", background: "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(240,249,255,0.86) 100%)", backdropFilter: "blur(24px)", boxShadow: "0 24px 60px rgba(15,23,42,0.16)", display: "grid", gap: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#94a3b8" }}>Quick actions</div>
+                <button type="button" onClick={() => { setActiveView("dashboard"); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>Open race track</button>
+                <button type="button" onClick={() => { setActiveView("stable"); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>Open duck garage</button>
+                <button type="button" onClick={() => { setIsAudienceMode((value) => !value); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>{isAudienceMode ? "Close audience mode" : "Open audience mode"}</button>
+                <button type="button" onClick={() => { startRaceWithCountdown(); setIsProfileMenuOpen(false); }} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("primary"), width: "100%" }}>Start race</button>
+              </div>
+            ) : null}
           </div>
 
-          <div style={{ display: "grid", gap: 18, gridTemplateColumns: "360px minmax(0, 1fr)", alignItems: "start" }}>
+          <div style={{ display: "grid", gap: 18, gridTemplateColumns: isSidebarOpen ? "360px minmax(0, 1fr)" : "minmax(0, 1fr)", alignItems: "start" }}>
+            {isSidebarOpen ? (
             <aside style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.58) 100%)", border: "1px solid rgba(255,255,255,0.72)", borderRadius: 36, padding: 24, display: "grid", gap: 18, boxShadow: "0 30px 80px rgba(15, 23, 42, 0.14)", backdropFilter: "blur(22px)", position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "#94a3b8" }}>Navigation</div>
@@ -1591,6 +1610,7 @@ export default function App() {
 
             {audioBlocked ? <div style={{ fontSize: 12, color: "#b45309" }}>Sound is unavailable in this environment, so the race remains silent.</div> : null}
           </aside>
+            ) : null}
 
           <main style={{ minWidth: 0, display: "grid", gap: 18 }}>
             <section style={{ ...glassCard("rgba(32, 171, 198, 0.25)"), padding: 22, position: "relative", overflow: "hidden" }}>
