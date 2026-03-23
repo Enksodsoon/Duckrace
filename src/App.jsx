@@ -659,13 +659,16 @@ function SidebarNavButton({ icon: Icon, label, description, active, onClick }) {
         display: "flex",
         alignItems: "center",
         gap: 14,
-        padding: "16px 18px",
-        borderRadius: 999,
-        border: active ? "1px solid rgba(255, 204, 0, 0.6)" : "1px solid transparent",
-        background: active ? "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)" : "transparent",
-        color: active ? "#172033" : "#64748b",
+        padding: "14px 16px",
+        borderRadius: 22,
+        border: active ? "1px solid rgba(255, 214, 77, 0.7)" : "1px solid rgba(255,255,255,0.55)",
+        background: active
+          ? "linear-gradient(135deg, rgba(255,247,186,0.95) 0%, rgba(255,227,122,0.76) 100%)"
+          : "linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.18) 100%)",
+        color: active ? "#7c4a00" : "#475569",
         cursor: "pointer",
-        boxShadow: active ? "0 18px 34px rgba(255, 191, 0, 0.26)" : "none",
+        boxShadow: active ? "0 18px 34px rgba(255, 191, 0, 0.18)" : "0 10px 24px rgba(148,163,184,0.08)",
+        backdropFilter: "blur(18px)",
         textAlign: "left",
       }}
     >
@@ -676,7 +679,8 @@ function SidebarNavButton({ icon: Icon, label, description, active, onClick }) {
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        background: active ? "rgba(23, 32, 51, 0.12)" : "rgba(148, 163, 184, 0.14)",
+        background: active ? "rgba(255,255,255,0.56)" : "rgba(255,255,255,0.5)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
       }}>
         <Icon size={18} />
       </span>
@@ -1471,19 +1475,41 @@ export default function App() {
       <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
 
       {!isOverlayRoute ? (
-        <div style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18, gridTemplateColumns: "360px minmax(0, 1fr)", alignItems: "start" }}>
-          <aside style={{ background: "rgba(255,255,255,0.94)", border: "1px solid rgba(255,255,255,0.9)", borderRadius: 36, padding: 24, display: "grid", gap: 18, boxShadow: "0 30px 80px rgba(15, 23, 42, 0.16)", position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
+        <div style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#172033" }}>Quack Velocity</div>
+              <div style={{ width: 1, height: 28, background: "rgba(100,116,139,0.24)" }} />
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => setActiveView("dashboard")} style={{ border: activeView === "dashboard" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "dashboard" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "dashboard" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Race Track</button>
+                <button type="button" onClick={() => setActiveView("stable")} style={{ border: activeView === "stable" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "stable" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "stable" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Duck Garage</button>
+                <button type="button" onClick={() => setActiveView("live")} style={{ border: activeView === "live" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "live" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "live" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Live Stats</button>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button type="button" style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)" }}>
+                <Sparkles size={16} />
+              </button>
+              <button type="button" style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)" }}>
+                <SlidersHorizontal size={16} />
+              </button>
+              <div style={{ minWidth: 52, height: 52, borderRadius: 999, background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#172033", fontWeight: 900, boxShadow: "0 14px 28px rgba(255,191,0,0.2)" }}>JD</div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 18, gridTemplateColumns: "360px minmax(0, 1fr)", alignItems: "start" }}>
+            <aside style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.58) 100%)", border: "1px solid rgba(255,255,255,0.72)", borderRadius: 36, padding: 24, display: "grid", gap: 18, boxShadow: "0 30px 80px rgba(15, 23, 42, 0.14)", backdropFilter: "blur(22px)", position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "#64748b" }}>Quack League</div>
-              <div style={{ marginTop: 6, fontSize: 34, fontWeight: 900, lineHeight: 0.95, color: "#d69e00" }}>Pro Season 2024</div>
-              <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>Keep every current control, keep the procedural duck avatar, and refresh the whole presentation.</div>
+              <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "#94a3b8" }}>Navigation</div>
+              <div style={{ marginTop: 8, fontSize: 30, fontWeight: 900, lineHeight: 0.95, color: "#172033" }}>Liquid Glass Menu</div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>Refined around the current controls, with the race track kept intact.</div>
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#94a3b8" }}>Configurations</div>
-              <SidebarNavButton icon={LayoutDashboard} label="Dashboard" description="Control room" active={activeView === "dashboard"} onClick={() => setActiveView("dashboard")} />
-              <SidebarNavButton icon={Flag} label="Live Race" description="Broadcast panel" active={activeView === "live"} onClick={() => setActiveView("live")} />
-              <SidebarNavButton icon={Shirt} label="Duck Stable" description="Avatar outfits" active={activeView === "stable"} onClick={() => setActiveView("stable")} />
+              <SidebarNavButton icon={LayoutDashboard} label="Race Track" description="Main race board" active={activeView === "dashboard"} onClick={() => setActiveView("dashboard")} />
+              <SidebarNavButton icon={Shirt} label="Duck Garage" description="Avatar outfits" active={activeView === "stable"} onClick={() => setActiveView("stable")} />
+              <SidebarNavButton icon={Flag} label="Live Stats" description="Broadcast panel" active={activeView === "live"} onClick={() => setActiveView("live")} />
             </div>
 
             <div style={{ background: "linear-gradient(180deg, rgba(241,245,249,0.95), rgba(226,232,240,0.92))", borderRadius: 28, padding: 18, display: "grid", gap: 14, border: "1px solid rgba(226,232,240,0.95)" }}>
@@ -1846,6 +1872,7 @@ export default function App() {
               </div>
             </section>
           </main>
+        </div>
         </div>
       ) : null}
 
