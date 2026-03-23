@@ -11,6 +11,14 @@ import {
   Volume2,
   VolumeX,
   Sparkles,
+  LayoutDashboard,
+  Flag,
+  Shirt,
+  Dice6,
+  Download,
+  Upload,
+  SlidersHorizontal,
+  History,
 } from "lucide-react";
 
 const SAMPLE = `Group 1
@@ -140,12 +148,12 @@ function pick(rng, list) {
 function buildDuckVariant(name, styleSeed = 0) {
   const rng = mulberry32(hashString(`${name}::${styleSeed}`));
   const palettes = [
-    { bodyA: "#ffffff", bodyB: "#e2e8f0", wing: "#cbd5e1", accent: "#3b82f6", accentSoft: "#bfdbfe", bill: "#f59e0b" },
-    { bodyA: "#fff1f2", bodyB: "#fecdd3", wing: "#fda4af", accent: "#e11d48", accentSoft: "#fecdd3", bill: "#fb923c" },
-    { bodyA: "#ecfeff", bodyB: "#ccfbf1", wing: "#99f6e4", accent: "#14b8a6", accentSoft: "#99f6e4", bill: "#f97316" },
-    { bodyA: "#f5f3ff", bodyB: "#e9d5ff", wing: "#d8b4fe", accent: "#9333ea", accentSoft: "#ddd6fe", bill: "#fb923c" },
-    { bodyA: "#fefce8", bodyB: "#fef3c7", wing: "#fde68a", accent: "#ca8a04", accentSoft: "#fef08a", bill: "#f97316" },
-    { bodyA: "#eff6ff", bodyB: "#dbeafe", wing: "#93c5fd", accent: "#2563eb", accentSoft: "#bfdbfe", bill: "#fb923c" },
+    { bodyA: "#fff8d7", bodyB: "#f6d95b", wing: "#e8bd29", accent: "#0f766e", accentSoft: "#7dd3c7", bill: "#f97316" },
+    { bodyA: "#f6fbff", bodyB: "#b4ebf8", wing: "#5fcde4", accent: "#0f766e", accentSoft: "#d8fbff", bill: "#fb923c" },
+    { bodyA: "#ffe6e0", bodyB: "#ffc1ab", wing: "#ff9878", accent: "#0ea5a4", accentSoft: "#ffd9cb", bill: "#ea580c" },
+    { bodyA: "#eefdf8", bodyB: "#9ae6d4", wing: "#5cc7ba", accent: "#115e59", accentSoft: "#cbfbf1", bill: "#fb923c" },
+    { bodyA: "#f4f1ff", bodyB: "#d8c8ff", wing: "#b8a2ff", accent: "#0f766e", accentSoft: "#eee7ff", bill: "#f97316" },
+    { bodyA: "#edf7ff", bodyB: "#91d5f6", wing: "#49b7d8", accent: "#155e75", accentSoft: "#d6f6ff", bill: "#fb923c" },
   ];
   return {
     palette: pick(rng, palettes),
@@ -241,6 +249,16 @@ function card() {
     borderRadius: 18,
     boxShadow: "0 18px 44px rgba(15,23,42,0.08)",
     backdropFilter: "blur(10px)",
+  };
+}
+
+function glassCard(tint = "rgba(8, 145, 178, 0.18)") {
+  return {
+    background: tint,
+    border: "1px solid rgba(255,255,255,0.22)",
+    borderRadius: 28,
+    boxShadow: "0 24px 60px rgba(2, 32, 43, 0.22)",
+    backdropFilter: "blur(12px)",
   };
 }
 
@@ -485,19 +503,20 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
   const winnerName = firstPlace ? racers[firstPlace.raceIndex] : "";
 
   return (
-    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 24, border: "1px solid rgba(191,219,254,0.65)", background: "linear-gradient(180deg, #f8fbff 0%, #dbeafe 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.9), 0 24px 60px rgba(15,23,42,0.16)" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 10%, rgba(255,255,255,0.9), transparent 55%), radial-gradient(circle at 90% 90%, rgba(59,130,246,0.22), transparent 60%)" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.12), transparent 25%, rgba(30,58,138,0.08) 100%)" }} />
+    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: audience ? 36 : 28, border: "1px solid rgba(255,255,255,0.25)", background: "linear-gradient(180deg, #5dd8ef 0%, #25bdd8 42%, #1494af 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55), 0 28px 70px rgba(4, 35, 48, 0.25)" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 10%, rgba(255,255,255,0.5), transparent 45%), radial-gradient(circle at 100% 100%, rgba(8, 145, 178, 0.22), transparent 45%)" }} />
+      <div style={{ position: "absolute", inset: 0, opacity: 0.2, backgroundImage: "radial-gradient(rgba(2, 44, 57, 0.35) 0.9px, transparent 0.9px)", backgroundSize: "14px 14px" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.12), transparent 22%, rgba(7, 89, 107, 0.16) 100%)" }} />
       <WinnerBanner name={winnerName} show={Boolean(winnerName && !isRacing && countdownValue === null)} audience={audience} />
       <CountdownOverlay value={countdownValue} audience={audience} />
 
       <div style={{ position: "relative", ...metrics.heightStyle }}>
-        <div style={{ position: "absolute", top: 16, left: audience ? 24 : 20, zIndex: 10 }}><div style={pill()}>Start</div></div>
-        <div style={{ position: "absolute", top: 16, right: audience ? 24 : 20, zIndex: 10 }}><div style={pill("#fffbeb", "#b45309", "#fde68a")}>Finish</div></div>
+        <div style={{ position: "absolute", top: 16, left: audience ? 24 : 20, zIndex: 10 }}><div style={pill("rgba(255,255,255,0.88)", "#0f172a", "rgba(255,255,255,0.95)")}>Start</div></div>
+        <div style={{ position: "absolute", top: 16, right: audience ? 24 : 20, zIndex: 10 }}><div style={pill("rgba(255, 244, 183, 0.95)", "#92400e", "#fde68a")}>Finish</div></div>
 
-        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, border: "1px solid rgba(148,163,184,0.3)", background: "linear-gradient(180deg, rgba(255,255,255,0.78), rgba(147,197,253,0.5))", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
-        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, opacity: 0.55, backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.35) 0px, rgba(255,255,255,0.35) 3px, transparent 3px, transparent 48px), repeating-linear-gradient(120deg, rgba(255,255,255,0.45) 0px, rgba(255,255,255,0.45) 9px, transparent 9px, transparent 22px)", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
-        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 28, boxShadow: "inset 0 -18px 22px rgba(30,58,138,0.16), inset 0 10px 14px rgba(255,255,255,0.5)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 32, border: "1px solid rgba(8, 89, 107, 0.22)", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(7, 89, 107, 0.14))", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
+        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 32, opacity: 0.45, backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 3px, transparent 3px, transparent 48px), repeating-linear-gradient(120deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 9px, transparent 9px, transparent 22px)", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
+        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 32, boxShadow: "inset 0 -24px 28px rgba(4, 35, 48, 0.18), inset 0 10px 16px rgba(255,255,255,0.18)", pointerEvents: "none" }} />
 
         {racers.map((name, index) => {
           const yPct = metrics.topPct + metrics.laneStepPct * (index + 0.5);
@@ -521,12 +540,12 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
                 padding: "4px 10px",
                 borderRadius: 999,
                 border: `1px solid ${place > -1 ? colors.border : "#dbeafe"}`,
-                background: place > -1 ? colors.bg : "rgba(255,255,255,0.9)",
+                background: place > -1 ? colors.bg : "rgba(255,255,255,0.82)",
                 backdropFilter: "blur(4px)",
                 zIndex: 10,
                 fontSize: metrics.labelSize - 1,
                 fontWeight: 600,
-                color: "#334155",
+                color: "#164e63",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -534,7 +553,7 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
                 {name}
               </div>
 
-              <div style={{ position: "absolute", top: `${yPct}%`, right: audience ? 20 : 16, transform: "translateY(-50%)", zIndex: 10, color: "#1e3a8a", fontWeight: 700, fontSize: metrics.percentSize }}>
+              <div style={{ position: "absolute", top: `${yPct}%`, right: audience ? 20 : 16, transform: "translateY(-50%)", zIndex: 10, color: "rgba(255,255,255,0.95)", fontWeight: 700, fontSize: metrics.percentSize }}>
                 {Math.round(pct)}%
               </div>
 
@@ -587,7 +606,7 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
           );
         })}
 
-        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 10, transform: "translateX(-50%)", borderRadius: 999, background: "repeating-linear-gradient(180deg, #f59e0b 0px, #f59e0b 10px, #fff 10px, #fff 20px)", boxShadow: "0 0 0 3px rgba(255,255,255,0.5), 0 0 24px rgba(245,158,11,0.55)" }} />
+        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 10, transform: "translateX(-50%)", borderRadius: 999, background: "repeating-linear-gradient(180deg, #ffd43b 0px, #ffd43b 10px, #fff 10px, #fff 20px)", boxShadow: "0 0 0 3px rgba(255,255,255,0.42), 0 0 24px rgba(255,212,59,0.58)" }} />
         <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 80, transform: "translateX(-50%)", background: "radial-gradient(circle at center, rgba(251,191,36,0.26), transparent 70%)", pointerEvents: "none" }} />
       </div>
     </div>
@@ -625,6 +644,63 @@ function PlaceSelectionRow({ podiumSlots, eliminationPlaces, onToggle, onClear, 
         <button type="button" onClick={onClear} style={baseButton("outline")}>None</button>
         <button type="button" onClick={onFirstOnly} style={baseButton("outline")}>1st only</button>
         <button type="button" onClick={onAll} style={baseButton("outline")}>All podium places</button>
+      </div>
+    </div>
+  );
+}
+
+function SidebarNavButton({ icon: Icon, label, description, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "14px 16px",
+        borderRadius: 22,
+        border: active ? "1px solid rgba(255, 214, 77, 0.7)" : "1px solid rgba(255,255,255,0.55)",
+        background: active
+          ? "linear-gradient(135deg, rgba(255,247,186,0.95) 0%, rgba(255,227,122,0.76) 100%)"
+          : "linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.18) 100%)",
+        color: active ? "#7c4a00" : "#475569",
+        cursor: "pointer",
+        boxShadow: active ? "0 18px 34px rgba(255, 191, 0, 0.18)" : "0 10px 24px rgba(148,163,184,0.08)",
+        backdropFilter: "blur(18px)",
+        textAlign: "left",
+      }}
+    >
+      <span style={{
+        width: 38,
+        height: 38,
+        borderRadius: 14,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: active ? "rgba(255,255,255,0.56)" : "rgba(255,255,255,0.5)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
+      }}>
+        <Icon size={18} />
+      </span>
+      <span style={{ display: "grid", gap: 2 }}>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>{label}</span>
+        <span style={{ fontSize: 11, opacity: 0.8 }}>{description}</span>
+      </span>
+    </button>
+  );
+}
+
+function DuckPreviewBadge({ index, variant, motionTime }) {
+  const previewPlace = index < 3 ? index : -1;
+
+  return (
+    <div style={{ width: 132, height: 132, borderRadius: 999, background: "radial-gradient(circle at 35% 20%, rgba(255,255,255,0.96), rgba(49,187,211,0.3))", border: "10px solid rgba(255,255,255,0.86)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 40px rgba(10, 88, 108, 0.18)", overflow: "hidden", position: "relative" }}>
+      <div style={{ position: "relative", width: 104, height: 104 }}>
+        <div style={{ position: "absolute", left: "50%", top: "56%" }}>
+          <DuckSprite winner={index === 0} place={previewPlace} active={false} progress={0} index={index} scale={1.08} variant={variant} motionTime={motionTime} />
+        </div>
       </div>
     </div>
   );
@@ -685,6 +761,9 @@ export default function App() {
   const [roundNumber, setRoundNumber] = useState(1);
   const [dedupeEntries, setDedupeEntries] = useState(true);
   const [entryFilter, setEntryFilter] = useState("");
+  const [activeView, setActiveView] = useState("dashboard");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const fileImportRef = useRef(null);
 
@@ -718,6 +797,23 @@ export default function App() {
   const podiumSlots = clamp(Math.max(1, podiumRequested || 1), 1, activeEntryCount);
   const displayRacers = racers.length ? racers : parsedEntries;
   const displayProgress = progress.length === displayRacers.length ? progress : displayRacers.map(() => 0);
+  const liveRanking = useMemo(() => {
+    return displayRacers
+      .map((name, index) => ({
+        name,
+        index,
+        progress: displayProgress[index] ?? 0,
+        place: placements.find((item) => item.raceIndex === index)?.place ?? null,
+      }))
+      .sort((a, b) => {
+        if (a.place !== null && b.place !== null) return a.place - b.place;
+        if (a.place !== null) return -1;
+        if (b.place !== null) return 1;
+        return b.progress - a.progress;
+      });
+  }, [displayProgress, displayRacers, placements]);
+  const leadingRacer = liveRanking[0] ?? null;
+  const stablePreviewEntries = displayRacers.length ? displayRacers : parsedEntries;
   const podiumWinners = placements.slice().sort((a, b) => a.place - b.place).map((item) => ({ place: item.place, name: displayRacers[item.raceIndex] }));
   const activeSeed = raceSeedInput.trim();
   const isOverlayRoute = initialConfig.overlayOnlyParam;
@@ -1390,313 +1486,435 @@ export default function App() {
     ];
   }
 
-  return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #f8fbff 0%, #edf4ff 46%, #eef2ff 100%)", padding: 14 }}>
-      <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
-      {!isOverlayRoute ? (
-      <div style={{ maxWidth: 1680, margin: "0 auto", display: "grid", gap: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-              <span style={pill("#fff", "#475569", "#e2e8f0")}>Shared race track</span>
-              <span style={pill("#fff", "#475569", "#e2e8f0")}>Procedural duck avatars</span>
-            </div>
-            <div style={{ fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>Duck Race Randomizer</div>
-            <div style={{ marginTop: 6, color: "#475569", fontSize: 14 }}>Minimal control panel, modern race visuals, and deterministic outcomes when seeded.</div>
-            <div style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}>© Piyakawin Sodsoon</div>
-            {audioBlocked ? <div style={{ marginTop: 8, fontSize: 12, color: "#b45309" }}>Sound is unavailable in this environment, so the race stays silent.</div> : null}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span style={pill("#fff", "#334155", "#e2e8f0")}>{parsedEntries.length} entries</span>
-            <span style={pill("#fff", "#334155", "#e2e8f0")}>podium {podiumSlots}</span>
-          </div>
-        </div>
+  function rerollAvatarsFromHeader() {
+    setAvatarSeed((value) => value + 1);
+    setActiveView("stable");
+    setIsProfileMenuOpen(false);
+  }
 
-        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(320px,390px) minmax(0,1fr)", alignItems: "start" }}>
-          <div style={{ ...card(), position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
-            <div style={{ padding: "16px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Setup</div>
-            <div style={{ padding: 16, display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gap: 8 }}>
-                <label style={{ fontWeight: 700, color: "#0f172a" }}>Names / groups / case numbers</label>
-                <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One item per line, or separated by commas" style={{ ...inputStyle(), minHeight: 128, resize: "vertical" }} />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center" }}>
-                  <input value={entryFilter} onChange={(e) => setEntryFilter(e.target.value)} placeholder="Filter entries used in race..." style={inputStyle()} />
-                  <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155" }}>
-                    <input type="checkbox" checked={dedupeEntries} onChange={(e) => setDedupeEntries(e.target.checked)} /> Dedupe
-                  </label>
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #d7f8ff 0%, #8fe6f3 24%, #31bbd3 58%, #0f7489 100%)", padding: 14 }}>
+      <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
+
+      {!isOverlayRoute ? (
+        <div style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18 }}>
+          <div style={{ position: "relative", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#172033" }}>Quack Velocity</div>
+              <div style={{ width: 1, height: 28, background: "rgba(100,116,139,0.24)" }} />
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => setActiveView("dashboard")} style={{ border: activeView === "dashboard" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "dashboard" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "dashboard" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Race Track</button>
+                <button type="button" onClick={() => setActiveView("stable")} style={{ border: activeView === "stable" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "stable" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "stable" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Duck Garage</button>
+                <button type="button" onClick={() => setActiveView("live")} style={{ border: activeView === "live" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "live" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "live" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Live Stats</button>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button type="button" aria-label="Reroll duck outfits" onClick={rerollAvatarsFromHeader} style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)", cursor: "pointer" }}>
+                <Sparkles size={16} />
+              </button>
+              <button type="button" aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"} onClick={() => setIsSidebarOpen((value) => !value)} style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: isSidebarOpen ? "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)" : "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: isSidebarOpen ? "#64748b" : "#7c4a00", backdropFilter: "blur(16px)", cursor: "pointer" }}>
+                <SlidersHorizontal size={16} />
+              </button>
+              <button type="button" aria-label="Open quick actions" onClick={() => setIsProfileMenuOpen((value) => !value)} style={{ minWidth: 52, height: 52, borderRadius: 999, border: "none", background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#172033", fontWeight: 900, fontSize: 13, letterSpacing: "0.08em", boxShadow: "0 14px 28px rgba(255,191,0,0.2)", cursor: "pointer" }}>MENU</button>
+            </div>
+
+            {isProfileMenuOpen ? (
+              <div style={{ position: "absolute", right: 18, top: "calc(100% + 12px)", zIndex: 30, width: 240, padding: 14, borderRadius: 22, border: "1px solid rgba(255,255,255,0.58)", background: "linear-gradient(135deg, rgba(255,255,255,0.94) 0%, rgba(240,249,255,0.86) 100%)", backdropFilter: "blur(24px)", boxShadow: "0 24px 60px rgba(15,23,42,0.16)", display: "grid", gap: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#94a3b8" }}>Quick actions</div>
+                <button type="button" onClick={() => { setActiveView("dashboard"); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>Open race track</button>
+                <button type="button" onClick={() => { setActiveView("stable"); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>Open duck garage</button>
+                <button type="button" onClick={() => { setIsAudienceMode((value) => !value); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>{isAudienceMode ? "Close audience mode" : "Open audience mode"}</button>
+                <button type="button" onClick={() => { startRaceWithCountdown(); setIsProfileMenuOpen(false); }} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("primary"), width: "100%", background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", border: "1px solid rgba(15,118,110,0.9)", boxShadow: "0 12px 28px rgba(20,184,166,0.28)" }}>Start race</button>
+              </div>
+            ) : null}
+          </div>
+
+          <div style={{ display: "grid", gap: 18, gridTemplateColumns: isSidebarOpen ? "360px minmax(0, 1fr)" : "minmax(0, 1fr)", alignItems: "start" }}>
+            {isSidebarOpen ? (
+            <aside style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.58) 100%)", border: "1px solid rgba(255,255,255,0.72)", borderRadius: 36, padding: 24, display: "grid", gap: 18, boxShadow: "0 30px 80px rgba(15, 23, 42, 0.14)", backdropFilter: "blur(22px)", position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "#94a3b8" }}>Navigation</div>
+              <div style={{ marginTop: 8, fontSize: 30, fontWeight: 900, lineHeight: 0.95, color: "#172033" }}>Liquid Glass Menu</div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>Refined around the current controls, with the race track kept intact.</div>
+            </div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <SidebarNavButton icon={LayoutDashboard} label="Race Track" description="Main race board" active={activeView === "dashboard"} onClick={() => setActiveView("dashboard")} />
+              <SidebarNavButton icon={Shirt} label="Duck Garage" description="Avatar outfits" active={activeView === "stable"} onClick={() => setActiveView("stable")} />
+              <SidebarNavButton icon={Flag} label="Live Stats" description="Broadcast panel" active={activeView === "live"} onClick={() => setActiveView("live")} />
+            </div>
+
+            <div style={{ background: "linear-gradient(180deg, rgba(241,245,249,0.95), rgba(226,232,240,0.92))", borderRadius: 28, padding: 18, display: "grid", gap: 14, border: "1px solid rgba(226,232,240,0.95)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#334155", textTransform: "uppercase" }}>Entries ({parsedEntries.length})</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={triggerImportFilePicker} style={{ ...baseButton("outline"), padding: 8, borderRadius: 999 }}><Upload size={14} /></button>
+                  <button type="button" onClick={exportEntriesCsv} disabled={!parsedEntries.length} style={{ ...baseButton("outline"), padding: 8, borderRadius: 999 }}><Download size={14} /></button>
                 </div>
-                {duplicateCount > 0 ? <div style={{ fontSize: 12, color: "#b45309" }}>{duplicateCount} duplicate entries removed from race pool.</div> : null}
+              </div>
+
+              <textarea value={entriesText} onChange={(e) => setEntriesText(e.target.value)} placeholder="One entry per line, or use commas" style={{ ...inputStyle(), minHeight: 118, resize: "vertical", background: "rgba(255,255,255,0.88)" }} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center" }}>
+                <input value={entryFilter} onChange={(e) => setEntryFilter(e.target.value)} placeholder="Filter active entries..." style={{ ...inputStyle(), background: "rgba(255,255,255,0.88)" }} />
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155", fontWeight: 700 }}>
+                  <input type="checkbox" checked={dedupeEntries} onChange={(e) => setDedupeEntries(e.target.checked)} /> Dedupe
+                </label>
+              </div>
+              {duplicateCount > 0 ? <div style={{ fontSize: 12, color: "#b45309" }}>{duplicateCount} duplicate entries removed from the race pool.</div> : null}
+
+              <div style={{ display: "grid", gap: 10 }}>
+                {parsedEntries.slice(0, 5).map((entry, index) => (
+                  <div key={`${entry}-${index}`} style={{ background: "rgba(255,255,255,0.95)", borderRadius: 999, padding: "10px 12px", display: "flex", alignItems: "center", gap: 12, color: "#1e293b" }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 999, background: index === 0 ? "#fff3bf" : index === 1 ? "#dbeafe" : "#fee2e2", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13 }}>{index + 1}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{entry}</span>
+                  </div>
+                ))}
+                {!parsedEntries.length ? <div style={{ color: "#64748b", fontSize: 13, padding: "10px 4px" }}>Add names to populate the roster.</div> : null}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ fontWeight: 700, color: "#0f172a" }}>Start</label>
-                  <input value={numberStart} onChange={(e) => setNumberStart(e.target.value)} style={inputStyle()} />
-                </div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ fontWeight: 700, color: "#0f172a" }}>End</label>
-                  <input value={numberEnd} onChange={(e) => setNumberEnd(e.target.value)} style={inputStyle()} />
-                </div>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ fontWeight: 700, color: "#0f172a" }}>Prefix</label>
-                  <input value={prefix} onChange={(e) => setPrefix(e.target.value)} style={inputStyle()} />
-                </div>
+                <input value={numberStart} onChange={(e) => setNumberStart(e.target.value)} placeholder="Start" style={{ ...inputStyle(), background: "#fff" }} />
+                <input value={numberEnd} onChange={(e) => setNumberEnd(e.target.value)} placeholder="End" style={{ ...inputStyle(), background: "#fff" }} />
+                <input value={prefix} onChange={(e) => setPrefix(e.target.value)} placeholder="Prefix" style={{ ...inputStyle(), background: "#fff" }} />
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={generateNumbers} style={baseButton("secondary")}><Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Generate</button>
-                <button onClick={triggerImportFilePicker} style={baseButton("outline")}>Import CSV/TXT</button>
-                <button onClick={exportEntriesCsv} disabled={!parsedEntries.length} style={baseButton("outline")}>Export CSV</button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <button onClick={generateNumbers} style={baseButton("secondary")}><Dice6 size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Generate</button>
                 <button onClick={() => setEntriesText(SAMPLE)} style={baseButton("outline")}>Sample</button>
                 <button onClick={() => setEntriesText("")} style={baseButton("outline")}>Clear</button>
-              </div>
-
-              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 12 }}>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 700, color: "#0f172a" }}>Race duration</span>
-                    <span style={{ fontSize: 14, color: "#334155" }}>{duration} sec</span>
-                  </div>
-                  <Range min={3} max={30} step={1} value={duration} onChange={setDuration} />
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Range: 3 to 30 seconds</div>
-                </div>
-
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ fontWeight: 700, color: "#0f172a" }}>Podium size</label>
-                  <input type="number" min={1} max={activeEntryCount} value={podiumCountInput} onChange={(e) => setPodiumCountInput(e.target.value)} style={inputStyle()} />
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Choose how many ranked winners to show. Maximum is the number of entries.</div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Shuffle entries</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Random order for each race</div>
-                  </div>
-                  <Toggle checked={shuffleBeforeRace} onChange={setShuffleBeforeRace} />
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Sound effects</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Start and finish tones</div>
-                  </div>
-                  <Toggle checked={soundEnabled && !audioBlocked} onChange={setSoundEnabled} disabled={audioBlocked} />
-                </div>
-
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontWeight: 700, color: "#0f172a" }}>Sound volume</span>
-                    <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
-                  </div>
-                  <Range min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
-                  <div style={{ fontSize: 12, color: "#64748b" }}>Range: 0% to 200% (boost)</div>
-                </div>
-
-                <div style={{ display: "grid", gap: 8 }}>
-                  <label style={{ fontWeight: 700, color: "#0f172a" }}>Sound preset</label>
-                  <select value={soundPreset} onChange={(e) => setSoundPreset(e.target.value)} style={inputStyle()}>
-                    <option value="sport">Sport</option>
-                    <option value="cinematic">Cinematic</option>
-                    <option value="minimal">Minimal</option>
-                  </select>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 8 }}>
-                    <div><div style={{ fontSize: 12, color: "#475569" }}>Countdown</div><Range min={0} max={200} step={5} value={countdownChannelVolume} onChange={setCountdownChannelVolume} /></div>
-                    <div><div style={{ fontSize: 12, color: "#475569" }}>Start</div><Range min={0} max={200} step={5} value={startChannelVolume} onChange={setStartChannelVolume} /></div>
-                    <div><div style={{ fontSize: 12, color: "#475569" }}>Race loop</div><Range min={0} max={200} step={5} value={raceChannelVolume} onChange={setRaceChannelVolume} /></div>
-                    <div><div style={{ fontSize: 12, color: "#475569" }}>Finish</div><Range min={0} max={200} step={5} value={finishChannelVolume} onChange={setFinishChannelVolume} /></div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Reroll avatar style each round</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Off = same duck style per group name. On = new style every race.</div>
-                  </div>
-                  <Toggle checked={rerollAvatarsEachRound} onChange={setRerollAvatarsEachRound} />
-                </div>
-              </div>
-
-              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 700, color: "#0f172a" }}>Seeded reproducibility</div>
-                <div style={{ fontSize: 12, color: "#64748b" }}>Use the same seed + entries + settings to reproduce identical race outcomes.</div>
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155" }}>
-                  <input type="checkbox" checked={fairnessMode} onChange={(e) => setFairnessMode(e.target.checked)} /> Fairness mode (track hash + round logs)
-                </label>
-                <input
-                  value={raceSeedInput}
-                  onChange={(e) => setRaceSeedInput(e.target.value.replace(/\s+/g, ""))}
-                  placeholder="Optional race seed"
-                  style={inputStyle()}
-                  aria-label="Race seed"
-                />
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" onClick={randomizeSeed} style={baseButton("outline")}>Randomize seed</button>
-                  <button type="button" onClick={copyShareLink} style={baseButton("outline")}>Copy share link</button>
-                </div>
-                {copyNotice ? <div style={{ fontSize: 12, color: "#0f766e" }}>{copyNotice}</div> : null}
-                <div style={{ fontSize: 12, color: "#64748b" }}>Round: {roundNumber} • Logs: {raceLogs.length}</div>
-              </div>
-
-              <div style={{ border: "1px solid #e5edff", borderRadius: 14, padding: 12, display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 700, color: "#0f172a" }}>Eliminate after each round</div>
-                <div style={{ fontSize: 12, color: "#64748b" }}>Choose exactly which podium places should be removed before the next round.</div>
-                <PlaceSelectionRow
-                  podiumSlots={podiumSlots}
-                  eliminationPlaces={eliminationPlaces}
-                  onToggle={toggleEliminationPlace}
-                  onClear={() => setEliminationPlaces([])}
-                  onFirstOnly={() => setEliminationPlaces([0])}
-                  onAll={() => setEliminationPlaces(Array.from({ length: podiumSlots }).map((_, index) => index))}
-                />
-                <button type="button" onClick={undoLastElimination} disabled={!lastEliminationUndo} style={baseButton("outline")}>Undo last elimination</button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("primary")}>
-                  <Play size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />
-                  {countdownValue !== null ? "Counting..." : isRacing ? "Racing..." : "Start race"}
-                </button>
-                <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("secondary")}>
-                  <Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Instant pick
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button onClick={resetVisual} style={baseButton("outline")}><RotateCcw size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Reset stage</button>
-                <button onClick={() => setIsAudienceMode((v) => !v)} style={baseButton("outline")}>
-                  {(isAudienceMode ? <Minimize size={16} /> : <Expand size={16} />)}
-                  <span style={{ marginLeft: 6 }}>{isAudienceMode ? "Close audience" : "Audience mode"}</span>
-                </button>
-              </div>
-
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: "#0f172a" }}>Compact overlay mode</div>
-                    <div style={{ fontSize: 12, color: "#64748b" }}>Smaller presenter controls for stream overlays.</div>
-                  </div>
-                  <Toggle checked={isCompactOverlay} onChange={setIsCompactOverlay} />
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" onClick={exportResultsCsv} disabled={!lastWinners.length} style={baseButton("outline")}>Export results CSV</button>
-                  <button type="button" onClick={exportHistoryJson} disabled={!lastResults.length} style={baseButton("outline")}>Export history JSON</button>
-                  <button type="button" onClick={exportRaceLogJson} disabled={!raceLogs.length} style={baseButton("outline")}>Export race log</button>
-                  <button type="button" onClick={exportEntriesTxt} disabled={!parsedEntries.length} style={baseButton("outline")}>Export TXT</button>
-                  <button type="button" onClick={clearSavedState} style={baseButton("outline")}>Clear saved data</button>
-                </div>
-                <div style={{ fontSize: 12, color: "#64748b" }}>Hotkeys: <strong>R</strong> start race, <strong>I</strong> instant pick, <strong>M</strong> toggle sound.</div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0,1.65fr) minmax(320px,1fr)", alignItems: "start" }}>
-            <div style={{ ...card(), gridRow: "span 2" }}>
-              <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5edff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a" }}>Shared race track</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#64748b" }}>
-                  {soundEnabled && !audioBlocked ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                  <Sparkles size={14} /> custom duck avatars
-                </div>
-              </div>
-              <div style={{ padding: 14 }}>
-                {displayRacers.length ? (
-                  <RaceArena
-                    racers={displayRacers}
-                    progress={displayProgress}
-                    placements={placements}
-                    isRacing={isRacing}
-                    showBurst={showBurst}
-                    countdownValue={countdownValue}
-                    audience={false}
-                    avatarSeed={avatarSeed}
-                    motionTime={motionTime}
-                  />
-                ) : (
-                  <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 48, textAlign: "center", color: "#64748b" }}>Add entries, then start the race.</div>
-                )}
+                <button onClick={exportEntriesTxt} disabled={!parsedEntries.length} style={baseButton("outline")}>Export TXT</button>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-              <div style={card()}>
-                <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Podium</div>
-                <div style={{ padding: 14 }}>
-                  {podiumWinners.length ? (
-                    <div style={{ display: "grid", gap: 12 }}>
-                      {podiumWinners.map((item) => {
-                        const colors = getPlaceColors(item.place);
+            <div style={{ display: "grid", gap: 12 }}>
+              <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("primary"), padding: "18px 20px", borderRadius: 999, fontSize: 17, background: "linear-gradient(135deg, #876300 0%, #a37800 100%)", border: "1px solid rgba(135,99,0,0.9)", boxShadow: "0 18px 40px rgba(135,99,0,0.3)" }}>
+                <Play size={18} style={{ marginRight: 8, verticalAlign: "text-bottom" }} />
+                {countdownValue !== null ? "Counting..." : isRacing ? "Racing..." : "Start Race"}
+              </button>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("secondary"), borderRadius: 999, background: "linear-gradient(135deg, #5ad5ef 0%, #44c7e8 100%)", border: "1px solid rgba(68,199,232,0.9)" }}>
+                  <Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Pick
+                </button>
+                <button onClick={resetVisual} style={{ ...baseButton("outline"), borderRadius: 999 }}>
+                  <RotateCcw size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Reset
+                </button>
+              </div>
+            </div>
+
+            <button onClick={() => setIsAudienceMode((v) => !v)} style={{ ...baseButton("outline"), borderRadius: 18, padding: "14px 16px", justifyContent: "flex-start", display: "flex", alignItems: "center" }}>
+              {isAudienceMode ? <Minimize size={18} /> : <Expand size={18} />}
+              <span style={{ marginLeft: 8, fontWeight: 800 }}>{isAudienceMode ? "Close Audience Mode" : "Audience Mode"}</span>
+            </button>
+
+            {audioBlocked ? <div style={{ fontSize: 12, color: "#b45309" }}>Sound is unavailable in this environment, so the race remains silent.</div> : null}
+          </aside>
+            ) : null}
+
+          <main style={{ minWidth: 0, display: "grid", gap: 18 }}>
+            <section style={{ ...glassCard("rgba(32, 171, 198, 0.25)"), padding: 22, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0, opacity: 0.13, backgroundImage: "radial-gradient(rgba(6, 78, 97, 0.75) 1.1px, transparent 1.1px)", backgroundSize: "18px 18px" }} />
+              <div style={{ position: "relative", display: "grid", gap: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "start", flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 58, fontWeight: 900, color: "#fff", lineHeight: 0.95 }}>The Quackway Circuit</div>
+                    <div style={{ marginTop: 8, fontSize: 20, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(236,253,255,0.92)" }}>Grand Finals · Pool A</div>
+                  </div>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ ...glassCard("rgba(7, 89, 107, 0.45)"), padding: "18px 26px", minWidth: 150 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(207,250,254,0.82)" }}>Round</div>
+                      <div style={{ marginTop: 6, fontSize: 44, fontWeight: 900, color: "#ffd43b", lineHeight: 1 }}>{roundNumber}</div>
+                    </div>
+                    <div style={{ ...glassCard("rgba(7, 89, 107, 0.45)"), padding: "18px 26px", minWidth: 150 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(207,250,254,0.82)" }}>Position</div>
+                      <div style={{ marginTop: 6, fontSize: 44, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{leadingRacer ? `${(leadingRacer.place ?? 0) + 1}/${displayRacers.length || 0}` : `0/${displayRacers.length || 0}`}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {(activeView === "dashboard" || activeView === "live") ? (
+                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr) 360px", alignItems: "start" }}>
+                    <div style={{ minWidth: 0, display: "grid", gap: 18 }}>
+                      <div style={{ ...glassCard("rgba(7, 89, 107, 0.16)"), padding: 18 }}>
+                        {displayRacers.length ? (
+                          <RaceArena
+                            racers={displayRacers}
+                            progress={displayProgress}
+                            placements={placements}
+                            isRacing={isRacing}
+                            showBurst={showBurst}
+                            countdownValue={countdownValue}
+                            audience={false}
+                            avatarSeed={avatarSeed}
+                            motionTime={motionTime}
+                          />
+                        ) : (
+                          <div style={{ minHeight: 520, borderRadius: 28, border: "1px dashed rgba(255,255,255,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ecfeff", fontWeight: 700 }}>Add entries to launch the race board.</div>
+                        )}
+                      </div>
+
+                      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 520px)" }}>
+                        <div style={{ ...glassCard("rgba(7, 89, 107, 0.32)"), padding: 18 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                            <div>
+                              <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(207,250,254,0.78)" }}>Recent History</div>
+                              <div style={{ marginTop: 4, fontSize: 14, color: "rgba(236,253,255,0.88)" }}>Last finish order snapshot.</div>
+                            </div>
+                            <History size={18} color="rgba(236,253,255,0.9)" />
+                          </div>
+                          <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+                            {lastResults.slice(0, 5).map((item, index) => (
+                              <div key={`${item}-${index}`} style={{ display: "grid", gridTemplateColumns: "64px minmax(0,1fr) auto", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 18, background: "rgba(7, 89, 107, 0.34)", color: "#fff" }}>
+                                <span style={{ fontSize: 13, fontWeight: 900, color: index === 0 ? "#ffd43b" : "rgba(236,253,255,0.7)" }}>#{index + 1}</span>
+                                <span style={{ fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item}</span>
+                                <span style={{ fontSize: 12, color: "rgba(236,253,255,0.58)" }}>{index === 0 ? "Lead" : `+${index}`}</span>
+                              </div>
+                            ))}
+                            {!lastResults.length ? <div style={{ padding: "16px 14px", borderRadius: 18, background: "rgba(7, 89, 107, 0.24)", color: "rgba(236,253,255,0.76)" }}>Result history will appear here after the first race.</div> : null}
+                          </div>
+                        </div>
+
+                        <div style={{ ...glassCard("rgba(7, 89, 107, 0.44)"), padding: 18, alignSelf: "end" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(207,250,254,0.85)" }}>Turbo Ready</div>
+                              <div style={{ marginTop: 8, fontSize: 54, lineHeight: 1, fontWeight: 900, color: "#fff" }}>{Math.round((leadingRacer?.progress ?? 0) * 0.42)}</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "rgba(236,253,255,0.8)" }}>KM/H</div>
+                            </div>
+                            <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ width: 110, height: 110, borderRadius: 999, border: "1px solid rgba(255,212,59,0.85)", background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", color: "#172033", boxShadow: "0 16px 34px rgba(255,191,0,0.34)", fontWeight: 900, cursor: "pointer" }}>
+                              TURBO
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 16 }}>
+                      <div style={{ ...glassCard("rgba(7, 89, 107, 0.42)"), padding: 18 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                          <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(236,253,255,0.88)" }}>Live Ranking</div>
+                          <span style={{ ...pill("rgba(255,255,255,0.12)", "#fff", "rgba(255,255,255,0.16)"), textTransform: "uppercase" }}>{isRacing ? "Race On" : "Final Lap"}</span>
+                        </div>
+                        <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+                          {liveRanking.slice(0, 5).map((item, index) => {
+                            const isLeader = index === 0;
+                            return (
+                              <div key={`${item.name}-${item.index}`} style={{ borderRadius: 24, padding: isLeader ? 16 : 14, background: isLeader ? "rgba(8, 145, 178, 0.72)" : "rgba(8, 145, 178, 0.42)", border: "1px solid rgba(255,255,255,0.18)", display: "flex", gap: 14, alignItems: "center" }}>
+                                <div style={{ width: isLeader ? 62 : 40, height: isLeader ? 62 : 40, borderRadius: 999, background: "rgba(255,255,255,0.14)", border: isLeader ? "3px solid #ffd43b" : "1px solid rgba(255,255,255,0.24)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 900 }}>
+                                  {item.place !== null ? item.place + 1 : index + 1}
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontSize: isLeader ? 18 : 15, fontWeight: 900, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+                                  <div style={{ marginTop: 4, fontSize: 13, color: "rgba(236,253,255,0.74)" }}>{item.place !== null ? `${placeLabel(item.place)} locked` : `${Math.round(item.progress)}% track progress`}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {!liveRanking.length ? <div style={{ color: "rgba(236,253,255,0.8)", fontSize: 14 }}>Ranking activates once entries are loaded.</div> : null}
+                        </div>
+                      </div>
+
+                      <div style={{ ...glassCard("rgba(7, 89, 107, 0.38)"), padding: 18 }}>
+                        <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(236,253,255,0.88)" }}>Podium</div>
+                        <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+                          {podiumWinners.length ? (
+                            podiumWinners.map((item) => (
+                              <div key={`${item.place}-${item.name}`} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 14px", borderRadius: 18, background: "rgba(255,255,255,0.12)", color: "#fff" }}>
+                                <div style={{ width: 44, height: 44, borderRadius: 16, background: "rgba(255,255,255,0.9)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                                  {item.place === 0 ? <Trophy size={22} color="#d69e00" /> : <Medal size={22} color="#64748b" />}
+                                </div>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(236,253,255,0.72)" }}>{placeLabel(item.place)}</div>
+                                  <div style={{ fontSize: 18, fontWeight: 900, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ padding: "14px 12px", borderRadius: 18, background: "rgba(255,255,255,0.1)", color: "rgba(236,253,255,0.76)" }}>No podium yet.</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeView === "dashboard" ? (
+                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(3, minmax(0,1fr))" }}>
+                    <div style={{ ...card(), padding: 18, display: "grid", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#0f172a" }}><SlidersHorizontal size={18} /><span style={{ fontSize: 18, fontWeight: 900 }}>Race Controls</span></div>
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                            <span style={{ fontWeight: 700, color: "#0f172a" }}>Race duration</span>
+                            <span style={{ fontSize: 14, color: "#334155" }}>{duration} sec</span>
+                          </div>
+                          <Range min={3} max={30} step={1} value={duration} onChange={setDuration} />
+                        </div>
+                        <div>
+                          <label style={{ fontWeight: 700, color: "#0f172a" }}>Podium size</label>
+                          <input type="number" min={1} max={activeEntryCount} value={podiumCountInput} onChange={(e) => setPodiumCountInput(e.target.value)} style={{ ...inputStyle(), marginTop: 8 }} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                          <div><div style={{ fontWeight: 700, color: "#0f172a" }}>Shuffle entries</div><div style={{ fontSize: 12, color: "#64748b" }}>Random order every race</div></div>
+                          <Toggle checked={shuffleBeforeRace} onChange={setShuffleBeforeRace} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                          <div><div style={{ fontWeight: 700, color: "#0f172a" }}>Compact overlay</div><div style={{ fontSize: 12, color: "#64748b" }}>For stream layouts</div></div>
+                          <Toggle checked={isCompactOverlay} onChange={setIsCompactOverlay} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ ...card(), padding: 18, display: "grid", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#0f172a" }}><Volume2 size={18} /><span style={{ fontSize: 18, fontWeight: 900 }}>Sound + Broadcast</span></div>
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                          <div><div style={{ fontWeight: 700, color: "#0f172a" }}>Sound effects</div><div style={{ fontSize: 12, color: "#64748b" }}>Start, race, finish cues</div></div>
+                          <Toggle checked={soundEnabled && !audioBlocked} onChange={setSoundEnabled} disabled={audioBlocked} />
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                            <span style={{ fontWeight: 700, color: "#0f172a" }}>Master volume</span>
+                            <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
+                          </div>
+                          <Range min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
+                        </div>
+                        <div>
+                          <label style={{ fontWeight: 700, color: "#0f172a" }}>Sound preset</label>
+                          <select value={soundPreset} onChange={(e) => setSoundPreset(e.target.value)} style={{ ...inputStyle(), marginTop: 8 }}>
+                            <option value="sport">Sport</option>
+                            <option value="cinematic">Cinematic</option>
+                            <option value="minimal">Minimal</option>
+                          </select>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 10 }}>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Countdown {countdownChannelVolume}%</div><Range min={0} max={200} step={5} value={countdownChannelVolume} onChange={setCountdownChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Start {startChannelVolume}%</div><Range min={0} max={200} step={5} value={startChannelVolume} onChange={setStartChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Race {raceChannelVolume}%</div><Range min={0} max={200} step={5} value={raceChannelVolume} onChange={setRaceChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Finish {finishChannelVolume}%</div><Range min={0} max={200} step={5} value={finishChannelVolume} onChange={setFinishChannelVolume} /></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ ...card(), padding: 18, display: "grid", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#0f172a" }}><Sparkles size={18} /><span style={{ fontSize: 18, fontWeight: 900 }}>Seed + Results</span></div>
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "#334155", fontWeight: 700 }}>
+                          <input type="checkbox" checked={fairnessMode} onChange={(e) => setFairnessMode(e.target.checked)} /> Fairness mode
+                        </label>
+                        <input value={raceSeedInput} onChange={(e) => setRaceSeedInput(e.target.value.replace(/\s+/g, ""))} placeholder="Optional race seed" style={inputStyle()} aria-label="Race seed" />
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button type="button" onClick={randomizeSeed} style={baseButton("outline")}>Randomize seed</button>
+                          <button type="button" onClick={copyShareLink} style={baseButton("outline")}>Copy share link</button>
+                        </div>
+                        {copyNotice ? <div style={{ fontSize: 12, color: "#0f766e" }}>{copyNotice}</div> : null}
+                        <div style={{ fontSize: 12, color: "#64748b" }}>Round {roundNumber} · Logs {raceLogs.length}</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button type="button" onClick={exportResultsCsv} disabled={!lastWinners.length} style={baseButton("outline")}>Results CSV</button>
+                          <button type="button" onClick={exportHistoryJson} disabled={!lastResults.length} style={baseButton("outline")}>History JSON</button>
+                          <button type="button" onClick={exportRaceLogJson} disabled={!raceLogs.length} style={baseButton("outline")}>Race log</button>
+                          <button type="button" onClick={clearSavedState} style={baseButton("outline")}>Clear saved data</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {activeView === "live" ? (
+                  <div style={{ ...glassCard("rgba(7, 89, 107, 0.48)"), padding: 18, display: "flex", alignItems: "center", justifyContent: "center", gap: 18, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0 }}>
+                      <div style={{ width: 110, height: 8, borderRadius: 999, background: "#ffd43b", boxShadow: "0 0 18px rgba(255,212,59,0.45)" }} />
+                      <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: "0.12em", textTransform: "uppercase", color: "#fff" }}>Turbo Ready</div>
+                    </div>
+                    <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ width: 98, height: 98, borderRadius: 999, border: "1px solid rgba(255,212,59,0.85)", background: "linear-gradient(135deg, #ffd43b 0%, #ffbf00 100%)", color: "#172033", fontWeight: 900, cursor: "pointer" }}>GO</button>
+                    <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("light"), minWidth: 120 }}>Instant pick</button>
+                    <button onClick={() => setIsAudienceMode((v) => !v)} style={{ ...baseButton("light"), minWidth: 140 }}>{isAudienceMode ? "Close audience" : "Audience mode"}</button>
+                    <button onClick={resetVisual} style={{ ...baseButton("light"), minWidth: 120 }}>Reset stage</button>
+                    <button onClick={() => setSoundEnabled((v) => !v)} disabled={audioBlocked} style={{ ...baseButton("light"), minWidth: 110 }}>{soundEnabled && !audioBlocked ? "Mute" : "Sound"}</button>
+                  </div>
+                ) : null}
+
+                {activeView === "stable" ? (
+                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr) 420px", alignItems: "start" }}>
+                    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", maxHeight: "calc(100vh - 250px)", overflowY: "auto", paddingRight: 10, alignContent: "start" }}>
+                      {stablePreviewEntries.map((name, index) => {
+                        const variant = buildDuckVariant(name, avatarSeed);
                         return (
-                          <div key={`${item.place}-${item.name}`} style={{ border: `1px solid ${colors.border}`, background: colors.bg, borderRadius: 24, padding: 16 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                              <div style={{ background: "#fff", padding: 12, borderRadius: 16, boxShadow: "0 4px 12px rgba(15,23,42,0.06)" }}>
-                                {item.place === 0 ? <Trophy size={24} color="#f59e0b" /> : <Medal size={24} color="#64748b" />}
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 14, color: "#64748b" }}>{placeLabel(item.place)}</div>
-                                <div style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
-                              </div>
-                              <span style={pill(colors.chipBg, colors.chipText, colors.border)}>{placeLabel(item.place)}</span>
+                          <div key={`${name}-${index}`} style={{ ...card(), padding: 18, display: "grid", gap: 14, justifyItems: "center" }}>
+                            <DuckPreviewBadge index={index} variant={variant} motionTime={motionTime} />
+                            <div style={{ textAlign: "center" }}>
+                              <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{name}</div>
+                              <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>Accessory: {variant.accessory} · Pattern: {variant.pattern}</div>
                             </div>
                           </div>
                         );
                       })}
+                      {!stablePreviewEntries.length ? <div style={{ ...card(), padding: 24, color: "#64748b" }}>Add entries to preview duck variants.</div> : null}
                     </div>
-                  ) : (
-                    <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 40, textAlign: "center", color: "#64748b" }}>No podium yet.</div>
-                  )}
-                </div>
-              </div>
 
-              <div style={card()}>
-                <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Recent results</div>
-                <div style={{ padding: 14 }}>
-                  {lastResults.length ? (
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {lastResults.map((item, index) => (
-                        <div key={`${item}-${index}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, border: "1px solid #e2e8f0", borderRadius: 16, padding: "10px 12px" }}>
-                          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#334155", fontWeight: 600 }}>{item}</span>
-                          <span style={pill("#fff", "#334155", "#e2e8f0")}>#{index + 1}</span>
+                    <div style={{ ...card(), padding: 20, display: "grid", gap: 16, alignSelf: "start" }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0f172a" }}>Duck Stable</div>
+                      <div style={{ fontSize: 14, color: "#475569" }}>The same procedural duck avatar system is still active here. Outfits can reroll each round, but the avatar stays in the existing illustrated style instead of swapping to a flat 2D icon.</div>
+                      <div style={{ display: "grid", gap: 12 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                          <div><div style={{ fontWeight: 700, color: "#0f172a" }}>Reroll avatar style each round</div><div style={{ fontSize: 12, color: "#64748b" }}>Keep random outfits enabled.</div></div>
+                          <Toggle checked={rerollAvatarsEachRound} onChange={setRerollAvatarsEachRound} />
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ border: "1px dashed #cbd5e1", borderRadius: 28, padding: 40, textAlign: "center", color: "#64748b" }}>Result history will appear here.</div>
-                  )}
-                </div>
-              </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button type="button" onClick={() => setAvatarSeed((value) => value + 1)} style={baseButton("secondary")}>Random outfits now</button>
+                          <button type="button" onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("outline")}>Test instant pick</button>
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>Preview count: {stablePreviewEntries.length} · Avatar seed: {avatarSeed}</div>
+                      </div>
 
-              <div style={card()}>
-                <div style={{ padding: "14px 16px 0", fontSize: 20, fontWeight: 800, color: "#0f172a" }}>Tournament rounds</div>
-                <div style={{ padding: 14, display: "grid", gap: 10 }}>
-                  <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("secondary")}>Run next round</button>
-                  {roundHistory.length ? (
-                    <div style={{ display: "grid", gap: 8, maxHeight: 220, overflow: "auto", paddingRight: 4 }}>
-                      {roundHistory.slice().reverse().map((round) => (
-                        <div key={`round-${round.round}-${round.winners.join("|")}`} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: "8px 10px" }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Round {round.round}</div>
-                          <div style={{ fontSize: 13, color: "#0f172a", marginTop: 4 }}>Winners: {round.winners.join(", ") || "-"}</div>
-                          <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Eliminated: {round.eliminated.join(", ") || "None"}</div>
-                        </div>
-                      ))}
+                      <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 14, display: "grid", gap: 12 }}>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>Round elimination rules</div>
+                        <PlaceSelectionRow
+                          podiumSlots={podiumSlots}
+                          eliminationPlaces={eliminationPlaces}
+                          onToggle={toggleEliminationPlace}
+                          onClear={() => setEliminationPlaces([])}
+                          onFirstOnly={() => setEliminationPlaces([0])}
+                          onAll={() => setEliminationPlaces(Array.from({ length: podiumSlots }).map((_, index) => index))}
+                        />
+                        <button type="button" onClick={undoLastElimination} disabled={!lastEliminationUndo} style={baseButton("outline")}>Undo last elimination</button>
+                      </div>
+
+                      <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 14, display: "grid", gap: 10 }}>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>Tournament rounds</div>
+                        <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("secondary")}>Run next round</button>
+                        {roundHistory.length ? (
+                          <div style={{ display: "grid", gap: 8, maxHeight: 240, overflow: "auto", paddingRight: 4 }}>
+                            {roundHistory.slice().reverse().map((round) => (
+                              <div key={`round-${round.round}-${round.winners.join("|")}`} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: "10px 12px" }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Round {round.round}</div>
+                                <div style={{ fontSize: 13, color: "#0f172a", marginTop: 4 }}>Winners: {round.winners.join(", ") || "-"}</div>
+                                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>Eliminated: {round.eliminated.join(", ") || "None"}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ border: "1px dashed #cbd5e1", borderRadius: 14, padding: 14, color: "#64748b", textAlign: "center" }}>Run races to build bracket history.</div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div style={{ border: "1px dashed #cbd5e1", borderRadius: 14, padding: 14, color: "#64748b", textAlign: "center" }}>Run races to build bracket history.</div>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </div>
-            </div>
-          </div>
+            </section>
+          </main>
         </div>
-      </div>
+        </div>
       ) : null}
 
       {isAudienceMode || isOverlayRoute ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: initialConfig.overlayTheme === "chroma" ? "#00ff00" : isCompactOverlay ? "rgba(2,6,23,0.75)" : "rgba(2,6,23,0.94)", padding: isCompactOverlay ? 10 : 16 }}>
-          <div style={{ maxWidth: 1800, margin: "0 auto", height: "100%", display: "grid", gap: isCompactOverlay ? 10 : 16 }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: initialConfig.overlayTheme === "chroma" ? "#00ff00" : isCompactOverlay ? "rgba(6, 78, 97, 0.7)" : "rgba(3, 30, 39, 0.92)", padding: isCompactOverlay ? 10 : 16 }}>
+          <div style={{ maxWidth: 1840, margin: "0 auto", height: "100%", display: "grid", gap: isCompactOverlay ? 10 : 16 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
               <div>
                 <div style={{ fontSize: isCompactOverlay ? 22 : 32, fontWeight: 900, color: "#fff" }}>{isCompactOverlay ? "Overlay Mode" : "Audience Mode"}</div>
-                {!isCompactOverlay ? <div style={{ fontSize: 14, color: "#cbd5e1" }}>This version uses only plain React + native controls, so it is safer to deploy on Vercel.</div> : null}
+                {!isCompactOverlay ? <div style={{ fontSize: 14, color: "#cbd5e1" }}>Broadcast-first teal race presentation with the same duck avatar system and controls.</div> : null}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={baseButton("light")}>
@@ -1721,8 +1939,17 @@ export default function App() {
                   motionTime={motionTime}
                 />
               ) : (
-                <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 36, background: "rgba(255,255,255,0.95)", color: "#64748b" }}>Add entries, then start the race.</div>
+                <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 36, background: "rgba(255,255,255,0.12)", color: "#dff9ff" }}>Add entries, then start the race.</div>
               )}
+
+              <div style={{ position: "absolute", right: 16, top: 20, zIndex: 20, width: isCompactOverlay ? 250 : 340, maxWidth: "42vw", display: "grid", gap: 10, pointerEvents: "none" }}>
+                {liveRanking.slice(0, 4).map((item, index) => (
+                  <div key={`overlay-live-${item.name}-${index}`} style={{ border: "1px solid rgba(255,255,255,0.15)", background: index === 0 ? "rgba(8,145,178,0.78)" : "rgba(8,145,178,0.44)", borderRadius: 22, padding: isCompactOverlay ? "10px 12px" : "12px 16px", boxShadow: "0 10px 30px rgba(15,23,42,0.16)", backdropFilter: "blur(8px)", color: "#fff" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "rgba(207,250,254,0.82)" }}>{item.place !== null ? placeLabel(item.place) : `Lane ${index + 1}`}</div>
+                    <div style={{ marginTop: 4, fontSize: isCompactOverlay ? 18 : 22, fontWeight: 800, wordBreak: "break-word" }}>{item.name}</div>
+                  </div>
+                ))}
+              </div>
 
               <div style={{ position: "absolute", right: 16, bottom: 16, zIndex: 20, width: isCompactOverlay ? 230 : 280, maxWidth: "42vw", display: "grid", gap: 8, pointerEvents: "none" }}>
                 {podiumWinners.length ? (
