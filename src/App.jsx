@@ -811,7 +811,7 @@ export default function App() {
       });
   }, [displayProgress, displayRacers, placements]);
   const leadingRacer = liveRanking[0] ?? null;
-  const stablePreviewEntries = (displayRacers.length ? displayRacers : parsedEntries).slice(0, 12);
+  const stablePreviewEntries = displayRacers.length ? displayRacers : parsedEntries;
   const podiumWinners = placements.slice().sort((a, b) => a.place - b.place).map((item) => ({ place: item.place, name: displayRacers[item.raceIndex] }));
   const activeSeed = raceSeedInput.trim();
   const isOverlayRoute = initialConfig.overlayOnlyParam;
@@ -1816,8 +1816,8 @@ export default function App() {
                 ) : null}
 
                 {activeView === "stable" ? (
-                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr) 420px" }}>
-                    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr) 420px", alignItems: "start" }}>
+                    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", maxHeight: "calc(100vh - 250px)", overflowY: "auto", paddingRight: 10, alignContent: "start" }}>
                       {stablePreviewEntries.map((name, index) => {
                         const variant = buildDuckVariant(name, avatarSeed);
                         return (
