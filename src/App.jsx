@@ -1904,7 +1904,7 @@ export default function App() {
               </div>
             </section>
           </main>
-        </div>
+          </div>
           <div style={{ display: "grid", gap: 6, padding: "14px 18px", borderRadius: 24, border: "1px solid rgba(255,255,255,0.42)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.32) 100%)", color: "#475569", fontSize: 12, lineHeight: 1.5, boxShadow: "0 16px 40px rgba(15,23,42,0.08)", backdropFilter: "blur(18px)" }}>
             <div><strong>Disclaimer:</strong> The content in this document is provided for general information only and should not be relied upon as legal, medical, financial, or other professional advice.</div>
             <div><strong>Copyright:</strong> © 2026 Piyakawin Sodsoon. No part of this document may be reproduced or distributed without permission.</div>
