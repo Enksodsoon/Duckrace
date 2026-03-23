@@ -1525,7 +1525,7 @@ export default function App() {
                 <button type="button" onClick={() => { setActiveView("dashboard"); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>Open race track</button>
                 <button type="button" onClick={() => { setActiveView("stable"); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>Open duck garage</button>
                 <button type="button" onClick={() => { setIsAudienceMode((value) => !value); setIsProfileMenuOpen(false); }} style={{ ...baseButton("outline"), width: "100%", justifyContent: "flex-start", display: "flex" }}>{isAudienceMode ? "Close audience mode" : "Open audience mode"}</button>
-                <button type="button" onClick={() => { startRaceWithCountdown(); setIsProfileMenuOpen(false); }} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("primary"), width: "100%" }}>Start race</button>
+                <button type="button" onClick={() => { startRaceWithCountdown(); setIsProfileMenuOpen(false); }} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("primary"), width: "100%", background: "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)", border: "1px solid rgba(15,118,110,0.9)", boxShadow: "0 12px 28px rgba(20,184,166,0.28)" }}>Start race</button>
               </div>
             ) : null}
           </div>
