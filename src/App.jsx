@@ -692,6 +692,20 @@ function SidebarNavButton({ icon: Icon, label, description, active, onClick }) {
   );
 }
 
+function DuckPreviewBadge({ index, variant, motionTime }) {
+  const previewPlace = index < 3 ? index : -1;
+
+  return (
+    <div style={{ width: 132, height: 132, borderRadius: 999, background: "radial-gradient(circle at 35% 20%, rgba(255,255,255,0.96), rgba(49,187,211,0.3))", border: "10px solid rgba(255,255,255,0.86)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 40px rgba(10, 88, 108, 0.18)", overflow: "hidden", position: "relative" }}>
+      <div style={{ position: "relative", width: 104, height: 104 }}>
+        <div style={{ position: "absolute", left: "50%", top: "56%" }}>
+          <DuckSprite winner={index === 0} place={previewPlace} active={false} progress={0} index={index} scale={1.08} variant={variant} motionTime={motionTime} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const initialConfig = useMemo(() => {
     const safeWindow = typeof window !== "undefined" ? window : null;
@@ -1808,9 +1822,7 @@ export default function App() {
                         const variant = buildDuckVariant(name, avatarSeed);
                         return (
                           <div key={`${name}-${index}`} style={{ ...card(), padding: 18, display: "grid", gap: 14, justifyItems: "center" }}>
-                            <div style={{ width: 132, height: 132, borderRadius: 999, background: "radial-gradient(circle at 35% 20%, rgba(255,255,255,0.96), rgba(49,187,211,0.3))", border: "10px solid rgba(255,255,255,0.86)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 40px rgba(10, 88, 108, 0.18)" }}>
-                              <DuckSprite winner={index === 0} place={-1} active={false} progress={0} index={index} scale={1.18} variant={variant} motionTime={motionTime} />
-                            </div>
+                            <DuckPreviewBadge index={index} variant={variant} motionTime={motionTime} />
                             <div style={{ textAlign: "center" }}>
                               <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{name}</div>
                               <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>Accessory: {variant.accessory} · Pattern: {variant.pattern}</div>
