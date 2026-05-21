@@ -20,6 +20,7 @@ import {
   SlidersHorizontal,
   History,
 } from "lucide-react";
+import { DuckPreview3D, RaceArena3D } from "./DuckRace3D.jsx";
 
 const SAMPLE = `Group 1
 Group 2
@@ -171,43 +172,6 @@ function getPlaceColors(place) {
   return { border: "#bae6fd", bg: "#f0f9ff", chipBg: "#e0f2fe", chipText: "#0c4a6e" };
 }
 
-function getArenaMetrics(count, audience) {
-  const safeCount = Math.max(1, count);
-  if (audience) {
-    const topPct = safeCount <= 8 ? 20 : safeCount <= 14 ? 17 : 15;
-    const bottomPct = 7;
-    const laneStepPct = (100 - topPct - bottomPct) / safeCount;
-    const duckScale = safeCount <= 6 ? 0.9 : safeCount <= 10 ? 0.78 : safeCount <= 16 ? 0.68 : 0.58;
-    return {
-      topPct,
-      bottomPct,
-      laneStepPct,
-      duckScale,
-      labelSize: safeCount <= 8 ? 18 : safeCount <= 14 ? 15 : 12,
-      percentSize: safeCount <= 8 ? 15 : safeCount <= 14 ? 13 : 11,
-      heightStyle: { height: "calc(100vh - 180px)" },
-      startX: 11,
-      finishX: 91,
-    };
-  }
-  const topPct = 20;
-  const bottomPct = 8;
-  const laneStepPct = (100 - topPct - bottomPct) / safeCount;
-  const duckScale = safeCount <= 6 ? 0.82 : safeCount <= 10 ? 0.74 : safeCount <= 16 ? 0.64 : 0.56;
-  const heightPx = Math.max(340, Math.min(680, 180 + safeCount * 38));
-  return {
-    topPct,
-    bottomPct,
-    laneStepPct,
-    duckScale,
-    labelSize: safeCount <= 8 ? 15 : safeCount <= 14 ? 13 : 12,
-    percentSize: safeCount <= 8 ? 13 : 11,
-    heightStyle: { height: `${heightPx}px` },
-    startX: 12,
-    finishX: 90,
-  };
-}
-
 function baseButton(kind = "primary") {
   const styles = {
     primary: { background: "linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)", color: "#fff", border: "1px solid #1e3a8a" },
@@ -320,296 +284,19 @@ function Range({ min, max, step, value, onChange }) {
   );
 }
 
-function CountdownOverlay({ value, audience }) {
-  if (value === null) return null;
-  return (
-    <div style={{
-      position: "absolute",
-      inset: 0,
-      zIndex: 40,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: 32,
-      background: "rgba(2,6,23,0.45)",
-      backdropFilter: "blur(2px)",
-    }}>
-      <div style={{ display: "grid", justifyItems: "center", gap: 8 }}>
-        <div style={{ fontSize: audience ? 120 : 84, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{value}</div>
-        <div style={pill("rgba(255,255,255,0.1)", "#fff", "rgba(255,255,255,0.2)")}>Race starts now</div>
-      </div>
-    </div>
-  );
-}
-
-function WinnerBanner({ name, show, audience }) {
-  if (!show || !name) return null;
-  return (
-    <div style={{ position: "absolute", left: 0, right: 0, top: audience ? 20 : 16, zIndex: 30, display: "flex", justifyContent: "center", pointerEvents: "none" }}>
-      <div style={{
-        margin: "0 16px",
-        padding: "16px 24px",
-        background: "rgba(255,255,255,0.88)",
-        border: "1px solid #fde68a",
-        borderRadius: 32,
-        boxShadow: "0 24px 80px rgba(15,23,42,0.18)",
-        maxWidth: audience ? 980 : 700,
-        width: "fit-content",
-      }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: audience ? 15 : 12, fontWeight: 700, letterSpacing: "0.25em", textTransform: "uppercase", color: "#d97706" }}>Winner</div>
-          <div style={{ marginTop: 4, fontWeight: 900, color: "#0f172a", fontSize: audience ? 58 : 34, lineHeight: 1.05 }}>{name}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DuckAccessory({ variant }) {
-  if (variant.accessory === "cap") {
-    return <>
-      <div style={{ position: "absolute", left: 40, top: -2, width: 20, height: 10, borderRadius: "12px 12px 4px 4px", background: variant.palette.accent }} />
-      <div style={{ position: "absolute", left: 32, top: 6, width: 24, height: 4, borderRadius: 999, background: variant.palette.accentSoft }} />
-    </>;
-  }
-  if (variant.accessory === "scarf") {
-    return <>
-      <div style={{ position: "absolute", left: 37, top: 28, width: 24, height: 8, borderRadius: 999, background: variant.palette.accent }} />
-      <div style={{ position: "absolute", left: 49, top: 34, width: 5, height: 13, borderRadius: 999, background: variant.palette.accentSoft }} />
-    </>;
-  }
-  if (variant.accessory === "glasses") {
-    return <>
-      <div style={{ position: "absolute", left: 56, top: 11, width: 10, height: 10, borderRadius: 999, border: "1px solid rgba(51,65,85,0.75)", background: "rgba(255,255,255,0.35)" }} />
-      <div style={{ position: "absolute", left: 64, top: 11, width: 10, height: 10, borderRadius: 999, border: "1px solid rgba(51,65,85,0.75)", background: "rgba(255,255,255,0.35)" }} />
-      <div style={{ position: "absolute", left: 62, top: 15, width: 4, height: 1, background: "rgba(51,65,85,0.75)" }} />
-    </>;
-  }
-  if (variant.accessory === "bow") {
-    return <>
-      <div style={{ position: "absolute", left: 58, top: 2, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: "8px solid #f472b6" }} />
-      <div style={{ position: "absolute", left: 66, top: 2, width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent", borderBottom: "8px solid #f472b6" }} />
-      <div style={{ position: "absolute", left: 64, top: 9, width: 8, height: 8, borderRadius: 999, background: "#ec4899" }} />
-    </>;
-  }
-  return null;
-}
-
-function DuckPattern({ variant }) {
-  if (variant.pattern === "spot") {
-    return <>
-      <div style={{ position: "absolute", left: 20, top: 24, width: 6, height: 6, borderRadius: 999, background: variant.palette.accent }} />
-      <div style={{ position: "absolute", left: 32, top: 30, width: 6, height: 6, borderRadius: 999, background: variant.palette.accentSoft }} />
-      <div style={{ position: "absolute", left: 44, top: 26, width: 6, height: 6, borderRadius: 999, background: variant.palette.accent }} />
-    </>;
-  }
-  if (variant.pattern === "stripe") {
-    return <>
-      <div style={{ position: "absolute", left: 24, top: 22, width: 4, height: 28, borderRadius: 999, transform: "rotate(18deg)", opacity: 0.75, background: variant.palette.accent }} />
-      <div style={{ position: "absolute", left: 36, top: 22, width: 4, height: 28, borderRadius: 999, transform: "rotate(18deg)", opacity: 0.55, background: variant.palette.accentSoft }} />
-    </>;
-  }
-  return null;
-}
-
-function DuckSprite({ winner, place, active, progress, index, scale, variant, motionTime }) {
-  const seed = index * 0.9 + 1;
-  const motion = active ? motionTime * 0.01 : progress * 0.6;
-  const bob = active ? Math.sin(motion * 0.7 + seed) * 2.2 : 0;
-  const tilt = active ? Math.sin(motion * 0.35 + seed) * 2.1 : 0;
-  const wing = active ? Math.sin(motion * 1.15 + seed) * 7 : 0;
-  const legA = active ? Math.sin(motion * 1.15 + seed) * 5 : 0;
-  const legB = active ? Math.sin(motion * 1.15 + seed + Math.PI) * 5 : 0;
-  const shadowScale = 0.94 + Math.abs(Math.sin(motion * 0.35 + seed)) * 0.08;
-  const speedStretch = active ? 1 + Math.abs(Math.sin(motion * 0.9 + seed)) * 0.06 : 1;
-  const isPodium = place > -1;
-
-  return (
-    <div style={{
-      position: "absolute",
-      left: 0,
-      top: 0,
-      transform: `translate(-50%, calc(-50% - ${bob}px)) scale(${scale}) rotate(${tilt * variant.tiltAccent}deg) skewX(${tilt * 0.35}deg) scaleX(${speedStretch})`,
-      transformOrigin: "center center",
-      transformStyle: "preserve-3d",
-    }}>
-      <div style={{ position: "absolute", left: 10, top: 44, width: 62, height: 14, borderRadius: 999, background: winner ? "rgba(245,158,11,0.2)" : "rgba(15,23,42,0.12)", filter: "blur(1px)", transform: `scale(${shadowScale}) perspective(80px) rotateX(54deg)` }} />
-      {active ? <div style={{ position: "absolute", left: 2, top: 26, width: 18, height: 20, borderRadius: "999px 0 0 999px", background: "linear-gradient(90deg, rgba(56,189,248,0.0), rgba(56,189,248,0.35))", filter: "blur(1px)" }} /> : null}
-      <div style={{ position: "relative", width: 80, height: 64 }}>
-        <div style={{ position: "absolute", left: 8, top: 18, width: 56, height: 32, borderRadius: 999, background: "rgba(15,23,42,0.08)", filter: "blur(6px)", transform: "translateZ(-10px)" }} />
-        <div style={{
-          position: "absolute",
-          left: 12,
-          top: 20,
-          width: 48,
-          height: 36,
-          borderRadius: 999,
-          border: `1px solid ${winner ? "#fcd34d" : isPodium ? "#cbd5e1" : "#e2e8f0"}`,
-          background: `radial-gradient(circle at 35% 20%, rgba(255,255,255,0.9), transparent 40%), linear-gradient(165deg, ${variant.palette.bodyA} 0%, ${variant.palette.bodyB} 70%, #cbd5e1 100%)`,
-          boxShadow: winner ? "0 10px 30px rgba(245,158,11,0.24), inset -6px -6px 12px rgba(15,23,42,0.07)" : "0 8px 20px rgba(15,23,42,0.08), inset -6px -6px 12px rgba(15,23,42,0.06)",
-        }}>
-          <div style={{ position: "absolute", left: 8, right: 8, top: 4, height: 8, borderRadius: 999, background: "rgba(255,255,255,0.7)", filter: "blur(0.2px)" }} />
-          <DuckPattern variant={variant} />
-          <div style={{ position: "absolute", left: 4, top: 12, width: 24, height: 20, borderRadius: 999, border: "1px solid rgba(226,232,240,0.8)", background: `linear-gradient(165deg, ${variant.palette.wing}, ${variant.palette.accentSoft})`, transform: `rotate(${wing}deg)` }} />
-          <div style={{ position: "absolute", left: -2, top: 20, width: 8, height: 12, borderRadius: "0 999px 999px 0", background: "rgba(148,163,184,0.6)" }} />
-        </div>
-        <div style={{
-          position: "absolute",
-          left: 44,
-          top: 4,
-          width: 32,
-          height: 32,
-          borderRadius: 999,
-          border: `1px solid ${winner ? "#fcd34d" : isPodium ? "#cbd5e1" : "#e2e8f0"}`,
-          background: `radial-gradient(circle at 40% 20%, rgba(255,255,255,0.85), transparent 42%), linear-gradient(165deg, ${variant.palette.bodyA} 0%, ${variant.palette.bodyB} 95%)`,
-          boxShadow: "inset -4px -4px 10px rgba(15,23,42,0.08)",
-        }}>
-          <div style={{ position: "absolute", left: 16, top: 12, width: 2, height: 2, borderRadius: 999, background: "#0f172a", transform: `scale(${variant.eyeSize})` }} />
-          <div style={{ position: "absolute", left: 12, top: 8, width: 8, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.7)" }} />
-        </div>
-        <div style={{ position: "absolute", left: 68, top: 16, width: 16, height: 12, borderRadius: "3px 999px 999px 3px", background: `linear-gradient(165deg, #fff7ed, ${variant.palette.bill})` }} />
-        <div style={{ position: "absolute", left: 68, top: 23, width: 14, height: 10, opacity: 0.9, borderRadius: "3px 999px 999px 3px", background: `linear-gradient(165deg, ${variant.palette.bill}, #fb923c)` }} />
-        <div style={{ position: "absolute", left: 24, top: 48, width: 4, height: 16, borderRadius: 999, background: variant.palette.bill, transform: `rotate(${legA}deg)`, transformOrigin: "top center" }} />
-        <div style={{ position: "absolute", left: 40, top: 48, width: 4, height: 16, borderRadius: 999, background: variant.palette.bill, transform: `rotate(${legB}deg)`, transformOrigin: "top center" }} />
-        <DuckAccessory variant={variant} />
-        {place > -1 ? (
-          <div style={{
-            position: "absolute",
-            left: -4,
-            top: -4,
-            borderRadius: 999,
-            border: `1px solid ${getPlaceColors(place).border}`,
-            padding: "2px 6px",
-            fontSize: 10,
-            fontWeight: 700,
-            background: getPlaceColors(place).chipBg,
-            color: getPlaceColors(place).chipText,
-          }}>
-            {placeLabel(place)}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function RaceArena({ racers, progress, placements, isRacing, showBurst, countdownValue, audience, avatarSeed, motionTime }) {
-  const count = racers.length;
-  const metrics = getArenaMetrics(count, audience);
-  const placementByIndex = useMemo(() => new Map(placements.map((item) => [item.raceIndex, item.place])), [placements]);
+function RaceArena({ racers, progress, placements, isRacing, showBurst, countdownValue, audience, avatarSeed }) {
   const variants = useMemo(() => racers.map((name) => buildDuckVariant(name, avatarSeed)), [racers, avatarSeed]);
-  const sortedPlacements = useMemo(() => placements.slice().sort((a, b) => a.place - b.place), [placements]);
-  const firstPlace = sortedPlacements[0];
-  const winnerName = firstPlace ? racers[firstPlace.raceIndex] : "";
-
   return (
-    <div style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: audience ? 36 : 28, border: "1px solid rgba(255,255,255,0.25)", background: "linear-gradient(180deg, #5dd8ef 0%, #25bdd8 42%, #1494af 100%)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55), 0 28px 70px rgba(4, 35, 48, 0.25)" }}>
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 10% 10%, rgba(255,255,255,0.5), transparent 45%), radial-gradient(circle at 100% 100%, rgba(8, 145, 178, 0.22), transparent 45%)" }} />
-      <div style={{ position: "absolute", inset: 0, opacity: 0.2, backgroundImage: "radial-gradient(rgba(2, 44, 57, 0.35) 0.9px, transparent 0.9px)", backgroundSize: "14px 14px" }} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,0.12), transparent 22%, rgba(7, 89, 107, 0.16) 100%)" }} />
-      <WinnerBanner name={winnerName} show={Boolean(winnerName && !isRacing && countdownValue === null)} audience={audience} />
-      <CountdownOverlay value={countdownValue} audience={audience} />
-
-      <div style={{ position: "relative", ...metrics.heightStyle }}>
-        <div style={{ position: "absolute", top: 16, left: audience ? 24 : 20, zIndex: 10 }}><div style={pill("rgba(255,255,255,0.88)", "#0f172a", "rgba(255,255,255,0.95)")}>Start</div></div>
-        <div style={{ position: "absolute", top: 16, right: audience ? 24 : 20, zIndex: 10 }}><div style={pill("rgba(255, 244, 183, 0.95)", "#92400e", "#fde68a")}>Finish</div></div>
-
-        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 32, border: "1px solid rgba(8, 89, 107, 0.22)", background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(7, 89, 107, 0.14))", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
-        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 32, opacity: 0.45, backgroundImage: "repeating-linear-gradient(90deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 3px, transparent 3px, transparent 48px), repeating-linear-gradient(120deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 9px, transparent 9px, transparent 22px)", transform: "perspective(900px) rotateX(8deg)", transformOrigin: "center top" }} />
-        <div style={{ position: "absolute", top: "15%", bottom: "6%", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, borderRadius: 32, boxShadow: "inset 0 -24px 28px rgba(4, 35, 48, 0.18), inset 0 10px 16px rgba(255,255,255,0.18)", pointerEvents: "none" }} />
-
-        {racers.map((name, index) => {
-          const yPct = metrics.topPct + metrics.laneStepPct * (index + 0.5);
-          const pct = progress[index] ?? 0;
-          const xPct = metrics.startX + (metrics.finishX - metrics.startX) * (clamp(pct, 0, 100) / 100);
-          const place = placementByIndex.has(index) ? placementByIndex.get(index) : -1;
-          const winner = place === 0;
-          const colors = place > -1 ? getPlaceColors(place) : null;
-          const variant = variants[index];
-
-          return (
-            <div key={`${name}-${index}`}>
-              <div style={{ position: "absolute", left: `${metrics.startX}%`, right: `${100 - metrics.finishX}%`, top: `${yPct}%`, borderTop: `1px dashed ${place > -1 ? colors.border : "rgba(148,163,184,0.35)"}`, opacity: 0.8 }} />
-              <div style={{ position: "absolute", top: `${yPct}%`, left: `${metrics.startX + 0.5}%`, width: `${Math.max(0, xPct - metrics.startX - 0.5)}%`, height: 10, transform: "translateY(-50%)", borderRadius: 999, background: "linear-gradient(90deg, rgba(56,189,248,0.08), rgba(59,130,246,0.28), rgba(56,189,248,0.08))", filter: "blur(0.4px)", opacity: isRacing ? 0.9 : 0.55 }} />
-              <div style={{
-                position: "absolute",
-                top: `${yPct}%`,
-                left: `calc(${metrics.startX}% - 0.75rem)`,
-                transform: "translateY(-50%)",
-                maxWidth: audience ? "18rem" : "14rem",
-                padding: "4px 10px",
-                borderRadius: 999,
-                border: `1px solid ${place > -1 ? colors.border : "#dbeafe"}`,
-                background: place > -1 ? colors.bg : "rgba(255,255,255,0.82)",
-                backdropFilter: "blur(4px)",
-                zIndex: 10,
-                fontSize: metrics.labelSize - 1,
-                fontWeight: 600,
-                color: "#164e63",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}>
-                {name}
-              </div>
-
-              <div style={{ position: "absolute", top: `${yPct}%`, right: audience ? 20 : 16, transform: "translateY(-50%)", zIndex: 10, color: "rgba(255,255,255,0.95)", fontWeight: 700, fontSize: metrics.percentSize }}>
-                {Math.round(pct)}%
-              </div>
-
-              {place > -1 ? (
-                <div style={{
-                  position: "absolute",
-                  top: `${yPct}%`,
-                  left: audience ? 16 : 14,
-                  transform: "translateY(-50%)",
-                  zIndex: 10,
-                  borderRadius: 999,
-                  border: `1px solid ${colors.border}`,
-                  padding: "2px 8px",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  background: colors.chipBg,
-                  color: colors.chipText,
-                }}>
-                  {placeLabel(place)}
-                </div>
-              ) : null}
-
-              <div style={{ position: "absolute", top: `${yPct}%`, left: `${xPct}%`, zIndex: 20, filter: winner && showBurst ? "drop-shadow(0 0 28px rgba(251,191,36,0.75))" : "drop-shadow(0 6px 8px rgba(15,23,42,0.15))" }}>
-                <DuckSprite winner={winner} place={place} active={isRacing} progress={pct} index={index} scale={metrics.duckScale} variant={variant} motionTime={motionTime} />
-              </div>
-
-              {winner && showBurst ? (
-                <>
-                  <div style={{ position: "absolute", top: `${yPct}%`, left: `${metrics.finishX}%`, transform: "translate(-50%,-50%)", zIndex: 10, width: audience ? 144 : 96, height: audience ? 144 : 96, borderRadius: 999, background: "rgba(253,224,71,0.26)", filter: "blur(18px)" }} />
-                  {Array.from({ length: 10 }).map((_, burstIndex) => (
-                    <div
-                      key={`burst-${index}-${burstIndex}`}
-                      style={{
-                        position: "absolute",
-                        top: `${yPct}%`,
-                        left: `${metrics.finishX}%`,
-                        zIndex: 10,
-                        width: `${28 + (burstIndex % 3) * 12}px`,
-                        height: 2,
-                        transform: `translateY(-50%) rotate(${burstIndex * 36}deg)`,
-                        transformOrigin: "left center",
-                        background: "linear-gradient(to right, rgba(252,211,77,0.85), transparent)",
-                        borderRadius: 999,
-                      }}
-                    />
-                  ))}
-                </>
-              ) : null}
-            </div>
-          );
-        })}
-
-        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 10, transform: "translateX(-50%)", borderRadius: 999, background: "repeating-linear-gradient(180deg, #ffd43b 0px, #ffd43b 10px, #fff 10px, #fff 20px)", boxShadow: "0 0 0 3px rgba(255,255,255,0.42), 0 0 24px rgba(255,212,59,0.58)" }} />
-        <div style={{ position: "absolute", top: "14%", bottom: "6%", left: `${metrics.finishX}%`, width: 80, transform: "translateX(-50%)", background: "radial-gradient(circle at center, rgba(251,191,36,0.26), transparent 70%)", pointerEvents: "none" }} />
-      </div>
-    </div>
+    <RaceArena3D
+      racers={racers}
+      progress={progress}
+      placements={placements}
+      isRacing={isRacing}
+      showBurst={showBurst}
+      countdownValue={countdownValue}
+      audience={audience}
+      variants={variants}
+    />
   );
 }
 
@@ -692,17 +379,9 @@ function SidebarNavButton({ icon: Icon, label, description, active, onClick }) {
   );
 }
 
-function DuckPreviewBadge({ index, variant, motionTime }) {
-  const previewPlace = index < 3 ? index : -1;
-
+function DuckPreviewBadge({ index, variant }) {
   return (
-    <div style={{ width: 132, height: 132, borderRadius: 999, background: "radial-gradient(circle at 35% 20%, rgba(255,255,255,0.96), rgba(49,187,211,0.3))", border: "10px solid rgba(255,255,255,0.86)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 18px 40px rgba(10, 88, 108, 0.18)", overflow: "hidden", position: "relative" }}>
-      <div style={{ position: "relative", width: 104, height: 104 }}>
-        <div style={{ position: "absolute", left: "50%", top: "56%" }}>
-          <DuckSprite winner={index === 0} place={previewPlace} active={false} progress={0} index={index} scale={1.08} variant={variant} motionTime={motionTime} />
-        </div>
-      </div>
-    </div>
+    <DuckPreview3D variant={variant} index={index} />
   );
 }
 
@@ -752,7 +431,6 @@ export default function App() {
   const [isCompactOverlay, setIsCompactOverlay] = useState(initialConfig.compactOverlayParam);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
-  const [motionTime, setMotionTime] = useState(0);
   const [raceSeedInput, setRaceSeedInput] = useState(initialConfig.seedParam);
   const [copyNotice, setCopyNotice] = useState("");
   const [fairnessMode, setFairnessMode] = useState(false);
@@ -764,6 +442,7 @@ export default function App() {
   const [activeView, setActiveView] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1280));
 
   const fileImportRef = useRef(null);
 
@@ -817,6 +496,7 @@ export default function App() {
   const podiumWinners = placements.slice().sort((a, b) => a.place - b.place).map((item) => ({ place: item.place, name: displayRacers[item.raceIndex] }));
   const activeSeed = raceSeedInput.trim();
   const isOverlayRoute = initialConfig.overlayOnlyParam;
+  const isNarrowLayout = viewportWidth < 1180;
   const sharedUrl = useMemo(() => {
     const safeWindow = typeof window !== "undefined" ? window : null;
     if (!safeWindow) return "";
@@ -846,6 +526,15 @@ export default function App() {
         audioContextRef.current.close().catch(() => {});
       }
     };
+  }, []);
+
+  useEffect(() => {
+    const safeWindow = typeof window !== "undefined" ? window : null;
+    if (!safeWindow) return undefined;
+    const updateViewportWidth = () => setViewportWidth(safeWindow.innerWidth);
+    updateViewportWidth();
+    safeWindow.addEventListener("resize", updateViewportWidth);
+    return () => safeWindow.removeEventListener("resize", updateViewportWidth);
   }, []);
 
   useEffect(() => {
@@ -1274,7 +963,6 @@ export default function App() {
     setShowBurst(false);
     setAudioBlocked(false);
     setCountdownValue(null);
-    setMotionTime(0);
     setRaceSeedInput(initialConfig.seedParam);
     setIsCompactOverlay(initialConfig.compactOverlayParam);
     setIsAudienceMode(initialConfig.audienceParam);
@@ -1333,6 +1021,7 @@ export default function App() {
     const durationMs = Math.max(3, duration) * 1000;
     const startAt = performance.now();
     let lastAt = startAt;
+    let lastUiAt = startAt;
     let finalized = false;
 
     const durationSeconds = Math.max(3, duration);
@@ -1371,7 +1060,9 @@ export default function App() {
       finalized = true;
       const placementMap = getPlacementMap(progressRef.current);
       const winnersByPlace = placementMap.map(({ raceIndex }) => raceList[raceIndex]);
-      const settledProgress = racerState.map((state, index) => (finishOrder.includes(index) ? 100 : Math.min(99.5, state.progress)));
+      const forcedFinishers = new Set(finishOrder);
+      if (placementMap[0]) forcedFinishers.add(placementMap[0].raceIndex);
+      const settledProgress = racerState.map((state, index) => (forcedFinishers.has(index) ? 100 : Math.min(96.5, state.progress)));
       progressRef.current = settledProgress;
       setProgress(settledProgress);
       setPlacements(placementMap);
@@ -1395,7 +1086,6 @@ export default function App() {
     startRaceLoopSound();
 
     const frame = (now) => {
-      setMotionTime(now);
       const elapsed = now - startAt;
       const t = clamp(elapsed / durationMs, 0, 1.25);
       const delta = clamp((now - lastAt) / 1000, 0.010, 0.04);
@@ -1441,10 +1131,14 @@ export default function App() {
       });
 
       progressRef.current = nextProgress;
-      setProgress(nextProgress);
-      setPlacements(getPlacementMap(nextProgress));
-
       const leaderNow = nextProgress.length ? Math.max(...nextProgress) : 0;
+      const shouldUpdateUi = now - lastUiAt >= 50 || leaderNow >= 100 || t >= 1.03;
+      if (shouldUpdateUi) {
+        lastUiAt = now;
+        setProgress([...nextProgress]);
+        setPlacements(getPlacementMap(nextProgress));
+      }
+
       if (leaderNow >= 100) {
         finalizeRace();
         return;
@@ -1493,15 +1187,15 @@ export default function App() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #d7f8ff 0%, #8fe6f3 24%, #31bbd3 58%, #0f7489 100%)", padding: 14 }}>
+    <div className="duck-app" style={{ minHeight: "100vh", background: "linear-gradient(180deg, #d7f8ff 0%, #8fe6f3 24%, #31bbd3 58%, #0f7489 100%)", padding: 14 }}>
       <input ref={fileImportRef} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={handleImportEntries} style={{ display: "none" }} />
 
       {!isOverlayRoute ? (
-        <div style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18 }}>
-          <div style={{ position: "relative", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 22, fontWeight: 900, color: "#172033" }}>Quack Velocity</div>
-              <div style={{ width: 1, height: 28, background: "rgba(100,116,139,0.24)" }} />
+        <div className="duck-shell" style={{ maxWidth: 1820, margin: "0 auto", display: "grid", gap: 18 }}>
+          <div className="duck-header" style={{ position: "relative", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, padding: "14px 18px", borderRadius: 28, border: "1px solid rgba(255,255,255,0.48)", background: "linear-gradient(135deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.42) 100%)", backdropFilter: "blur(22px)", boxShadow: "0 20px 50px rgba(15,23,42,0.12)", flexWrap: "wrap" }}>
+            <div className="duck-header-main" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div className="duck-brand" style={{ fontSize: 22, fontWeight: 900, color: "#172033" }}>Quack Velocity</div>
+              <div className="duck-header-divider" style={{ width: 1, height: 28, background: "rgba(100,116,139,0.24)" }} />
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button type="button" onClick={() => setActiveView("dashboard")} style={{ border: activeView === "dashboard" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "dashboard" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "dashboard" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Race Track</button>
                 <button type="button" onClick={() => setActiveView("stable")} style={{ border: activeView === "stable" ? "1px solid rgba(255,214,77,0.7)" : "1px solid rgba(255,255,255,0.44)", background: activeView === "stable" ? "linear-gradient(135deg, rgba(255,247,186,0.96) 0%, rgba(255,227,122,0.76) 100%)" : "linear-gradient(135deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.16) 100%)", color: activeView === "stable" ? "#7c4a00" : "#64748b", borderRadius: 999, padding: "10px 18px", fontWeight: 800, fontSize: 15, cursor: "pointer", backdropFilter: "blur(18px)" }}>Duck Garage</button>
@@ -1509,7 +1203,7 @@ export default function App() {
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="duck-header-actions" style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <button type="button" aria-label="Reroll duck outfits" onClick={rerollAvatarsFromHeader} style={{ width: 42, height: 42, borderRadius: 999, border: "1px solid rgba(255,255,255,0.5)", background: "linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.28) 100%)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#64748b", backdropFilter: "blur(16px)", cursor: "pointer" }}>
                 <Sparkles size={16} />
               </button>
@@ -1530,9 +1224,9 @@ export default function App() {
             ) : null}
           </div>
 
-          <div style={{ display: "grid", gap: 18, gridTemplateColumns: isSidebarOpen ? "360px minmax(0, 1fr)" : "minmax(0, 1fr)", alignItems: "start" }}>
+          <div className={`duck-main-grid ${isSidebarOpen ? "duck-main-grid--with-sidebar" : ""}`} style={{ display: "grid", gap: 18, gridTemplateColumns: isSidebarOpen && !isNarrowLayout ? "360px minmax(0, 1fr)" : "minmax(0, 1fr)", alignItems: "start" }}>
             {isSidebarOpen ? (
-            <aside style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.58) 100%)", border: "1px solid rgba(255,255,255,0.72)", borderRadius: 36, padding: 24, display: "grid", gap: 18, boxShadow: "0 30px 80px rgba(15, 23, 42, 0.14)", backdropFilter: "blur(22px)", position: "sticky", top: 10, maxHeight: "calc(100vh - 24px)", overflow: "auto" }}>
+            <aside className="duck-sidebar" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.58) 100%)", border: "1px solid rgba(255,255,255,0.72)", borderRadius: 36, padding: 24, display: "grid", gap: 18, boxShadow: "0 30px 80px rgba(15, 23, 42, 0.14)", backdropFilter: "blur(22px)", position: isNarrowLayout ? "relative" : "sticky", top: isNarrowLayout ? "auto" : 10, maxHeight: isNarrowLayout ? "none" : "calc(100vh - 24px)", overflow: "auto" }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: "#94a3b8" }}>Navigation</div>
               <div style={{ marginTop: 8, fontSize: 30, fontWeight: 900, lineHeight: 0.95, color: "#172033" }}>Liquid Glass Menu</div>
@@ -1612,13 +1306,13 @@ export default function App() {
           </aside>
             ) : null}
 
-          <main style={{ minWidth: 0, display: "grid", gap: 18 }}>
-            <section style={{ ...glassCard("rgba(32, 171, 198, 0.25)"), padding: 22, position: "relative", overflow: "hidden" }}>
+          <main className="duck-main" style={{ minWidth: 0, display: "grid", gap: 18 }}>
+            <section className="duck-stage-card" style={{ ...glassCard("rgba(32, 171, 198, 0.25)"), padding: 22, position: "relative", overflow: "hidden" }}>
               <div style={{ position: "absolute", inset: 0, opacity: 0.13, backgroundImage: "radial-gradient(rgba(6, 78, 97, 0.75) 1.1px, transparent 1.1px)", backgroundSize: "18px 18px" }} />
               <div style={{ position: "relative", display: "grid", gap: 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "start", flexWrap: "wrap" }}>
                   <div>
-                    <div style={{ fontSize: 58, fontWeight: 900, color: "#fff", lineHeight: 0.95 }}>The Quackway Circuit</div>
+                    <div className="duck-hero-title" style={{ fontSize: 58, fontWeight: 900, color: "#fff", lineHeight: 0.95 }}>The Quackway Circuit</div>
                     <div style={{ marginTop: 8, fontSize: 20, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(236,253,255,0.92)" }}>Grand Finals · Pool A</div>
                   </div>
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -1634,7 +1328,7 @@ export default function App() {
                 </div>
 
                 {(activeView === "dashboard" || activeView === "live") ? (
-                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr) 360px", alignItems: "start" }}>
+                  <div className="duck-dashboard-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: isNarrowLayout ? "minmax(0, 1fr)" : "minmax(0, 1fr) 360px", alignItems: "start" }}>
                     <div style={{ minWidth: 0, display: "grid", gap: 18 }}>
                       <div style={{ ...glassCard("rgba(7, 89, 107, 0.16)"), padding: 18 }}>
                         {displayRacers.length ? (
@@ -1647,14 +1341,13 @@ export default function App() {
                             countdownValue={countdownValue}
                             audience={false}
                             avatarSeed={avatarSeed}
-                            motionTime={motionTime}
                           />
                         ) : (
                           <div style={{ minHeight: 520, borderRadius: 28, border: "1px dashed rgba(255,255,255,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ecfeff", fontWeight: 700 }}>Add entries to launch the race board.</div>
                         )}
                       </div>
 
-                      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr) minmax(320px, 520px)" }}>
+                      <div className="duck-history-grid" style={{ display: "grid", gap: 16, gridTemplateColumns: isNarrowLayout ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(320px, 520px)" }}>
                         <div style={{ ...glassCard("rgba(7, 89, 107, 0.32)"), padding: 18 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                             <div>
@@ -1740,7 +1433,7 @@ export default function App() {
                 ) : null}
 
                 {activeView === "dashboard" ? (
-                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(3, minmax(0,1fr))" }}>
+                  <div className="duck-control-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: isNarrowLayout ? "minmax(0,1fr)" : "repeat(3, minmax(0,1fr))" }}>
                     <div style={{ ...card(), padding: 18, display: "grid", gap: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#0f172a" }}><SlidersHorizontal size={18} /><span style={{ fontSize: 18, fontWeight: 900 }}>Race Controls</span></div>
                       <div style={{ display: "grid", gap: 12 }}>
@@ -1836,13 +1529,13 @@ export default function App() {
                 ) : null}
 
                 {activeView === "stable" ? (
-                  <div style={{ display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 1fr) 420px", alignItems: "start" }}>
-                    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", maxHeight: "calc(100vh - 250px)", overflowY: "auto", paddingRight: 10, alignContent: "start" }}>
+                  <div className="duck-stable-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: isNarrowLayout ? "minmax(0, 1fr)" : "minmax(0, 1fr) 420px", alignItems: "start" }}>
+                    <div className="duck-preview-grid" style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", maxHeight: "calc(100vh - 250px)", overflowY: "auto", paddingRight: 10, alignContent: "start" }}>
                       {stablePreviewEntries.map((name, index) => {
                         const variant = buildDuckVariant(name, avatarSeed);
                         return (
                           <div key={`${name}-${index}`} style={{ ...card(), padding: 18, display: "grid", gap: 14, justifyItems: "center" }}>
-                            <DuckPreviewBadge index={index} variant={variant} motionTime={motionTime} />
+                            <DuckPreviewBadge index={index} variant={variant} />
                             <div style={{ textAlign: "center" }}>
                               <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{name}</div>
                               <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>Accessory: {variant.accessory} · Pattern: {variant.pattern}</div>
@@ -1936,7 +1629,6 @@ export default function App() {
                   countdownValue={countdownValue}
                   audience={true}
                   avatarSeed={avatarSeed}
-                  motionTime={motionTime}
                 />
               ) : (
                 <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 36, background: "rgba(255,255,255,0.12)", color: "#dff9ff" }}>Add entries, then start the race.</div>
