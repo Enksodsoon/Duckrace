@@ -1,0 +1,456 @@
+.duck-app {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.duck-shell,
+.duck-header,
+.duck-header-main,
+.duck-main-grid,
+.duck-sidebar,
+.duck-main,
+.duck-stage-card,
+.duck-dashboard-grid,
+.duck-history-grid,
+.duck-control-grid,
+.duck-stable-grid,
+.duck-preview-grid {
+  min-width: 0;
+}
+
+.duck-header-main,
+.duck-header-actions {
+  max-width: 100%;
+}
+
+.duck-brand,
+.duck-hero-title {
+  overflow-wrap: anywhere;
+}
+
+.duck-stage-card input,
+.duck-stage-card textarea,
+.duck-stage-card select,
+.duck-sidebar input,
+.duck-sidebar textarea,
+.duck-sidebar select {
+  min-width: 0;
+}
+
+.race3d-shell {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #63d7ec 0%, #28bdd6 46%, #107e96 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 28px 70px rgba(4, 35, 48, 0.25);
+}
+
+.race3d-shell--audience {
+  border-radius: 36px;
+}
+
+.race3d-stage {
+  position: relative;
+  min-height: clamp(380px, 38vw, 520px);
+  height: clamp(380px, 48vw, 720px);
+}
+
+.race3d-shell--audience .race3d-stage {
+  height: clamp(420px, calc(100dvh - 220px), 760px);
+  min-height: 420px;
+}
+
+.race3d-stage canvas {
+  display: block;
+}
+
+.race3d-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.36), transparent 36%),
+    radial-gradient(circle at 86% 76%, rgba(253, 224, 71, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 28%, rgba(3, 47, 60, 0.18));
+}
+
+.race3d-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px 4px;
+}
+
+.race3d-statusbar span,
+.gate-label {
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #164e63;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 8px 10px;
+  white-space: nowrap;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(10px);
+}
+
+.gate-label {
+  color: #7c4a00;
+  background: rgba(255, 247, 186, 0.95);
+}
+
+.duck-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 150px;
+  overflow: hidden;
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #164e63;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.duck-label span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #facc15;
+  color: #713f12;
+  font-size: 11px;
+}
+
+.duck-label--winner {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #0f172a;
+}
+
+.race3d-winner {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  z-index: 18;
+  min-width: min(300px, calc(100% - 48px));
+  transform: translateX(-50%);
+  border: 1px solid #fde68a;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+  padding: 14px 22px;
+  text-align: center;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.race3d-winner small {
+  display: block;
+  color: #d97706;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.race3d-winner strong {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.race3d-countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 28;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+.race3d-countdown strong {
+  display: block;
+  color: #fff;
+  font-size: clamp(84px, 14vw, 150px);
+  font-weight: 950;
+  line-height: 0.9;
+  text-align: center;
+}
+
+.race3d-countdown span {
+  display: block;
+  width: fit-content;
+  margin: 12px auto 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.race3d-leaderboard {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 18px 18px;
+}
+
+.race3d-rank {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  background: rgba(8, 145, 178, 0.5);
+  color: #fff;
+  padding: 10px 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.race3d-rank--lead {
+  background: rgba(8, 145, 178, 0.78);
+}
+
+.race3d-rank > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  color: #fff7b2;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.race3d-rank strong,
+.race3d-rank small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.race3d-rank strong {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.race3d-rank small {
+  margin-top: 2px;
+  color: rgba(236, 253, 255, 0.82);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.duck-preview3d {
+  width: clamp(104px, 12vw, 132px);
+  height: clamp(104px, 12vw, 132px);
+  overflow: hidden;
+  border: 10px solid rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.96), rgba(49, 187, 211, 0.3));
+  box-shadow: 0 18px 40px rgba(10, 88, 108, 0.18);
+}
+
+@media (max-width: 1180px), (max-height: 760px) {
+  .duck-app {
+    padding: 10px !important;
+  }
+
+  .duck-shell {
+    gap: 12px !important;
+  }
+
+  .duck-header {
+    align-items: stretch !important;
+    border-radius: 24px !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .duck-header-main {
+    flex: 1 1 100%;
+  }
+
+  .duck-header-actions {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .duck-header-divider {
+    display: none !important;
+  }
+
+  .duck-main-grid,
+  .duck-dashboard-grid,
+  .duck-history-grid,
+  .duck-control-grid,
+  .duck-stable-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .duck-sidebar {
+    position: relative !important;
+    top: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 28px !important;
+    padding: 18px !important;
+  }
+
+  .duck-stage-card {
+    border-radius: 24px !important;
+    padding: 16px !important;
+  }
+
+  .duck-hero-title {
+    font-size: clamp(32px, 7vw, 46px) !important;
+    line-height: 1 !important;
+  }
+
+  .duck-preview-grid {
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+
+  .race3d-stage {
+    min-height: 360px;
+    height: clamp(360px, 56vw, 560px);
+  }
+
+  .race3d-leaderboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .race3d-stage {
+    min-height: 340px;
+    height: clamp(340px, 62vw, 500px);
+  }
+
+  .race3d-leaderboard {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 10px 12px 14px;
+  }
+
+  .race3d-rank:nth-child(n + 4) {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .duck-app {
+    padding: 8px !important;
+  }
+
+  .duck-header {
+    border-radius: 20px !important;
+  }
+
+  .duck-stage-card {
+    padding: 12px !important;
+  }
+
+  .duck-header-actions {
+    justify-content: stretch;
+  }
+
+  .duck-header-actions > button {
+    flex: 1 1 42px;
+  }
+
+  .race3d-stage {
+    min-height: 300px;
+    height: clamp(300px, 76vw, 420px);
+  }
+
+  .race3d-statusbar {
+    padding: 12px 12px 2px;
+  }
+
+  .race3d-statusbar span:nth-child(n + 2) {
+    display: none;
+  }
+
+  .race3d-leaderboard {
+    grid-template-columns: 1fr;
+  }
+
+  .race3d-winner {
+    top: 58px;
+  }
+
+  .race3d-rank {
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 460px) {
+  .duck-brand {
+    font-size: 20px !important;
+  }
+
+  .duck-hero-title {
+    font-size: 30px !important;
+  }
+
+  .duck-sidebar,
+  .duck-stage-card {
+    border-radius: 18px !important;
+  }
+
+  .race3d-stage {
+    min-height: 260px;
+    height: 70vw;
+  }
+
+  .race3d-winner {
+    top: 30px;
+    min-width: min(240px, calc(100% - 24px));
+    padding: 10px 14px;
+  }
+}
+
+@media (max-height: 520px) and (min-width: 720px) {
+  .race3d-stage {
+    min-height: 300px;
+    height: clamp(300px, 64dvh, 380px);
+  }
+
+  .race3d-shell--audience .race3d-stage {
+    min-height: 300px;
+    height: clamp(300px, calc(100dvh - 170px), 380px);
+  }
+}
