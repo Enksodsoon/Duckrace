@@ -301,8 +301,13 @@ function RaceArena({ racers, progress, placements, isRacing, showBurst, countdow
 }
 
 function PlaceSelectionRow({ podiumSlots, eliminationPlaces, onToggle, onClear, onFirstOnly, onAll }) {
+  const selectedLabel = eliminationPlaces.length
+    ? eliminationPlaces.map((place) => placeLabel(place)).join(", ")
+    : "No finishing places selected";
+
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div aria-label="Elimination place selection controls" style={{ display: "grid", gap: 12 }}>
+      <div style={{ fontSize: 12, color: "#64748b" }}>Elimination places selected: {selectedLabel}</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {Array.from({ length: podiumSlots }).map((_, index) => {
           const active = eliminationPlaces.includes(index);
@@ -310,6 +315,8 @@ function PlaceSelectionRow({ podiumSlots, eliminationPlaces, onToggle, onClear, 
             <button
               key={index}
               type="button"
+              aria-pressed={active}
+              aria-label={`Eliminate ${placeLabel(index)} place`}
               onClick={() => onToggle(index)}
               style={{
                 borderRadius: 999,
@@ -328,9 +335,9 @@ function PlaceSelectionRow({ podiumSlots, eliminationPlaces, onToggle, onClear, 
         })}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" onClick={onClear} style={baseButton("outline")}>None</button>
-        <button type="button" onClick={onFirstOnly} style={baseButton("outline")}>1st only</button>
-        <button type="button" onClick={onAll} style={baseButton("outline")}>All podium places</button>
+        <button type="button" onClick={onClear} style={baseButton("outline")}>No elimination</button>
+        <button type="button" onClick={onFirstOnly} style={baseButton("outline")}>Eliminate 1st only</button>
+        <button type="button" onClick={onAll} style={baseButton("outline")}>Eliminate all podium places</button>
       </div>
     </div>
   );
@@ -1240,6 +1247,12 @@ export default function App() {
             </div>
 
             <div style={{ background: "linear-gradient(180deg, rgba(241,245,249,0.95), rgba(226,232,240,0.92))", borderRadius: 28, padding: 18, display: "grid", gap: 14, border: "1px solid rgba(226,232,240,0.95)" }}>
+              <div style={{ border: "1px solid rgba(14,116,144,0.18)", borderRadius: 18, padding: 12, background: "rgba(236,254,255,0.7)", display: "grid", gap: 8 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>No login required</div>
+                <div style={{ fontSize: 12, color: "#475569" }}>This host session saves settings only in this browser.</div>
+                <button type="button" onClick={clearSavedState} style={{ ...baseButton("outline"), borderRadius: 999 }}>Clear saved browser data</button>
+              </div>
+
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#334155", textTransform: "uppercase" }}>Entries ({parsedEntries.length})</div>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -1252,8 +1265,12 @@ export default function App() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center" }}>
                 <input value={entryFilter} onChange={(e) => setEntryFilter(e.target.value)} placeholder="Filter active entries..." style={{ ...inputStyle(), background: "rgba(255,255,255,0.88)" }} />
                 <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#334155", fontWeight: 700 }}>
-                  <input type="checkbox" checked={dedupeEntries} onChange={(e) => setDedupeEntries(e.target.checked)} /> Dedupe
+                  <input aria-label="Remove duplicate racer entries" type="checkbox" checked={dedupeEntries} onChange={(e) => setDedupeEntries(e.target.checked)} /> Remove duplicates
                 </label>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button type="button" onClick={() => setDedupeEntries(true)} style={baseButton(dedupeEntries ? "secondary" : "outline")}>Remove duplicate racer entries</button>
+                <span style={{ fontSize: 12, color: "#64748b" }}>{dedupeEntries ? "Duplicate racers are removed from the active pool." : "Duplicate racers are currently allowed."}</span>
               </div>
               {duplicateCount > 0 ? <div style={{ fontSize: 12, color: "#b45309" }}>{duplicateCount} duplicate entries removed from the race pool.</div> : null}
 
@@ -1448,6 +1465,31 @@ export default function App() {
                           <label style={{ fontWeight: 700, color: "#0f172a" }}>Podium size</label>
                           <input type="number" min={1} max={activeEntryCount} value={podiumCountInput} onChange={(e) => setPodiumCountInput(e.target.value)} style={{ ...inputStyle(), marginTop: 8 }} />
                         </div>
+                        <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12, display: "grid", gap: 10 }}>
+                          <div>
+                            <div style={{ fontWeight: 800, color: "#0f172a" }}>Tournament and elimination rules</div>
+                            <div style={{ marginTop: 3, fontSize: 12, color: "#64748b" }}>Choose which finishing places are eliminated after each race round.</div>
+                          </div>
+                          <PlaceSelectionRow
+                            podiumSlots={podiumSlots}
+                            eliminationPlaces={eliminationPlaces}
+                            onToggle={toggleEliminationPlace}
+                            onClear={() => setEliminationPlaces([])}
+                            onFirstOnly={() => setEliminationPlaces([0])}
+                            onAll={() => setEliminationPlaces(Array.from({ length: podiumSlots }).map((_, index) => index))}
+                          />
+                          <button type="button" onClick={undoLastElimination} disabled={!lastEliminationUndo} style={baseButton("outline")}>Undo last elimination round</button>
+                          {roundHistory.length ? (
+                            <div aria-label="Tournament elimination round summary" style={{ border: "1px solid #e2e8f0", borderRadius: 14, padding: 12, background: "#f8fafc", display: "grid", gap: 4 }}>
+                              <div style={{ fontSize: 12, fontWeight: 800, color: "#475569" }}>Latest elimination round</div>
+                              <div style={{ fontSize: 13, color: "#0f172a" }}>Round {roundHistory[roundHistory.length - 1].round}</div>
+                              <div style={{ fontSize: 13, color: "#0f172a" }}>Winners: {roundHistory[roundHistory.length - 1].winners.join(", ") || "-"}</div>
+                              <div style={{ fontSize: 13, color: "#0f172a" }}>Eliminated: {roundHistory[roundHistory.length - 1].eliminated.join(", ") || "None"}</div>
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: 12, color: "#64748b" }}>Run a race to create the first elimination round.</div>
+                          )}
+                        </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                           <div><div style={{ fontWeight: 700, color: "#0f172a" }}>Shuffle entries</div><div style={{ fontSize: 12, color: "#64748b" }}>Random order every race</div></div>
                           <Toggle checked={shuffleBeforeRace} onChange={setShuffleBeforeRace} />
@@ -1562,7 +1604,8 @@ export default function App() {
                       </div>
 
                       <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 14, display: "grid", gap: 12 }}>
-                        <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>Round elimination rules</div>
+                        <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>Tournament and elimination rules</div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>These are the same elimination-place controls shown on the Race Track.</div>
                         <PlaceSelectionRow
                           podiumSlots={podiumSlots}
                           eliminationPlaces={eliminationPlaces}
