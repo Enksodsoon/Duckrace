@@ -270,10 +270,11 @@ function Toggle({ checked, onChange, disabled = false }) {
   );
 }
 
-function Range({ min, max, step, value, onChange }) {
+function Range({ min, max, step, value, onChange, label }) {
   return (
     <input
       type="range"
+      aria-label={label}
       min={min}
       max={max}
       step={step}
@@ -674,8 +675,8 @@ export default function App() {
     return Math.floor(Date.now() % 1000000000);
   }
 
-  function getAudioContext() {
-    if (!soundEnabled || audioBlocked) return null;
+  function getAudioContext({ force = false } = {}) {
+    if ((!soundEnabled || audioBlocked) && !force) return null;
     try {
       const safeWindow = typeof window !== "undefined" ? window : null;
       if (!safeWindow) return null;
@@ -684,9 +685,6 @@ export default function App() {
         if (!AudioContextClass) return null;
         audioContextRef.current = new AudioContextClass();
       }
-      if (audioContextRef.current.state === "suspended") {
-        audioContextRef.current.resume().catch(() => setAudioBlocked(true));
-      }
       return audioContextRef.current;
     } catch {
       setAudioBlocked(true);
@@ -694,33 +692,70 @@ export default function App() {
     }
   }
 
-  function playToneSequence(tones) {
-    const ctx = getAudioContext();
-    if (!ctx) return;
+  function scheduleToneSequence(ctx, tones) {
+    const minimumGain = 0.0001;
+    const normalizedVolume = clamp(soundVolume / 200, 0, 1);
+    const presetBoost =
+      soundPreset === "minimal" ? 0.8 :
+      soundPreset === "cinematic" ? 1.25 :
+      1;
+    const volumeScale = Math.pow(normalizedVolume, 0.58) * 2.6 * presetBoost;
+
+    if (!Number.isFinite(volumeScale) || volumeScale <= 0) return;
+
+    const start = ctx.currentTime;
+    for (const tone of tones) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const peakGain = Math.max(minimumGain, (tone.volume || 0.04) * volumeScale);
+      osc.type = tone.type || "sine";
+      osc.frequency.setValueAtTime(tone.freq, start + tone.at);
+      gain.gain.setValueAtTime(minimumGain, start + tone.at);
+      gain.gain.exponentialRampToValueAtTime(peakGain, start + tone.at + 0.01);
+      gain.gain.exponentialRampToValueAtTime(minimumGain, start + tone.at + tone.duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start + tone.at);
+      osc.stop(start + tone.at + tone.duration + 0.03);
+    }
+  }
+
+  function playToneSequence(tones, options = {}) {
+    const ctx = getAudioContext(options);
+    if (!ctx) return false;
     try {
-      const start = ctx.currentTime;
-      for (const tone of tones) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = tone.type || "sine";
-        osc.frequency.setValueAtTime(tone.freq, start + tone.at);
-        gain.gain.setValueAtTime(0.0001, start + tone.at);
-        const normalizedVolume = clamp(soundVolume / 200, 0, 1);
-        const presetBoost =
-          soundPreset === "minimal" ? 0.8 :
-          soundPreset === "cinematic" ? 1.25 :
-          1;
-        const volumeScale = Math.pow(normalizedVolume, 0.58) * 2.6 * presetBoost;
-        gain.gain.exponentialRampToValueAtTime((tone.volume || 0.04) * volumeScale, start + tone.at + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + tone.at + tone.duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(start + tone.at);
-        osc.stop(start + tone.at + tone.duration + 0.03);
+      if (ctx.state === "suspended" && typeof ctx.resume === "function") {
+        ctx.resume()
+          .then(() => {
+            if (ctx.state !== "closed") scheduleToneSequence(ctx, tones);
+          })
+          .catch(() => setAudioBlocked(true));
+        return true;
       }
+      if (ctx.state !== "closed") scheduleToneSequence(ctx, tones);
+      return true;
     } catch {
       setAudioBlocked(true);
+      return false;
     }
+  }
+
+  function handleSoundToggle(nextValue) {
+    setAudioBlocked(false);
+    setSoundEnabled(nextValue);
+    if (nextValue) {
+      playToneSequence([{ freq: 660, at: 0, duration: 0.12, volume: 0.06, type: "triangle" }], { force: true });
+    }
+  }
+
+  function testSoundEffects() {
+    setAudioBlocked(false);
+    if (!soundEnabled) setSoundEnabled(true);
+    playToneSequence([
+      { freq: 523, at: 0, duration: 0.08, volume: 0.05, type: "triangle" },
+      { freq: 659, at: 0.1, duration: 0.08, volume: 0.05, type: "triangle" },
+      { freq: 784, at: 0.2, duration: 0.12, volume: 0.06, type: "sine" },
+    ], { force: true });
   }
 
   function playStartSound() {
@@ -1506,14 +1541,15 @@ export default function App() {
                       <div style={{ display: "grid", gap: 12 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                           <div><div style={{ fontWeight: 700, color: "#0f172a" }}>Sound effects</div><div style={{ fontSize: 12, color: "#64748b" }}>Start, race, finish cues</div></div>
-                          <Toggle checked={soundEnabled && !audioBlocked} onChange={setSoundEnabled} disabled={audioBlocked} />
+                          <Toggle checked={soundEnabled && !audioBlocked} onChange={handleSoundToggle} />
                         </div>
+                        <button type="button" onClick={testSoundEffects} style={baseButton("outline")}>Test sound</button>
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                             <span style={{ fontWeight: 700, color: "#0f172a" }}>Master volume</span>
                             <span style={{ fontSize: 12, color: "#64748b" }}>{soundVolume}%</span>
                           </div>
-                          <Range min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
+                          <Range label="Master volume" min={0} max={200} step={5} value={soundVolume} onChange={setSoundVolume} />
                         </div>
                         <div>
                           <label style={{ fontWeight: 700, color: "#0f172a" }}>Sound preset</label>
@@ -1524,11 +1560,12 @@ export default function App() {
                           </select>
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 10 }}>
-                          <div><div style={{ fontSize: 12, color: "#475569" }}>Countdown {countdownChannelVolume}%</div><Range min={0} max={200} step={5} value={countdownChannelVolume} onChange={setCountdownChannelVolume} /></div>
-                          <div><div style={{ fontSize: 12, color: "#475569" }}>Start {startChannelVolume}%</div><Range min={0} max={200} step={5} value={startChannelVolume} onChange={setStartChannelVolume} /></div>
-                          <div><div style={{ fontSize: 12, color: "#475569" }}>Race {raceChannelVolume}%</div><Range min={0} max={200} step={5} value={raceChannelVolume} onChange={setRaceChannelVolume} /></div>
-                          <div><div style={{ fontSize: 12, color: "#475569" }}>Finish {finishChannelVolume}%</div><Range min={0} max={200} step={5} value={finishChannelVolume} onChange={setFinishChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Countdown {countdownChannelVolume}%</div><Range label="Countdown volume" min={0} max={200} step={5} value={countdownChannelVolume} onChange={setCountdownChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Start {startChannelVolume}%</div><Range label="Start volume" min={0} max={200} step={5} value={startChannelVolume} onChange={setStartChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Race {raceChannelVolume}%</div><Range label="Race volume" min={0} max={200} step={5} value={raceChannelVolume} onChange={setRaceChannelVolume} /></div>
+                          <div><div style={{ fontSize: 12, color: "#475569" }}>Finish {finishChannelVolume}%</div><Range label="Finish volume" min={0} max={200} step={5} value={finishChannelVolume} onChange={setFinishChannelVolume} /></div>
                         </div>
+                        {audioBlocked ? <div style={{ fontSize: 12, color: "#b45309" }}>Sound is blocked by this browser. Tap Test sound or Sound to retry.</div> : null}
                       </div>
                     </div>
 
@@ -1566,7 +1603,7 @@ export default function App() {
                     <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("light"), minWidth: 120 }}>Instant pick</button>
                     <button onClick={() => setIsAudienceMode((v) => !v)} style={{ ...baseButton("light"), minWidth: 140 }}>{isAudienceMode ? "Close audience" : "Audience mode"}</button>
                     <button onClick={resetVisual} style={{ ...baseButton("light"), minWidth: 120 }}>Reset stage</button>
-                    <button onClick={() => setSoundEnabled((v) => !v)} disabled={audioBlocked} style={{ ...baseButton("light"), minWidth: 110 }}>{soundEnabled && !audioBlocked ? "Mute" : "Sound"}</button>
+                    <button onClick={() => handleSoundToggle(!(soundEnabled && !audioBlocked))} style={{ ...baseButton("light"), minWidth: 110 }}>{soundEnabled && !audioBlocked ? "Mute" : "Sound"}</button>
                   </div>
                 ) : null}
 
