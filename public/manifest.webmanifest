@@ -1,0 +1,17 @@
+{
+  "name": "Duck Race Randomizer",
+  "short_name": "Duck Race",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f7489",
+  "theme_color": "#0f7489",
+  "description": "Randomized 3D duck races for classrooms, events and streams.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -9,7 +9,6 @@ import {
   Trophy,
   Medal,
   Volume2,
-  VolumeX,
   Sparkles,
   LayoutDashboard,
   Flag,
@@ -20,7 +19,13 @@ import {
   SlidersHorizontal,
   History,
 } from "lucide-react";
-import { DuckPreview3D, RaceArena3D } from "./DuckRace3D.jsx";
+import RaceArena from "./components/RaceArena.jsx";
+import DuckPreviewBadge from "./components/DuckPreviewBadge.jsx";
+import PlaceSelectionRow from "./components/PlaceSelectionRow.jsx";
+import SidebarNavButton from "./components/SidebarNavButton.jsx";
+import { Range, Toggle } from "./components/controls.jsx";
+import { readPersistedState } from "./lib/raceUtils.js";
+import ShareQrCode from "./components/ShareQrCode.jsx";
 
 const SAMPLE = `Group 1
 Group 2
@@ -29,369 +34,25 @@ Group 4
 Group 5
 Group 6`;
 
-const STORAGE_KEY = "duck-race-randomizer:v1";
+const STORAGE_KEY = "duck-race-randomizer:v2";
+const LEGACY_STORAGE_KEY = "duck-race-randomizer:v1";
 const RESULTS_EXPORT_HEADERS = ["rank", "name"];
 
-function parseBooleanParam(value, fallback = false) {
-  if (value == null) return fallback;
-  const normalized = String(value).toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes";
-}
-
-function seededShuffle(arr, rng) {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rng() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function toCsvRow(values) {
-  return values
-    .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
-    .join(",");
-}
-
-function parseCsvOrTextEntries(content) {
-  const raw = String(content || "").replace(/\r\n/g, "\n");
-  const lines = raw.split("\n").map((line) => line.trim()).filter(Boolean);
-  if (!lines.length) return [];
-
-  const looksLikeCsv = lines.some((line) => line.includes(","));
-  if (!looksLikeCsv) return splitEntries(raw);
-
-  return lines
-    .map((line) => {
-      const firstCell = line.match(/^\s*"((?:[^"]|"")*)"\s*(?:,|$)/);
-      if (firstCell) return firstCell[1].replace(/""/g, '"').trim();
-      return line.split(",")[0]?.trim() || "";
-    })
-    .filter(Boolean);
-}
-
-function downloadText(filename, content, type = "text/plain;charset=utf-8") {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-}
-
-function splitEntries(text) {
-  return String(text || "")
-    .split(/[\n,;\t]+/)
-    .map((x) => x.trim())
-    .filter((x) => x.length > 0);
-}
-
-function shuffleArray(arr) {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function placeLabel(index) {
-  const n = index + 1;
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  let suffix = "th";
-  if (mod10 === 1 && mod100 !== 11) suffix = "st";
-  else if (mod10 === 2 && mod100 !== 12) suffix = "nd";
-  else if (mod10 === 3 && mod100 !== 13) suffix = "rd";
-  return `${n}${suffix}`;
-}
-
-function removeManyOccurrences(list, values) {
-  const remaining = [...list];
-  for (const value of values) {
-    const index = remaining.indexOf(value);
-    if (index !== -1) remaining.splice(index, 1);
-  }
-  return remaining;
-}
-
-function hashString(value) {
-  const input = String(value || "");
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function mulberry32(seed) {
-  let t = seed >>> 0;
-  return function rand() {
-    t += 0x6d2b79f5;
-    let x = Math.imul(t ^ (t >>> 15), t | 1);
-    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function pick(rng, list) {
-  return list[Math.floor(rng() * list.length)];
-}
-
-function buildDuckVariant(name, styleSeed = 0) {
-  const rng = mulberry32(hashString(`${name}::${styleSeed}`));
-  const palettes = [
-    { bodyA: "#fff8d7", bodyB: "#f6d95b", wing: "#e8bd29", accent: "#0f766e", accentSoft: "#7dd3c7", bill: "#f97316" },
-    { bodyA: "#f6fbff", bodyB: "#b4ebf8", wing: "#5fcde4", accent: "#0f766e", accentSoft: "#d8fbff", bill: "#fb923c" },
-    { bodyA: "#ffe6e0", bodyB: "#ffc1ab", wing: "#ff9878", accent: "#0ea5a4", accentSoft: "#ffd9cb", bill: "#ea580c" },
-    { bodyA: "#eefdf8", bodyB: "#9ae6d4", wing: "#5cc7ba", accent: "#115e59", accentSoft: "#cbfbf1", bill: "#fb923c" },
-    { bodyA: "#f4f1ff", bodyB: "#d8c8ff", wing: "#b8a2ff", accent: "#0f766e", accentSoft: "#eee7ff", bill: "#f97316" },
-    { bodyA: "#edf7ff", bodyB: "#91d5f6", wing: "#49b7d8", accent: "#155e75", accentSoft: "#d6f6ff", bill: "#fb923c" },
-  ];
-  return {
-    palette: pick(rng, palettes),
-    accessory: pick(rng, ["cap", "scarf", "glasses", "bow", "none"]),
-    pattern: pick(rng, ["none", "spot", "stripe"]),
-    eyeSize: 1 + rng() * 0.25,
-    tiltAccent: rng() > 0.5 ? 1 : -1,
-  };
-}
-
-function getPlaceColors(place) {
-  if (place === 0) return { border: "#fde68a", bg: "#fffbeb", chipBg: "#fef3c7", chipText: "#92400e" };
-  if (place === 1) return { border: "#d1d5db", bg: "#f9fafb", chipBg: "#e5e7eb", chipText: "#374151" };
-  if (place === 2) return { border: "#fdba74", bg: "#fff7ed", chipBg: "#fed7aa", chipText: "#9a3412" };
-  return { border: "#bae6fd", bg: "#f0f9ff", chipBg: "#e0f2fe", chipText: "#0c4a6e" };
-}
-
-function baseButton(kind = "primary") {
-  const styles = {
-    primary: { background: "linear-gradient(135deg, #0f172a 0%, #1d4ed8 100%)", color: "#fff", border: "1px solid #1e3a8a" },
-    secondary: { background: "#eff6ff", color: "#0f172a", border: "1px solid #bfdbfe" },
-    outline: { background: "#fff", color: "#1e293b", border: "1px solid #dbe7ff" },
-    light: { background: "rgba(255,255,255,0.92)", color: "#0f172a", border: "1px solid rgba(255,255,255,0.95)" },
-  };
-  return {
-    ...styles[kind],
-    borderRadius: 12,
-    padding: "10px 12px",
-    fontWeight: 700,
-    cursor: "pointer",
-    fontSize: 13,
-    letterSpacing: "0.01em",
-    boxShadow: kind === "primary" ? "0 10px 24px rgba(30,64,175,0.26)" : "none",
-  };
-}
-
-function pill(bg = "#fff", color = "#334155", border = "#e2e8f0") {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    border: `1px solid ${border}`,
-    background: bg,
-    color,
-    borderRadius: 999,
-    padding: "4px 10px",
-    fontSize: 11,
-    fontWeight: 700,
-  };
-}
-
-function card() {
-  return {
-    background: "rgba(255,255,255,0.94)",
-    border: "1px solid #e5edff",
-    borderRadius: 18,
-    boxShadow: "0 18px 44px rgba(15,23,42,0.08)",
-    backdropFilter: "blur(10px)",
-  };
-}
-
-function glassCard(tint = "rgba(8, 145, 178, 0.18)") {
-  return {
-    background: tint,
-    border: "1px solid rgba(255,255,255,0.22)",
-    borderRadius: 28,
-    boxShadow: "0 24px 60px rgba(2, 32, 43, 0.22)",
-    backdropFilter: "blur(12px)",
-  };
-}
-
-function inputStyle() {
-  return {
-    width: "100%",
-    borderRadius: 12,
-    border: "1px solid #cfe0ff",
-    padding: "10px 12px",
-    background: "#f8fbff",
-    color: "#0f172a",
-  };
-}
-
-function Toggle({ checked, onChange, disabled = false }) {
-  return (
-    <button
-      type="button"
-      onClick={() => !disabled && onChange(!checked)}
-      disabled={disabled}
-      style={{
-        width: 52,
-        height: 30,
-        borderRadius: 999,
-        border: "1px solid #cbd5e1",
-        background: disabled ? "#e5e7eb" : checked ? "#0f172a" : "#fff",
-        position: "relative",
-        cursor: disabled ? "not-allowed" : "pointer",
-        transition: "all 0.2s ease",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 3,
-          left: checked ? 25 : 3,
-          width: 22,
-          height: 22,
-          borderRadius: 999,
-          background: checked ? "#fff" : "#cbd5e1",
-          transition: "all 0.2s ease",
-        }}
-      />
-    </button>
-  );
-}
-
-function Range({ min, max, step, value, onChange, label }) {
-  return (
-    <input
-      type="range"
-      aria-label={label}
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      style={{ width: "100%" }}
-    />
-  );
-}
-
-function RaceArena({ racers, progress, placements, isRacing, showBurst, countdownValue, audience, avatarSeed }) {
-  const variants = useMemo(() => racers.map((name) => buildDuckVariant(name, avatarSeed)), [racers, avatarSeed]);
-  return (
-    <RaceArena3D
-      racers={racers}
-      progress={progress}
-      placements={placements}
-      isRacing={isRacing}
-      showBurst={showBurst}
-      countdownValue={countdownValue}
-      audience={audience}
-      variants={variants}
-    />
-  );
-}
-
-function PlaceSelectionRow({ podiumSlots, eliminationPlaces, onToggle, onClear, onFirstOnly, onAll }) {
-  const selectedLabel = eliminationPlaces.length
-    ? eliminationPlaces.map((place) => placeLabel(place)).join(", ")
-    : "No finishing places selected";
-
-  return (
-    <div aria-label="Elimination place selection controls" style={{ display: "grid", gap: 12 }}>
-      <div style={{ fontSize: 12, color: "#64748b" }}>Elimination places selected: {selectedLabel}</div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {Array.from({ length: podiumSlots }).map((_, index) => {
-          const active = eliminationPlaces.includes(index);
-          return (
-            <button
-              key={index}
-              type="button"
-              aria-pressed={active}
-              aria-label={`Eliminate ${placeLabel(index)} place`}
-              onClick={() => onToggle(index)}
-              style={{
-                borderRadius: 999,
-                padding: "8px 12px",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                border: active ? "1px solid #0f172a" : "1px solid #e2e8f0",
-                background: active ? "#0f172a" : "#fff",
-                color: active ? "#fff" : "#334155",
-              }}
-            >
-              Eliminate {placeLabel(index)}
-            </button>
-          );
-        })}
-      </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" onClick={onClear} style={baseButton("outline")}>No elimination</button>
-        <button type="button" onClick={onFirstOnly} style={baseButton("outline")}>Eliminate 1st only</button>
-        <button type="button" onClick={onAll} style={baseButton("outline")}>Eliminate all podium places</button>
-      </div>
-    </div>
-  );
-}
-
-function SidebarNavButton({ icon: Icon, label, description, active, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        padding: "14px 16px",
-        borderRadius: 22,
-        border: active ? "1px solid rgba(255, 214, 77, 0.7)" : "1px solid rgba(255,255,255,0.55)",
-        background: active
-          ? "linear-gradient(135deg, rgba(255,247,186,0.95) 0%, rgba(255,227,122,0.76) 100%)"
-          : "linear-gradient(135deg, rgba(255,255,255,0.56) 0%, rgba(255,255,255,0.18) 100%)",
-        color: active ? "#7c4a00" : "#475569",
-        cursor: "pointer",
-        boxShadow: active ? "0 18px 34px rgba(255, 191, 0, 0.18)" : "0 10px 24px rgba(148,163,184,0.08)",
-        backdropFilter: "blur(18px)",
-        textAlign: "left",
-      }}
-    >
-      <span style={{
-        width: 38,
-        height: 38,
-        borderRadius: 14,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: active ? "rgba(255,255,255,0.56)" : "rgba(255,255,255,0.5)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.8)",
-      }}>
-        <Icon size={18} />
-      </span>
-      <span style={{ display: "grid", gap: 2 }}>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>{label}</span>
-        <span style={{ fontSize: 11, opacity: 0.8 }}>{description}</span>
-      </span>
-    </button>
-  );
-}
-
-function DuckPreviewBadge({ index, variant }) {
-  return (
-    <DuckPreview3D variant={variant} index={index} />
-  );
-}
+import {
+  buildDuckVariant,
+  clamp,
+  downloadText,
+  hashString,
+  mulberry32,
+  parseBooleanParam,
+  parseCsvOrTextEntries,
+  placeLabel,
+  removeManyOccurrences,
+  seededShuffle,
+  splitEntries,
+  toCsvRow,
+} from "./lib/raceUtils.js";
+import { baseButton, card, getPlaceColors, glassCard, inputStyle, pill } from "./components/ui.js";
 
 export default function App() {
   const initialConfig = useMemo(() => {
@@ -410,43 +71,51 @@ export default function App() {
     };
   }, []);
 
-  const [entriesText, setEntriesText] = useState(SAMPLE);
-  const [numberStart, setNumberStart] = useState("1");
-  const [numberEnd, setNumberEnd] = useState("10");
-  const [prefix, setPrefix] = useState("Group ");
-  const [duration, setDuration] = useState(7);
-  const [shuffleBeforeRace, setShuffleBeforeRace] = useState(initialConfig.shuffleParam);
-  const [soundEnabled, setSoundEnabled] = useState(initialConfig.soundParam);
-  const [soundVolume, setSoundVolume] = useState(70);
-  const [soundPreset, setSoundPreset] = useState("sport");
-  const [countdownChannelVolume, setCountdownChannelVolume] = useState(100);
-  const [startChannelVolume, setStartChannelVolume] = useState(100);
-  const [raceChannelVolume, setRaceChannelVolume] = useState(100);
-  const [finishChannelVolume, setFinishChannelVolume] = useState(100);
-  const [rerollAvatarsEachRound, setRerollAvatarsEachRound] = useState(false);
+  // Restored settings are read once during the first render (lazy state
+  // initializers below) so the UI never flashes defaults before hydration.
+  const persisted = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return readPersistedState(window.localStorage);
+  }, []);
+
+  const [entriesText, setEntriesText] = useState(() => persisted?.entriesText ?? SAMPLE);
+  const [numberStart, setNumberStart] = useState(() => persisted?.numberStart ?? "1");
+  const [numberEnd, setNumberEnd] = useState(() => persisted?.numberEnd ?? "10");
+  const [prefix, setPrefix] = useState(() => persisted?.prefix ?? "Group ");
+  const [duration, setDuration] = useState(() => persisted?.duration ?? 7);
+  const [shuffleBeforeRace, setShuffleBeforeRace] = useState(() => persisted?.shuffleBeforeRace ?? initialConfig.shuffleParam);
+  const [soundEnabled, setSoundEnabled] = useState(() => persisted?.soundEnabled ?? initialConfig.soundParam);
+  const [soundVolume, setSoundVolume] = useState(() => persisted?.soundVolume ?? 70);
+  const [soundPreset, setSoundPreset] = useState(() => persisted?.soundPreset ?? "sport");
+  const [countdownChannelVolume, setCountdownChannelVolume] = useState(() => persisted?.countdownChannelVolume ?? 100);
+  const [startChannelVolume, setStartChannelVolume] = useState(() => persisted?.startChannelVolume ?? 100);
+  const [raceChannelVolume, setRaceChannelVolume] = useState(() => persisted?.raceChannelVolume ?? 100);
+  const [finishChannelVolume, setFinishChannelVolume] = useState(() => persisted?.finishChannelVolume ?? 100);
+  const [rerollAvatarsEachRound, setRerollAvatarsEachRound] = useState(() => persisted?.rerollAvatarsEachRound ?? false);
   const [avatarSeed, setAvatarSeed] = useState(0);
-  const [podiumCountInput, setPodiumCountInput] = useState("3");
-  const [eliminationPlaces, setEliminationPlaces] = useState([0]);
+  const [podiumCountInput, setPodiumCountInput] = useState(() => persisted?.podiumCountInput ?? "3");
+  const [eliminationPlaces, setEliminationPlaces] = useState(() => persisted?.eliminationPlaces ?? [0]);
   const [racers, setRacers] = useState([]);
   const [progress, setProgress] = useState([]);
   const [placements, setPlacements] = useState([]);
-  const [lastResults, setLastResults] = useState([]);
+  const [lastResults, setLastResults] = useState(() => persisted?.lastResults ?? []);
   const [lastWinners, setLastWinners] = useState([]);
   const [lastEliminationUndo, setLastEliminationUndo] = useState(null);
   const [isRacing, setIsRacing] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
   const [isAudienceMode, setIsAudienceMode] = useState(initialConfig.audienceParam);
-  const [isCompactOverlay, setIsCompactOverlay] = useState(initialConfig.compactOverlayParam);
+  const [isCompactOverlay, setIsCompactOverlay] = useState(() => persisted?.isCompactOverlay ?? initialConfig.compactOverlayParam);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
-  const [raceSeedInput, setRaceSeedInput] = useState(initialConfig.seedParam);
+  // URL seed param always wins over stored seed so shared links are exact.
+  const [raceSeedInput, setRaceSeedInput] = useState(() => initialConfig.seedParam || persisted?.raceSeedInput || "");
   const [copyNotice, setCopyNotice] = useState("");
-  const [fairnessMode, setFairnessMode] = useState(false);
-  const [raceLogs, setRaceLogs] = useState([]);
-  const [roundHistory, setRoundHistory] = useState([]);
-  const [roundNumber, setRoundNumber] = useState(1);
-  const [dedupeEntries, setDedupeEntries] = useState(true);
-  const [entryFilter, setEntryFilter] = useState("");
+  const [fairnessMode, setFairnessMode] = useState(() => persisted?.fairnessMode ?? false);
+  const [raceLogs, setRaceLogs] = useState(() => persisted?.raceLogs ?? []);
+  const [roundHistory, setRoundHistory] = useState(() => persisted?.roundHistory ?? []);
+  const [roundNumber, setRoundNumber] = useState(() => persisted?.roundNumber ?? 1);
+  const [dedupeEntries, setDedupeEntries] = useState(() => persisted?.dedupeEntries ?? true);
+  const [entryFilter, setEntryFilter] = useState(() => persisted?.entryFilter ?? "");
   const [activeView, setActiveView] = useState("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -545,53 +214,20 @@ export default function App() {
     return () => safeWindow.removeEventListener("resize", updateViewportWidth);
   }, []);
 
-  useEffect(() => {
+  // Derived-state adjustment (documented React pattern): when the podium
+  // shrinks, drop elimination places that no longer exist before render.
+  const [prevPodiumSlots, setPrevPodiumSlots] = useState(podiumSlots);
+  if (prevPodiumSlots !== podiumSlots) {
+    setPrevPodiumSlots(podiumSlots);
     setEliminationPlaces((prev) => prev.filter((place) => place < podiumSlots));
-  }, [podiumSlots]);
-
-  useEffect(() => {
-    const safeWindow = typeof window !== "undefined" ? window : null;
-    if (!safeWindow) return;
-    try {
-      const raw = safeWindow.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") return;
-      if (typeof parsed.entriesText === "string") setEntriesText(parsed.entriesText);
-      if (typeof parsed.numberStart === "string") setNumberStart(parsed.numberStart);
-      if (typeof parsed.numberEnd === "string") setNumberEnd(parsed.numberEnd);
-      if (typeof parsed.prefix === "string") setPrefix(parsed.prefix);
-      if (typeof parsed.duration === "number") setDuration(clamp(parsed.duration, 3, 30));
-      if (typeof parsed.shuffleBeforeRace === "boolean") setShuffleBeforeRace(parsed.shuffleBeforeRace);
-      if (typeof parsed.soundEnabled === "boolean") setSoundEnabled(parsed.soundEnabled);
-      if (typeof parsed.soundVolume === "number") setSoundVolume(clamp(parsed.soundVolume, 0, 200));
-      if (typeof parsed.soundPreset === "string") setSoundPreset(parsed.soundPreset);
-      if (typeof parsed.countdownChannelVolume === "number") setCountdownChannelVolume(clamp(parsed.countdownChannelVolume, 0, 200));
-      if (typeof parsed.startChannelVolume === "number") setStartChannelVolume(clamp(parsed.startChannelVolume, 0, 200));
-      if (typeof parsed.raceChannelVolume === "number") setRaceChannelVolume(clamp(parsed.raceChannelVolume, 0, 200));
-      if (typeof parsed.finishChannelVolume === "number") setFinishChannelVolume(clamp(parsed.finishChannelVolume, 0, 200));
-      if (typeof parsed.rerollAvatarsEachRound === "boolean") setRerollAvatarsEachRound(parsed.rerollAvatarsEachRound);
-      if (typeof parsed.podiumCountInput === "string") setPodiumCountInput(parsed.podiumCountInput);
-      if (Array.isArray(parsed.eliminationPlaces)) setEliminationPlaces(parsed.eliminationPlaces.filter((n) => Number.isInteger(n) && n >= 0));
-      if (Array.isArray(parsed.lastResults)) setLastResults(parsed.lastResults.slice(0, 8).map(String));
-      if (typeof parsed.raceSeedInput === "string" && !initialConfig.seedParam) setRaceSeedInput(parsed.raceSeedInput);
-      if (typeof parsed.isCompactOverlay === "boolean") setIsCompactOverlay(parsed.isCompactOverlay);
-      if (typeof parsed.fairnessMode === "boolean") setFairnessMode(parsed.fairnessMode);
-      if (typeof parsed.dedupeEntries === "boolean") setDedupeEntries(parsed.dedupeEntries);
-      if (typeof parsed.entryFilter === "string") setEntryFilter(parsed.entryFilter);
-      if (Array.isArray(parsed.raceLogs)) setRaceLogs(parsed.raceLogs.slice(0, 40));
-      if (Array.isArray(parsed.roundHistory)) setRoundHistory(parsed.roundHistory.slice(0, 40));
-      if (typeof parsed.roundNumber === "number") setRoundNumber(Math.max(1, Math.floor(parsed.roundNumber)));
-    } catch {
-      // Ignore malformed saved data.
-    }
-  }, [initialConfig.seedParam]);
+  }
 
   useEffect(() => {
     const safeWindow = typeof window !== "undefined" ? window : null;
     if (!safeWindow) return;
     if (!persistenceEnabledRef.current) return;
     const payload = {
+      version: 2,
       entriesText,
       numberStart,
       numberEnd,
@@ -949,6 +585,23 @@ export default function App() {
     downloadText("race-log.json", JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
   }
 
+  function exportResultsXls() {
+    // Dep-free Excel-compatible export (HTML table with .xls extension).
+    const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const rows = lastWinners.map((name, i) => `<tr><td>${esc(placeLabel(i))}</td><td>${esc(name)}</td></tr>`).join("");
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"/></head><body><table><tr><th>rank</th><th>name</th></tr>${rows}</table></body></html>`;
+    downloadText("results.xls", html, "application/vnd.ms-excel;charset=utf-8");
+  }
+
+  function replayLastFinish() {
+    // Photo-finish replay: restore last race participants and restart countdown.
+    const list = displayRacers.length ? displayRacers : parsedEntries;
+    if (!list.length || isRacing || countdownValue !== null) return;
+    setEntriesText(list.join("\n"));
+    // Defer so entries propagate before countdown starts.
+    setTimeout(() => startRaceWithCountdown(), 60);
+  }
+
   function copyShareLink() {
     if (!sharedUrl) return;
     const done = () => {
@@ -975,6 +628,7 @@ export default function App() {
     if (!safeWindow) return;
     persistenceEnabledRef.current = false;
     safeWindow.localStorage.removeItem(STORAGE_KEY);
+    safeWindow.localStorage.removeItem(LEGACY_STORAGE_KEY);
 
     clearAnimation();
     clearCountdown();
@@ -1334,19 +988,20 @@ export default function App() {
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("primary"), padding: "18px 20px", borderRadius: 999, fontSize: 17, background: "linear-gradient(135deg, #876300 0%, #a37800 100%)", border: "1px solid rgba(135,99,0,0.9)", boxShadow: "0 18px 40px rgba(135,99,0,0.3)" }}>
+              <button onClick={startRaceWithCountdown} disabled={!parsedEntries.length || isRacing || countdownValue !== null} aria-keyshortcuts="r" style={{ ...baseButton("primary"), padding: "18px 20px", borderRadius: 999, fontSize: 17, background: "linear-gradient(135deg, #876300 0%, #a37800 100%)", border: "1px solid rgba(135,99,0,0.9)", boxShadow: "0 18px 40px rgba(135,99,0,0.3)" }}>
                 <Play size={18} style={{ marginRight: 8, verticalAlign: "text-bottom" }} />
                 {countdownValue !== null ? "Counting..." : isRacing ? "Racing..." : "Start Race"}
               </button>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} style={{ ...baseButton("secondary"), borderRadius: 999, background: "linear-gradient(135deg, #5ad5ef 0%, #44c7e8 100%)", border: "1px solid rgba(68,199,232,0.9)" }}>
+                <button onClick={instantPick} disabled={!parsedEntries.length || isRacing || countdownValue !== null} aria-keyshortcuts="i" style={{ ...baseButton("secondary"), borderRadius: 999, background: "linear-gradient(135deg, #5ad5ef 0%, #44c7e8 100%)", border: "1px solid rgba(68,199,232,0.9)" }}>
                   <Shuffle size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Pick
                 </button>
                 <button onClick={resetVisual} style={{ ...baseButton("outline"), borderRadius: 999 }}>
                   <RotateCcw size={16} style={{ marginRight: 6, verticalAlign: "text-bottom" }} />Reset
                 </button>
               </div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>Shortcuts: R = start race · I = instant pick · M = mute</div>
             </div>
 
             <button onClick={() => setIsAudienceMode((v) => !v)} style={{ ...baseButton("outline"), borderRadius: 18, padding: "14px 16px", justifyContent: "flex-start", display: "flex", alignItems: "center" }}>
@@ -1397,6 +1052,9 @@ export default function App() {
                         ) : (
                           <div style={{ minHeight: 520, borderRadius: 28, border: "1px dashed rgba(255,255,255,0.45)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ecfeff", fontWeight: 700 }}>Add entries to launch the race board.</div>
                         )}
+                        <div aria-live="polite" role="status" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+                          {countdownValue !== null ? `Race starting in ${countdownValue}` : isRacing ? "Race in progress" : podiumWinners.length ? `Winner ${podiumWinners[0].name}` : "Race ready"}
+                        </div>
                       </div>
 
                       <div className="duck-history-grid" style={{ display: "grid", gap: 16, gridTemplateColumns: isNarrowLayout ? "minmax(0, 1fr)" : "minmax(0, 1fr) minmax(320px, 520px)" }}>
@@ -1494,7 +1152,7 @@ export default function App() {
                             <span style={{ fontWeight: 700, color: "#0f172a" }}>Race duration</span>
                             <span style={{ fontSize: 14, color: "#334155" }}>{duration} sec</span>
                           </div>
-                          <Range min={3} max={30} step={1} value={duration} onChange={setDuration} />
+                          <Range label="Race duration" min={3} max={30} step={1} value={duration} onChange={setDuration} />
                         </div>
                         <div>
                           <label style={{ fontWeight: 700, color: "#0f172a" }}>Podium size</label>
@@ -1581,9 +1239,17 @@ export default function App() {
                           <button type="button" onClick={copyShareLink} style={baseButton("outline")}>Copy share link</button>
                         </div>
                         {copyNotice ? <div style={{ fontSize: 12, color: "#0f766e" }}>{copyNotice}</div> : null}
+                        {sharedUrl ? (
+                          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                            <ShareQrCode value={sharedUrl} />
+                            <div style={{ fontSize: 11, color: "#64748b", maxWidth: 200, overflowWrap: "anywhere" }}>Scan for audience view. {sharedUrl.slice(0, 64)}{sharedUrl.length > 64 ? "…" : ""}</div>
+                          </div>
+                        ) : null}
                         <div style={{ fontSize: 12, color: "#64748b" }}>Round {roundNumber} · Logs {raceLogs.length}</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           <button type="button" onClick={exportResultsCsv} disabled={!lastWinners.length} style={baseButton("outline")}>Results CSV</button>
+                          <button type="button" onClick={exportResultsXls} disabled={!lastWinners.length} style={baseButton("outline")}>Results XLS</button>
+                          <button type="button" onClick={replayLastFinish} disabled={!displayRacers.length || isRacing || countdownValue !== null} style={baseButton("outline")}>Replay finish</button>
                           <button type="button" onClick={exportHistoryJson} disabled={!lastResults.length} style={baseButton("outline")}>History JSON</button>
                           <button type="button" onClick={exportRaceLogJson} disabled={!raceLogs.length} style={baseButton("outline")}>Race log</button>
                           <button type="button" onClick={clearSavedState} style={baseButton("outline")}>Clear saved data</button>

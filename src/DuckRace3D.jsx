@@ -7,6 +7,21 @@ const TRACK_START_X = -4.8;
 const TRACK_FINISH_X = 4.8;
 const TRACK_WIDTH = TRACK_FINISH_X - TRACK_START_X;
 
+const MAX_VISIBLE_DUCKS = 12;
+
+function isWebGLAvailable() {
+  try {
+    if (typeof document === "undefined") return false;
+    const canvas = document.createElement("canvas");
+    return !!(
+      window.WebGLRenderingContext &&
+      (canvas.getContext("webgl2") || canvas.getContext("webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -208,6 +223,9 @@ function Racer3D({ index, count, name, progress, place, variant, active, winner,
   const groupRef = useRef(null);
   const targetProgressRef = useRef(progress);
 
+  // Mirrors the latest prop into a ref for the useFrame loop below (avoids a
+  // stale closure without re-subscribing every frame). Intentional R3F pattern.
+  // eslint-disable-next-line react-hooks/refs
   targetProgressRef.current = clamp(progress ?? 0, 0, 100);
 
   useFrame((state, delta) => {
@@ -381,6 +399,48 @@ export function RaceArena3D({ racers, progress, placements, isRacing, showBurst,
   const leaderProgress = progress.length ? Math.max(...progress) : 0;
   const winnerProgress = firstPlace ? progress[firstPlace.raceIndex] ?? 0 : 0;
   const cameraDistance = audience ? 9.8 : racers.length > 12 ? 10.8 : 9.2;
+  const prefersReduced =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const effectiveShowBurst = prefersReduced ? false : showBurst;
+  const visibleRacers = racers.slice(0, MAX_VISIBLE_DUCKS);
+  const visibleVariants = Array.isArray(variants) ? variants.slice(0, MAX_VISIBLE_DUCKS) : variants;
+  const hiddenCount = racers.length - visibleRacers.length;
+
+  if (!isWebGLAvailable()) {
+    const ranking = racers
+      .map((name, index) => ({
+        name,
+        index,
+        progress: progress[index] ?? 0,
+        place: placements.find((item) => item.raceIndex === index)?.place ?? null,
+      }))
+      .sort((a, b) => {
+        if (a.place !== null && b.place !== null) return a.place - b.place;
+        if (a.place !== null) return -1;
+        if (b.place !== null) return 1;
+        return b.progress - a.progress;
+      });
+    return (
+      <section
+        className={`race3d-shell ${audience ? "race3d-shell--audience" : ""}`}
+        aria-label="Real 3D duck race track"
+        data-leading-progress={Math.round(leaderProgress)}
+        data-winner-progress={Math.round(winnerProgress)}
+        data-racing={isRacing ? "true" : "false"}
+      >
+        <div>3D unavailable — your browser does not support WebGL. Showing text results.</div>
+        <ol>
+          {ranking.map((item, rank) => (
+            <li key={`fallback-rank-${item.index}`}>
+              {item.place !== null ? item.place + 1 : rank + 1}. {item.name} — {Math.round(item.progress)}%
+            </li>
+          ))}
+        </ol>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -396,12 +456,12 @@ export function RaceArena3D({ racers, progress, placements, isRacing, showBurst,
           <fog attach="fog" args={["#6bd8ed", 13, 27]} />
           <Suspense fallback={null}>
             <RaceScene
-              racers={racers}
+              racers={visibleRacers}
               progress={progress}
               placements={placements}
               isRacing={isRacing}
-              showBurst={showBurst}
-              variants={variants}
+              showBurst={effectiveShowBurst}
+              variants={visibleVariants}
               cameraDistance={cameraDistance}
             />
           </Suspense>
@@ -424,6 +484,7 @@ export function RaceArena3D({ racers, progress, placements, isRacing, showBurst,
         <span>Real 3D mesh ducks</span>
         <span>Water circuit</span>
         <span>{racers.length} racers</span>
+        {hiddenCount > 0 ? <span>+{hiddenCount} more in leaderboard</span> : null}
       </div>
       <LeaderboardOverlay racers={racers} progress={progress} placements={placements} audience={audience} />
     </section>
