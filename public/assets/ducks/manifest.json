@@ -1,0 +1,83 @@
+{
+  "generator": "scripts/art/build_ducks.py",
+  "axes": "Y up; forward +Z",
+  "waterline": 0,
+  "clips": [
+    "idle",
+    "swim",
+    "celebrate"
+  ],
+  "cosmeticPrefix": "Accessory_",
+  "breeds": [
+    {
+      "file": "mallard.glb",
+      "bytes": 5260556,
+      "vertices": 6276,
+      "triangles": 10184,
+      "materials": 4
+    },
+    {
+      "file": "mallard-lod.glb",
+      "bytes": 1503672,
+      "vertices": 2616,
+      "triangles": 4352,
+      "materials": 4
+    },
+    {
+      "file": "pekin.glb",
+      "bytes": 5780364,
+      "vertices": 6276,
+      "triangles": 10184,
+      "materials": 4
+    },
+    {
+      "file": "pekin-lod.glb",
+      "bytes": 1633216,
+      "vertices": 2616,
+      "triangles": 4352,
+      "materials": 4
+    },
+    {
+      "file": "khaki.glb",
+      "bytes": 5281768,
+      "vertices": 6276,
+      "triangles": 10184,
+      "materials": 4
+    },
+    {
+      "file": "khaki-lod.glb",
+      "bytes": 1508820,
+      "vertices": 2616,
+      "triangles": 4352,
+      "materials": 4
+    },
+    {
+      "file": "mandarin.glb",
+      "bytes": 5469572,
+      "vertices": 7236,
+      "triangles": 11480,
+      "materials": 4
+    },
+    {
+      "file": "mandarin-lod.glb",
+      "bytes": 1595900,
+      "vertices": 3276,
+      "triangles": 5248,
+      "materials": 4
+    },
+    {
+      "file": "runner.glb",
+      "bytes": 5423632,
+      "vertices": 6276,
+      "triangles": 10184,
+      "materials": 4
+    },
+    {
+      "file": "runner-lod.glb",
+      "bytes": 1544188,
+      "vertices": 2616,
+      "triangles": 4352,
+      "materials": 4
+    }
+  ]
+}
