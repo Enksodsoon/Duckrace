@@ -36,17 +36,31 @@ export default function SettingsScreen({ session: s, navigate, systemMotion }) {
           ].map(([id, Icon]) => (
             <button
               role="tab"
+              id={`settings-tab-${id}`}
+              aria-controls="settings-panel"
+              tabIndex={tab === id ? 0 : -1}
               aria-selected={tab === id}
               key={id}
               className={tab === id ? "selected" : ""}
               onClick={() => setTab(id)}
+              onKeyDown={(event) => {
+                const ids = ["graphics", "audio", "race", "about"];
+                const index = ids.indexOf(id);
+                const next = event.key === "Home" ? 0 : event.key === "End" ? ids.length - 1
+                  : event.key === "ArrowRight" || event.key === "ArrowDown" ? (index + 1) % ids.length
+                  : event.key === "ArrowLeft" || event.key === "ArrowUp" ? (index + ids.length - 1) % ids.length : -1;
+                if (next < 0) return;
+                event.preventDefault();
+                setTab(ids[next]);
+                document.getElementById(`settings-tab-${ids[next]}`)?.focus();
+              }}
             >
               <Icon size={20} />
               {id[0].toUpperCase() + id.slice(1)}
             </button>
           ))}
         </div>
-        <div className="settings-content" role="tabpanel">
+        <div className="settings-content" id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${tab}`}>
           {tab === "graphics" && (
             <>
               <Field label="Graphics quality">

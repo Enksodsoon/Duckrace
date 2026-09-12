@@ -85,7 +85,7 @@ function Health({ onError, onMetrics, onSlow, quality, count }) {
       // Chromium can throttle an occluded window while visibilityState stays visible.
       // Report those frames truthfully, but never reduce quality because it lost focus.
       if (fps < 28 && document.hasFocus()) samples.current.slowIntervals++; else samples.current.slowIntervals = 0;
-      if (samples.current.slowIntervals >= 2) onSlow();
+      if (samples.current.slowIntervals >= 2) { onSlow(); samples.current.slowIntervals = 0; }
       samples.current.time = 0; samples.current.frames = 0;
     }
   });
@@ -107,12 +107,15 @@ function ReadySignal({ onReady, requestKey }) {
 
 /** A single 3D renderer. All race positions are inputs; no outcome generation occurs here. */
 export default function DuckScene({ screen = 'home', stage = 'forest-lake', participants = [], progress = [], appearances = [], isRacing = false, preparing = false, finished = false, cameraMode = 'chase', followId = null, quality = 'auto', reducedMotion = false, onReady, onLoading, onError, onMetrics }) {
-  const [adaptiveLow, setAdaptiveLow] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 720 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)));
-  const low = quality === 'low' || (quality === 'auto' && adaptiveLow);
-  const medium = quality === 'medium';
+  const [adaptiveQuality, setAdaptiveQuality] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 720 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) ? 'low' : 'high');
+  const effectiveQuality = quality === 'auto' ? adaptiveQuality : quality;
+  const low = effectiveQuality === 'low';
+  const medium = effectiveQuality === 'medium';
   const config = STAGES[stage] || STAGES['forest-lake'];
   const width = screen === 'race' ? Math.max(14, Math.abs(laneX(0, participants.length)) + 4.5) : 26;
-  const handleSlow = useCallback(() => { if (quality === 'auto') setAdaptiveLow(true); }, [quality]);
+  const handleSlow = useCallback(() => {
+    if (quality === 'auto') setAdaptiveQuality(current => current === 'high' ? 'medium' : 'low');
+  }, [quality]);
   const readyRef = useRef(onReady);
   useEffect(() => { readyRef.current = onReady; }, [onReady]);
   const handleReady = useCallback(info => readyRef.current?.(info), []);

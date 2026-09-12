@@ -45,10 +45,8 @@ def atlas(name, colors, lod=False):
         for ch in range(3): arr[(k//4)*cell:(k//4+1)*cell,(k%4)*cell:(k%4+1)*cell,ch]=np.clip(c[ch]*shade,0,1)
     im=bpy.data.images.new(name+'_plumage',width=n,height=n)
     im.pixels.foreach_set(arr.ravel()); im.filepath_raw=str(SOURCE/(name+'_plumage.png')); im.file_format='PNG'; im.save(); im.pack()
-    if (SOURCE/'mallard-atlas-imagegen.png').exists():
-        im=bpy.data.images.load(str(SOURCE/'mallard-atlas-imagegen.png'),check_existing=False)
-        if lod:im.scale(512,512)
-        im.pixels[0];im.filepath_raw=str(SOURCE/(name+'_runtime_color.jpg'));im.file_format='JPEG';im.save();im.pack()
+    # Preserve this breed's palette. A shared mallard atlas gave white and brown
+    # breeds incorrect wing colors and exaggerated plate-like feather contrast.
     mat=bpy.data.materials.new(name+'_feather_atlas'); mat.use_nodes=True
     bs=mat.node_tree.nodes.get('Principled BSDF'); bs.inputs['Roughness'].default_value=.72
     tex=mat.node_tree.nodes.new('ShaderNodeTexImage'); tex.image=im; mat.node_tree.links.new(tex.outputs['Color'],bs.inputs['Base Color'])
@@ -299,12 +297,12 @@ def actions(rig):
 def build(breed,lod=False):
     bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
     bpy.ops.outliner.orphans_purge(do_recursive=True)
-    mat=atlas(breed,BREEDS[breed],lod); eye=simple('wet black cornea',(.004,.002,.001),.22); iris=simple('warm iris',(.045,.022,.005),.36)
+    mat=atlas(breed,BREEDS[breed],lod); eye=simple('wet black cornea',(.009,.006,.003),.10); iris=simple('warm iris',(.11,.060,.020),.32)
     bake_bump_normal(mat,breed+('_lod' if lod else '')+'_feathers',lod)
     runner=breed=='runner'; pekin=breed=='pekin'; mandarin=breed=='mandarin'
-    stretch=.33 if runner else 0; hy=-.86; hz=1.04+stretch
+    stretch=.33 if runner else -.075; hy=-.86; hz=1.04+stretch
     rig=make_rig(hy,hz); parts=[]
-    bodypts=[(.98,.26,.014,.018),(.80,.22,.20,.15),(.52,.19,.36,.27),(.12,.20,.425,.325),(-.20,.24,.40,.335),(-.43,.31,.285,.27),(-.50,.48,.175,.19),(-.53,.65+stretch*.5,.128,.145),(-.63,.86+stretch,.17,.17),(-.80,1.00+stretch,.195,.19),(-.96,.99+stretch,.18,.15),(-1.085,.97+stretch,.105,.045)]
+    bodypts=[(.98,.26,.014,.018),(.80,.22,.22,.17),(.52,.20,.39,.29),(.12,.22,.455,.345),(-.20,.26,.43,.35),(-.43,.33,.31,.28),(-.50,.48,.20,.20),(-.53,.65+stretch*.5,.157,.16),(-.63,.86+stretch,.205,.19),(-.80,1.00+stretch,.235,.225),(-.96,.99+stretch,.215,.19),(-1.085,.97+stretch,.125,.060)]
     if pekin:bodypts=[(y,z,w*1.08,r*1.05) for y,z,w,r in bodypts]
     if runner:bodypts=[(y,z+.12*math.exp(-((y-.12)/.5)**2),w*(1-.23*math.exp(-((y-.12)/.5)**2)),r*(1-.12*math.exp(-((y-.12)/.5)**2))) for y,z,w,r in bodypts]
     body=loft('continuous body neck head',bodypts,mat,0,segments=20 if lod else 36,steps=2 if lod else 4)
@@ -343,9 +341,9 @@ def build(breed,lod=False):
         eye_y,eye_z=hy-.04,hz+.020
         hit=surface.ray_cast(Vector((s*3,eye_y,eye_z)),Vector((-s,0,0)))
         ex=abs(hit[0].x) if hit[0] else .174
-        parts.append(sphere('iris',(s*(ex-.003),eye_y,eye_z),(.008,.030,.029),iris,'Head'))
-        parts.append(sphere('cornea',(s*(ex+.002),eye_y-.001,eye_z),(.006,.024,.023),eye,'Head'))
-    billpts=[(-1.04,.965+stretch,.111,.046),(-1.15,.942+stretch,.12,.035),(-1.32,.916+stretch,.101,.021),(-1.415,.903+stretch,.066,.015),(-1.45,.905+stretch,.010,.007)]
+        parts.append(sphere('iris',(s*(ex-.002),eye_y,eye_z),(.011,.038,.036),iris,'Head'))
+        parts.append(sphere('cornea',(s*(ex+.004),eye_y-.002,eye_z),(.009,.030,.029),eye,'Head'))
+    billpts=[(-1.04,.965+stretch,.124,.053),(-1.15,.942+stretch,.136,.038),(-1.32,.916+stretch,.116,.026),(-1.415,.903+stretch,.084,.019),(-1.46,.905+stretch,.022,.009)]
     bill=loft('bill upper and lower',billpts,mat,6,'Head',segments=16 if lod else 28,steps=2)
     bill.data.materials.clear();bill.data.materials.append(simple('bill keratin',BREEDS[breed][6],.48))
     parts.append(bill)
@@ -404,7 +402,7 @@ def build(breed,lod=False):
     target=OUT/(breed+('-lod' if lod else '')+'.glb')
     bpy.ops.export_scene.gltf(filepath=str(target),export_format='GLB',use_selection=True,export_yup=True,export_animations=True,export_animation_mode='NLA_TRACKS',export_force_sampling=True,export_skins=True,export_extras=True,export_materials='EXPORT',export_image_format='AUTO',export_tangents=True)
     # Isolated, correctly lit asset evidence. No composited stand-in.
-    if not lod:
+    if not lod and os.environ.get('DUCK_SKIP_PREVIEWS') != '1':
         rig.animation_data.action=None
         for track in rig.animation_data.nla_tracks:track.mute=True
         bpy.context.scene.frame_set(0)

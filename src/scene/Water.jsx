@@ -1,13 +1,16 @@
 /* eslint-disable react/no-unknown-property */
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnvironment } from '@react-three/drei';
 import * as THREE from 'three';
+import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { skyAssetUrl } from './assetUrl';
 
 const vertex = `
   varying vec3 vWorld;
   varying vec2 vUv;
+  varying vec4 vReflection;
+  uniform mat4 uReflectionMatrix;
   uniform float uTime;
   void main() {
     vUv = uv;
@@ -15,6 +18,7 @@ const vertex = `
     p.z += sin(p.x * .57 + uTime * .7) * .022 + sin(p.y * .73 + uTime * .56) * .025;
     vec4 world = modelMatrix * vec4(p, 1.);
     vWorld = world.xyz;
+    vReflection = uReflectionMatrix * vec4(p, 1.);
     gl_Position = projectionMatrix * viewMatrix * world;
   }
 `;
@@ -22,6 +26,9 @@ const fragment = `
   uniform float uTime, uGolden;
   uniform vec3 uDeep, uShallow, uSky, uSun, uSunDirection;
   uniform sampler2D uEnvironment;
+  uniform sampler2D uReflection;
+  uniform float uHasReflection;
+  varying vec4 vReflection;
   varying vec3 vWorld;
   varying vec2 vUv;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -30,10 +37,12 @@ const fragment = `
     return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
   }
   float waves(vec2 p) {
-    return sin(p.x * 1.7 + p.y * 1.1 + uTime * 1.2) * .32
-      + sin(p.y * 3.5 - p.x * .8 + uTime * .78) * .17
-      + sin(p.x * 9.1 + p.y * 6.2 - uTime * 1.6) * .045
-      + noise(p * 2.2 + uTime * .08) * .25;
+    vec2 warp = vec2(noise(p*.34 + uTime*.05), noise(p*.29 - uTime*.04));
+    p += warp * 1.3;
+    return sin(p.x * 1.7 + p.y * 1.1 + uTime * 1.2) * .21
+      + sin(p.y * 3.5 - p.x * .8 + uTime * .78) * .10
+      + sin(p.x * 9.1 + p.y * 6.2 - uTime * 1.6) * .025
+      + noise(p * 2.2 + uTime * .08) * .18;
   }
   void main() {
     vec2 p = vWorld.xz;
@@ -41,7 +50,7 @@ const fragment = `
       // Analytic derivatives keep the same three wave scales with three cosine
       // evaluations instead of four finite-difference noise/wave samples.
       vec3 waveCos = cos(vec3(p.x*1.7+p.y*1.1+uTime*1.2, p.y*3.5-p.x*.8+uTime*.78, p.x*9.1+p.y*6.2-uTime*1.6));
-      vec3 normal = normalize(vec3(-dot(waveCos,vec3(.544,-.136,.4095))*.077, 1., -dot(waveCos,vec3(.352,.595,.279))*.077));
+      vec3 normal = normalize(vec3(-dot(waveCos,vec3(.357,-.080,.2275))*.065, 1., -dot(waveCos,vec3(.231,.350,.155))*.065));
     #else
       float e = .035;
       vec3 normal = normalize(vec3((waves(p-vec2(e,0))-waves(p+vec2(e,0))) * 1.1, 1., (waves(p-vec2(0,e))-waves(p+vec2(0,e))) * 1.1));
@@ -58,8 +67,18 @@ const fragment = `
     float mountain = sin(reflectDirection.x * 9.) * .07 + .10;
     reflectedSky = mix(uDeep * .62, reflectedSky, smoothstep(horizon-.018, horizon+.045, reflectDirection.y));
     reflectedSky = mix(reflectedSky * .79, reflectedSky, smoothstep(mountain, mountain+.035, reflectDirection.y));
+    vec2 reflectionUv = vReflection.xy / max(vReflection.w, .001);
+    reflectionUv += normal.xz * .10;
+    float edgeFade = smoothstep(0., .04, reflectionUv.x) * (1. - smoothstep(.96, 1., reflectionUv.x))
+      * smoothstep(0., .04, reflectionUv.y) * (1. - smoothstep(.96, 1., reflectionUv.y));
+    vec2 sampleUv = clamp(reflectionUv, .003, .997);
+    vec3 sceneReflection = (texture2D(uReflection, sampleUv + vec2(.0015,0)).rgb
+      + texture2D(uReflection, sampleUv - vec2(.0015,0)).rgb
+      + texture2D(uReflection, sampleUv + vec2(0,.0015)).rgb
+      + texture2D(uReflection, sampleUv - vec2(0,.0015)).rgb) * .25;
+    reflectedSky = mix(reflectedSky, sceneReflection, uHasReflection * edgeFade);
     float sunAmount = max(dot(reflectDirection, normalize(uSunDirection)), 0.);
-    vec3 specular = uSun * (pow(sunAmount, 160.) * 5. + pow(sunAmount, 20.) * .19);
+    vec3 specular = uSun * (pow(sunAmount, 260.) * 2.2 + pow(sunAmount, 32.) * .10);
     float shore = smoothstep(9., 17., abs(p.x + sin(p.y*.059)*2.6));
     vec3 submerged = mix(uDeep, uShallow, shore * .7);
     submerged += uShallow * pow(max(0., sin(p.x*7.1+p.y*4.4+uTime)+sin(p.y*8.3-uTime*.7))*.5, 6.)*.09;
@@ -73,6 +92,10 @@ const fragment = `
 
 export default function Water({ config, stage, reducedMotion, low, medium }) {
   const material = useRef();
+  const surface = useRef();
+  const frame = useRef(0);
+  const reflector = useMemo(() => low ? null : new Reflector(new THREE.PlaneGeometry(210, 390), { textureWidth: medium ? 256 : 512, textureHeight: medium ? 256 : 512, clipBias: .003, multisample: 0 }), [low, medium]);
+  useEffect(() => () => { reflector?.geometry.dispose(); reflector?.dispose(); }, [reflector]);
   const environment = useEnvironment({ files: skyAssetUrl(stage) });
   const defines = useMemo(() => low ? { LOW_QUALITY: '' } : {}, [low]);
   const uniforms = useMemo(() => ({
@@ -80,9 +103,25 @@ export default function Water({ config, stage, reducedMotion, low, medium }) {
     uShallow: { value: new THREE.Color(config.shallows) }, uSky: { value: new THREE.Color(config.sky) },
     uSun: { value: new THREE.Color(config.sun) }, uSunDirection: { value: new THREE.Vector3(...config.sunPosition).normalize() },
     uEnvironment: { value: environment },
-  }), [config, stage, environment]);
-  useFrame((state) => { if (material.current && !reducedMotion) material.current.uniforms.uTime.value = state.clock.elapsedTime; });
-  return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.025, 40]} receiveShadow>
+    uReflection: { value: reflector ? reflector.getRenderTarget().texture : environment },
+    uReflectionMatrix: { value: reflector ? reflector.material.uniforms.textureMatrix.value : new THREE.Matrix4() },
+    uHasReflection: { value: reflector ? 1 : 0 },
+  }), [config, stage, environment, reflector]);
+  useFrame(({ clock, gl, scene, camera }) => {
+    if (material.current && !reducedMotion) material.current.uniforms.uTime.value = clock.elapsedTime;
+    if (reflector && surface.current && frame.current++ % 2 === 0) {
+      surface.current.updateMatrixWorld();
+      reflector.matrixWorld.copy(surface.current.matrixWorld);
+      // Screen-facing names are UI, not physical objects floating on the lake.
+      const labels = scene.getObjectByName('race-labels');
+      const labelsVisible = labels?.visible;
+      if (labels) labels.visible = false;
+      surface.current.visible = false;
+      try { reflector.onBeforeRender(gl, scene, camera); }
+      finally { surface.current.visible = true; if (labels) labels.visible = labelsVisible; }
+    }
+  }, -1);
+  return <mesh ref={surface} rotation={[-Math.PI / 2, 0, 0]} position={[0, -.025, 40]} receiveShadow>
     <planeGeometry args={[210, 390, low ? 50 : medium ? 80 : 110, low ? 100 : medium ? 140 : 180]} />
     <shaderMaterial ref={material} vertexShader={vertex} fragmentShader={fragment} defines={defines} uniforms={uniforms} />
   </mesh>;

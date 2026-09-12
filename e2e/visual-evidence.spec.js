@@ -10,6 +10,7 @@ test("capture complete desktop and mobile screen evidence", async ({ page }) => 
   await mkdir(folder, { recursive: true });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   const ready = async () => {
     await expect(page.locator(".scene-layer")).toHaveAttribute("data-scene-state", "ready", {
       timeout: 60_000,
@@ -35,6 +36,10 @@ test("capture complete desktop and mobile screen evidence", async ({ page }) => 
     await capture(`breed-${breed.toLowerCase().replaceAll(" ", "-")}`);
   }
   await page.getByRole("button", { name: "Mallard", exact: true }).click();
+  for (const accessory of ["None", "Explorer Hat", "Aviator Glasses", "Bow Tie", "Race Medal", "Luck Charm", "Duck Badge"]) {
+    await page.getByRole("button", { name: accessory, exact: true }).click();
+    await capture(`accessory-${accessory.toLowerCase().replaceAll(" ", "-")}`);
+  }
   await page.getByRole("button", { name: "Explorer Hat", exact: true }).click();
   await capture("garage-desktop");
   await page.getByRole("button", { name: "Stages", exact: true }).first().click();
@@ -51,12 +56,21 @@ test("capture complete desktop and mobile screen evidence", async ({ page }) => 
   }
   await page.getByRole("button", { name: /Forest Lake/ }).click();
   await page.getByRole("button", { name: "Continue to Race" }).click();
-  await page.getByLabel("Race duration").selectOption("10");
+  await page.getByLabel("Race duration").selectOption("20");
   await page.getByRole("button", { name: "Start Race", exact: true }).click();
   await expect(page.locator(".scene-layer")).toHaveAttribute("data-phase", "racing", {
     timeout: 60_000,
   });
   await capture("race-desktop");
+  await page.getByLabel("Race camera", { exact: true }).selectOption("overview");
+  await capture("race-overview");
+  await page.getByLabel("Follow participant", { exact: true }).selectOption({ index: 2 });
+  await capture("race-follow");
+  await page.getByLabel("Race camera", { exact: true }).selectOption("chase");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await capture("race-mobile");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByRole("heading", { name: "Results", exact: true })).toBeVisible({
     timeout: 30_000,
   });

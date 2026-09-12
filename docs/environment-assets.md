@@ -65,3 +65,9 @@ The saved intervals contain 24,394 actual frames over 287.0305 seconds: 84.99 we
 These measurements establish the target on this observed desktop configuration, not all computers. The narrow viewport uses the same desktop GPU and is explicitly not a physical handset benchmark. The prior shared-machine contention result above remains relevant; competing workloads can materially reduce FPS.
 
 Reproduce with `PERFORMANCE_EVIDENCE=1 npx playwright test e2e/performance-evidence.spec.js` after a production build (set the environment variable using the syntax of your shell). It uses real time, saves each completed profile independently, and aggregates actual frame/time counters without estimating frames from rounded FPS. The suite is opt-in and does not assert a hardware-independent frame-rate target.
+
+## Frontend refinement, 2026-09-12
+
+The water now uses a clipped planar scene reflection on High/Medium (512/256 pixel render targets, updated every other frame). Low keeps the cheaper HDR sky reflection. Reflections hide screen-facing name labels and the water surface to avoid UI reflections and recursive feedback; targets are disposed when quality changes. Ripple normals use a warped field, softer highlights and filtered reflections. Wake foam follows the same surface displacement; bounded instanced bow droplets accompany swimming.
+
+Forest sky fill and material transmission were increased to correct nearly black foliage. Spruce scale, branchlet size, height variation and subtle wind now break up rigid layered silhouettes. No external assets were added or relicensed. Performance results must be read from the new run, not inferred from the earlier release.

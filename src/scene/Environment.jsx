@@ -1,5 +1,6 @@
 /* eslint-disable react/no-unknown-property */
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Environment as LightingEnvironment, RoundedBox, Sky, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import { bankX, bankHeight, makeBank, makeBarkTexture, makeMountain, makeGrassTuftGeometry, makeNeedleGeometry, makePineTrunkGeometry, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
@@ -31,7 +32,9 @@ function configureRockTextures(textures) {
   textures.forEach(texture => { texture.anisotropy = 4; texture.wrapS = texture.wrapT = THREE.RepeatWrapping; });
 }
 
-function Shore({ config, width, low, medium, stage }) {
+function Shore({ config, width, low, medium, stage, reducedMotion }) {
+  const wind = useRef({ value: 0 });
+  useFrame(({ clock }) => { wind.current.value = reducedMotion ? 0 : clock.elapsedTime; });
   const [rockColor, rockNormal, groundColor, groundNormal, twigColor, twigAlpha, barkColor, barkNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg', '/assets/environment/pine-twig-color.jpg', '/assets/environment/pine-twig-alpha.jpg', '/assets/environment/pine-bark-color.jpg', '/assets/environment/pine-bark-normal.jpg'].map(assetUrl), configureRockTextures);
   const resources = useMemo(() => {
     const geometries = {
@@ -48,7 +51,7 @@ function Shore({ config, width, low, medium, stage }) {
     const materials = {
       land: new THREE.MeshStandardMaterial({ color: stage === 'forest-lake' ? '#8bb48b' : '#ffffff', vertexColors: true, map: groundColor, normalMap: groundNormal, normalScale: new THREE.Vector2(.6, .6), roughness: .97, side: THREE.DoubleSide }),
       mountain: new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .99 }),
-      needles: new THREE.MeshStandardMaterial({ color: config.pine ? '#becaa5' : '#b0be99', map: config.pine ? twigColor : leaves, alphaMap: config.pine ? twigAlpha : null, alphaTest: .32, roughness: .87, side: THREE.DoubleSide }),
+      needles: new THREE.MeshStandardMaterial({ color: '#ffffff', map: config.pine ? twigColor : leaves, emissiveMap: config.pine ? twigColor : leaves, emissive: '#a2bf77', emissiveIntensity: .22, alphaMap: config.pine ? twigAlpha : null, alphaTest: .36, alphaToCoverage: true, roughness: .82, side: THREE.DoubleSide }),
       trunk: new THREE.MeshStandardMaterial({ map: barkColor, normalMap: barkNormal, normalScale: new THREE.Vector2(.55, .55), roughness: .95 }),
       rock: new THREE.MeshStandardMaterial({ color: '#bbbdb4', map: rockColor, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .92 }),
       reed: new THREE.MeshStandardMaterial({ color: stage === 'sunset-marsh' ? '#b4a268' : '#7d8951', roughness: .9 }),
@@ -57,15 +60,24 @@ function Shore({ config, width, low, medium, stage }) {
       grass: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, side: THREE.DoubleSide }),
       shrub: new THREE.MeshStandardMaterial({ color: '#729452', map: leaves, alphaTest: .3, side: THREE.DoubleSide, roughness: .88 }),
     };
-    if (config.pine) {
-      materials.needles.onBeforeCompile = shader => {
+    const windUniform = new THREE.Uniform(0);
+    materials.needles.userData.windUniform = windUniform;
+    materials.needles.onBeforeCompile = shader => {
+        shader.uniforms.uWindTime = windUniform;
+        shader.vertexShader = 'uniform float uWindTime;\n' + shader.vertexShader;
+        shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+          vec3 treeRoot = instanceMatrix[3].xyz;
+          float bend = pow(clamp(position.y / 8., 0., 1.), 2.);
+          transformed.x += sin(uWindTime * .65 + treeRoot.x * .23 + treeRoot.z * .13) * bend * .075;
+          transformed.z += sin(uWindTime * .48 + treeRoot.z * .17) * bend * .045;`);
+        if (config.pine) {
         shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_fragment>', `#include <alphamap_fragment>
           float twigHeight = clamp((vAlphaMapUv.y - .565) / .4, 0., 1.);
           float twigHalfWidth = .028 + .076 * smoothstep(0., .55, twigHeight);
           diffuseColor.a *= 1. - smoothstep(twigHalfWidth, twigHalfWidth + .004, abs(vAlphaMapUv.x - .13));`);
+        }
       };
-      materials.needles.customProgramCacheKey = () => 'pine-twig-atlas-1';
-    }
+    materials.needles.customProgramCacheKey = () => `foliage-wind-transmission-${config.pine}`;
     const trunks = [], crowns = [], rocks = [], reeds = [], lilies = [], petals = [], grasses = [], shrubs = [];
     const treeCount = Math.round((low ? 170 : medium ? 230 : 310) * config.density);
     for (let i = 0; i < treeCount; i++) {
@@ -75,7 +87,7 @@ function Shore({ config, width, low, medium, stage }) {
       const z = (nearCluster ? -25 + Math.floor(cluster / 2) * 43 : -35 + noise(cluster, 11) * 275) + (noise(i, 21) - .5) * 21;
       const spread = nearCluster ? 3 + noise(cluster, 15) * 6 + noise(i, 16) * 7 : 1.5 + noise(cluster, 15) * 31 + noise(i, 16) * 6;
       const x = bankX(z, side, width) + side * spread;
-      const scale = .45 + Math.pow(noise(i, 13), 1.4) * 2.25;
+      const scale = .60 + Math.pow(noise(i, 13), 1.4) * 1.65;
       const ground = bankHeight(spread, z), heightScale = scale * (.9 + noise(i, 17) * .5);
       const rotation = [(noise(i, 18) - .5) * .06, noise(i, 14) * 6.28, (noise(i, 19) - .5) * .07];
       trunks.push({ position: [x, ground + 3.5 * heightScale, z], rotation, scale: [scale, heightScale, scale] });
@@ -123,6 +135,7 @@ function Shore({ config, width, low, medium, stage }) {
     Object.values(resources.materials).forEach(material => material.dispose());
     resources.leaves.dispose();
   }, [resources]);
+  useLayoutEffect(() => { wind.current = resources.materials.needles.userData.windUniform; }, [resources]);
   const { geometries: g, materials: m } = resources;
   return <group>
     <mesh geometry={g.left} material={m.land} receiveShadow />
@@ -239,13 +252,14 @@ export default function RaceEnvironment({ config, stage, screen, width, low, med
   return <>
     <color attach="background" args={[config.sky]} />
     <fog attach="fog" args={[config.fog, golden ? 125 : 70, golden ? 560 : 450]} />
-    <hemisphereLight args={[golden ? '#bdd4e2' : config.sky, '#455538', golden ? .7 : 1.05]} />
-    <directionalLight position={config.sunPosition} color={config.sun} intensity={golden ? 4.2 : 3.1} castShadow={!low} shadow-mapSize-width={medium ? 512 : 1024} shadow-mapSize-height={medium ? 512 : 1024} shadow-camera-left={-25} shadow-camera-right={25} shadow-camera-top={25} shadow-camera-bottom={-25} shadow-camera-far={180} shadow-bias={-.0005} shadow-normalBias={.06} />
+    <hemisphereLight args={['#d5e9ff', '#6e8061', 1.65]} />
+    <directionalLight position={[-25, 30, -35]} color="#dcecff" intensity={.85} />
+    <directionalLight position={config.sunPosition} color={config.sun} intensity={golden ? 3.1 : 2.8} castShadow={!low} shadow-mapSize-width={medium ? 512 : 1024} shadow-mapSize-height={medium ? 512 : 1024} shadow-camera-left={-25} shadow-camera-right={25} shadow-camera-top={25} shadow-camera-bottom={-25} shadow-camera-far={180} shadow-bias={-.0005} shadow-normalBias={.06} />
     {screen !== 'race' && <directionalLight position={[15, 8, -28]} color={golden ? '#ffd19a' : '#ffe6b9'} intensity={golden ? 1.45 : 2.0} />}
-    <LightingEnvironment files={skyAssetUrl(stage)} background={!golden} backgroundBlurriness={.03} environmentIntensity={golden ? .35 : .65} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
-    {golden && <Sky distance={1000} sunPosition={config.sunPosition} turbidity={8} rayleigh={2.4} mieCoefficient={.008} mieDirectionalG={.87} />}
+    <LightingEnvironment files={skyAssetUrl(stage)} background={!golden} backgroundBlurriness={.03} environmentIntensity={.95} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
+    {golden && <Sky distance={1000} sunPosition={config.sunPosition} turbidity={2.6} rayleigh={1.4} mieCoefficient={.003} mieDirectionalG={.8} />}
     <Water config={config} stage={stage} reducedMotion={reducedMotion} low={low} medium={medium} />
-    <Shore config={config} width={width} low={low} medium={medium} stage={stage} />
+    <Shore config={config} width={width} low={low} medium={medium} stage={stage} reducedMotion={reducedMotion} />
     <Dock position={[width - .5, 0, -17]} rotation={[0, -.18, 0]} long />
     {screen !== 'race' && screen !== 'stages' && <HeroDock />}
     <Dock position={[-width + 1.2, 0, 20]} rotation={[0, .12, 0]} />
@@ -261,3 +275,5 @@ export default function RaceEnvironment({ config, stage, screen, width, low, med
     {screen === 'race' && <><Buoys width={width} stage={stage} /><Finish width={width} /></>}
   </>;
 }
+
+

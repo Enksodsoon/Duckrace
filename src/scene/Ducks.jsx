@@ -114,7 +114,7 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
       let visibleCount = 0;
       mesh.entries.forEach(row => {
         const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
-        scratch.position.set(laneX(row.index, row.total), y, raceZ(values[row.index]));
+        scratch.position.set(laneX(row.index, row.total), y - .035, raceZ(values[row.index]));
         scratch.bounds.center.copy(scratch.position); scratch.bounds.center.y += .4;
         // Bounds include the full wing span and tallest cosmetic. Off-screen
         // racers retain their simulation positions and re-enter without LOD swaps.
@@ -143,8 +143,8 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
     for (let side = 0; side < 2; side++) {
       const sign = side ? 1 : -1, start = positions.length / 3;
       for (let j = 0; j <= 18; j++) {
-        const t = j / 18, width = .2 + t * .75;
-        positions.push(sign * width, 0, -t * 4.3, sign * (width + .13 + t * .35), 0, -t * 4.3);
+        const t = j / 18, width = .12 + t * .72;
+        positions.push(sign * width, 0, -t * 3.5, sign * (width + .16 + t * .30), 0, -t * 3.5);
         uvs.push(t, 0, t, 1);
         if (j < 18) { const a = start + j * 2; indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
       }
@@ -156,18 +156,57 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
   useFrame(({ clock }) => {
     if (shader.current) {
       shader.current.uniforms.time.value = reducedMotion ? 0 : clock.elapsedTime;
-      shader.current.uniforms.moving.value = isRacing && !reducedMotion ? 1 : .18;
+      shader.current.uniforms.moving.value = isRacing && !reducedMotion ? 1 : .12;
     }
     for (let i = 0; i < count; i++) {
-      matrix.makeTranslation(laneX(i, count), .035, raceZ(state.current[i]) - .25);
+      matrix.makeTranslation(laneX(i, count), .026, raceZ(state.current[i]) - .20);
       ref.current.setMatrixAt(i, matrix);
     }
     ref.current.instanceMatrix.needsUpdate = true;
   });
   return <instancedMesh ref={ref} args={[geometry, undefined, count]} frustumCulled={false}>
     <shaderMaterial ref={shader} transparent depthWrite={false} side={THREE.DoubleSide} uniforms={uniforms}
-      vertexShader={`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.); }`}
-      fragmentShader={`uniform float time,moving; varying vec2 vUv; void main(){ float foam=.58+sin(vUv.x*49.-time*4.)*.16+sin(vUv.x*117.+time)*.13; float edge=sin(vUv.y*3.14159); float fade=pow(1.-vUv.x,1.35); gl_FragColor=vec4(.88,.93,.87,foam*edge*fade*moving*.82); }`} />
+      vertexShader={`uniform float time; varying vec2 vUv; void main(){
+        vUv=uv; vec4 p=instanceMatrix*vec4(position,1.);
+        p.y += sin(p.x*.57+time*.7)*.022 + sin((40.-p.z)*.73+time*.56)*.025;
+        p.x += sin(vUv.x*17.-time*2.)*.025*vUv.x;
+        gl_Position=projectionMatrix*modelViewMatrix*p; }`}
+      fragmentShader={`uniform float time,moving; varying vec2 vUv;
+        float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+        void main(){
+          float bubbles=noise(vec2(vUv.x*48.-time*2.,vUv.y*13.));
+          float ripple=pow(.5+.5*sin(vUv.y*22.+vUv.x*21.-time*3.),5.);
+          float edge=pow(max(0.,sin(vUv.y*3.14159)),.7);
+          float fade=pow(1.-vUv.x,1.7)*smoothstep(0.,.04,vUv.x);
+          float foam=smoothstep(.28,.78,bubbles)*.74+ripple*.22;
+          gl_FragColor=vec4(.77,.91,.90,foam*edge*fade*moving*.68);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`} />
+  </instancedMesh>;
+}
+
+function BowSpray({ count, progress, reducedMotion, isRacing }) {
+  const ref = useRef();
+  const scratch = useMemo(() => new THREE.Object3D(), []);
+  const state = useRef(progress);
+  useLayoutEffect(() => { state.current = progress; }, [progress]);
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    ref.current.visible = isRacing && !reducedMotion;
+    if (!ref.current.visible) return;
+    for (let i = 0; i < count; i++) for (let j = 0; j < 8; j++) {
+      const t = (clock.elapsedTime * 1.6 + j / 8 + i * .37) % 1;
+      const side = j % 2 ? 1 : -1;
+      scratch.position.set(laneX(i, count) + side * (.19 + t * .19), .025 + Math.sin(t * Math.PI) * .12, raceZ(state.current[i]) + .16 - t * .58);
+      scratch.scale.setScalar(.011 * (1 - t) + .003);
+      scratch.updateMatrix(); ref.current.setMatrixAt(i * 8 + j, scratch.matrix);
+    }
+    ref.current.instanceMatrix.needsUpdate = true;
+  });
+  return <instancedMesh ref={ref} args={[undefined, undefined, count * 8]} frustumCulled={false}>
+    <sphereGeometry args={[1, 5, 3]} /><meshBasicMaterial color="#d9efed" transparent opacity={.55} depthWrite={false} />
   </instancedMesh>;
 }
 
@@ -183,6 +222,7 @@ function RaceDucks({ participants, progress, appearances, reducedMotion, isRacin
       return <DuckInstances key={item.breed} model={model} cosmeticModel={cosmeticModel} rows={groups[BREEDS.indexOf(item.breed)]} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} highDetail={!item.lod} />;
     })}
     <Wakes count={participants.length} progress={progress} reducedMotion={reducedMotion} isRacing={isRacing} />
+    <BowSpray count={participants.length} progress={progress} reducedMotion={reducedMotion} isRacing={isRacing} />
   </>;
 }
 
@@ -195,3 +235,4 @@ export default function Ducks(props) {
   if (props.screen === 'stages' || (props.screen === 'race' && !props.participants.length)) return null;
   return props.screen === 'race' ? <RaceDucks {...props} /> : <HeroDuck {...props} />;
 }
+

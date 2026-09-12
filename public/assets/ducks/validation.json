@@ -3,7 +3,7 @@
   "results": [
     {
       "file": "khaki-lod.glb",
-      "bytes": 1287992,
+      "bytes": 1427444,
       "animations": [
         "idle",
         "swim",
@@ -59,7 +59,7 @@
     },
     {
       "file": "khaki.glb",
-      "bytes": 6781288,
+      "bytes": 6820404,
       "animations": [
         "idle",
         "swim",
@@ -243,18 +243,12 @@
           "message": "Image has non-power-of-two dimensions: 1254x1254.",
           "severity": 2,
           "pointer": "/images/2"
-        },
-        {
-          "code": "IMAGE_NPOT_DIMENSIONS",
-          "message": "Image has non-power-of-two dimensions: 1254x1254.",
-          "severity": 2,
-          "pointer": "/images/4"
         }
       ]
     },
     {
       "file": "mallard-lod.glb",
-      "bytes": 1275960,
+      "bytes": 1468984,
       "animations": [
         "idle",
         "swim",
@@ -310,7 +304,7 @@
     },
     {
       "file": "mallard.glb",
-      "bytes": 6648400,
+      "bytes": 6838196,
       "animations": [
         "idle",
         "swim",
@@ -494,18 +488,12 @@
           "message": "Image has non-power-of-two dimensions: 1254x1254.",
           "severity": 2,
           "pointer": "/images/2"
-        },
-        {
-          "code": "IMAGE_NPOT_DIMENSIONS",
-          "message": "Image has non-power-of-two dimensions: 1254x1254.",
-          "severity": 2,
-          "pointer": "/images/4"
         }
       ]
     },
     {
       "file": "mandarin-lod.glb",
-      "bytes": 1344480,
+      "bytes": 1537164,
       "animations": [
         "idle",
         "swim",
@@ -561,7 +549,7 @@
     },
     {
       "file": "mandarin.glb",
-      "bytes": 6859948,
+      "bytes": 7050120,
       "animations": [
         "idle",
         "swim",
@@ -745,18 +733,12 @@
           "message": "Image has non-power-of-two dimensions: 1254x1254.",
           "severity": 2,
           "pointer": "/images/2"
-        },
-        {
-          "code": "IMAGE_NPOT_DIMENSIONS",
-          "message": "Image has non-power-of-two dimensions: 1254x1254.",
-          "severity": 2,
-          "pointer": "/images/4"
         }
       ]
     },
     {
       "file": "pekin-lod.glb",
-      "bytes": 1221292,
+      "bytes": 1556272,
       "animations": [
         "idle",
         "swim",
@@ -812,7 +794,7 @@
     },
     {
       "file": "pekin.glb",
-      "bytes": 6567604,
+      "bytes": 7391596,
       "animations": [
         "idle",
         "swim",
@@ -996,18 +978,12 @@
           "message": "Image has non-power-of-two dimensions: 1254x1254.",
           "severity": 2,
           "pointer": "/images/2"
-        },
-        {
-          "code": "IMAGE_NPOT_DIMENSIONS",
-          "message": "Image has non-power-of-two dimensions: 1254x1254.",
-          "severity": 2,
-          "pointer": "/images/4"
         }
       ]
     },
     {
       "file": "runner-lod.glb",
-      "bytes": 1295932,
+      "bytes": 1495652,
       "animations": [
         "idle",
         "swim",
@@ -1063,7 +1039,7 @@
     },
     {
       "file": "runner.glb",
-      "bytes": 7026804,
+      "bytes": 7321884,
       "animations": [
         "idle",
         "swim",
@@ -1247,12 +1223,6 @@
           "message": "Image has non-power-of-two dimensions: 1254x1254.",
           "severity": 2,
           "pointer": "/images/2"
-        },
-        {
-          "code": "IMAGE_NPOT_DIMENSIONS",
-          "message": "Image has non-power-of-two dimensions: 1254x1254.",
-          "severity": 2,
-          "pointer": "/images/4"
         }
       ]
     }
