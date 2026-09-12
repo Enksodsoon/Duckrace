@@ -34,9 +34,9 @@ export default function useRaceSession() {
     locked = useRef(false),
     audio = useRef(null);
   const rendererUnavailable = useRef(false);
-  const sceneReady = useCallback(() => {
+  const sceneReady = useCallback((raceScene = false) => {
     rendererUnavailable.current = false;
-    clock.current?.begin?.();
+    if (raceScene) clock.current?.begin?.();
   }, []);
   const sceneFailed = useCallback(() => {
     rendererUnavailable.current = true;
@@ -144,7 +144,7 @@ export default function useRaceSession() {
           osc.frequency.value = freq;
           gain.gain.setValueAtTime(0.0001, at);
           gain.gain.exponentialRampToValueAtTime(volume, at + 0.015);
-          gain.gain.exponentialRampToValueAtTime(0.0001, at + (minimal ? 0.10 : 0.25));
+          gain.gain.exponentialRampToValueAtTime(0.0001, at + (minimal ? 0.1 : 0.25));
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(at);
@@ -340,7 +340,7 @@ export default function useRaceSession() {
         e.metaKey ||
         e.altKey ||
         e.target?.isContentEditable ||
-        ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(e.target?.tagName)
+        ["INPUT", "TEXTAREA", "SELECT"].includes(e.target?.tagName)
       )
         return;
       if (e.key.toLowerCase() === "r") {

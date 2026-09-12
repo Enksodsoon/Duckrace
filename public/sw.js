@@ -34,6 +34,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.origin !== self.location.origin) return;
+  if (url.pathname === '/release.json' || url.pathname === '/sw.js') return;
 
   // Navigations (including /?audience=1 share links): network first,
   // fall back to the cached app shell when offline.

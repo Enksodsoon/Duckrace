@@ -16,7 +16,7 @@ export function Button({ children, icon: Icon, primary, className = "", ...props
     </button>
   );
 }
-export function Toggle({ label, checked, onChange, description }) {
+export function Toggle({ label, checked, onChange, description, disabled = false }) {
   return (
     <label className="toggle-row">
       <span>
@@ -26,6 +26,7 @@ export function Toggle({ label, checked, onChange, description }) {
       <input
         type="checkbox"
         role="switch"
+        disabled={disabled}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />

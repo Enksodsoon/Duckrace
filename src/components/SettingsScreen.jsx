@@ -66,6 +66,7 @@ export default function SettingsScreen({ session: s, navigate, systemMotion }) {
                 label="Reduced motion"
                 description="Reduce camera motion and visual effects."
                 checked={o.reducedMotion || systemMotion}
+                disabled={systemMotion}
                 onChange={(reducedMotion) => patch({ reducedMotion })}
               />
               {systemMotion && <p className="muted">Your system requests reduced motion.</p>}

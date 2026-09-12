@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Home, Menu, Mountain, Play, Settings, Trophy, X } from "lucide-react";
 import useRaceSession from "./lib/useRaceSession.js";
 import { BREEDS, STAGES } from "./lib/catalog.js";
@@ -30,16 +30,21 @@ export default function App() {
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   const { sceneReady, sceneFailed } = s;
+  const sceneFailure = useRef(false);
   const onReady = useCallback(
     (info) => {
+      if (sceneFailure.current) return;
       setSceneState("ready");
-      if (info?.screen === "race") sceneReady();
+      sceneReady(info?.screen === "race");
     },
     [sceneReady],
   );
-  const onLoading = useCallback(() => setSceneState("loading"), []);
+  const onLoading = useCallback(() => {
+    if (!sceneFailure.current) setSceneState("loading");
+  }, []);
   const onError = useCallback(
     (e) => {
+      sceneFailure.current = true;
       setSceneState("error");
       setSceneError(e?.message || "3D rendering is unavailable.");
       sceneFailed();
@@ -225,9 +230,21 @@ export default function App() {
           <p>{sceneError} Your entries and randomizer remain available.</p>
           <div className="button-row">
             <Button
-              onClick={() => {
-                setSceneState("loading");
-                setSceneKey((k) => k + 1);
+              onClick={async () => {
+                try {
+                  const { clearFailedSceneLoads } = await import("./lib/retryScene.js");
+                  clearFailedSceneLoads(
+                    s.screen,
+                    sceneData.participants,
+                    sceneData.appearances,
+                    sceneRecord?.stage || o.stage,
+                  );
+                  sceneFailure.current = false;
+                  setSceneState("loading");
+                  setSceneKey((k) => k + 1);
+                } catch (error) {
+                  onError(error);
+                }
               }}
             >
               Retry 3D
