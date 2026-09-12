@@ -42,6 +42,7 @@ describe('createRaceRecord', () => {
       stage: 'mountain-river',
       podiumCount: 2,
       eliminationPlaces: [1],
+      presentationShuffle: true,
     });
     expect(validateRaceRecord(record)).toBe(true);
     expect(Object.isFrozen(record)).toBe(true);
@@ -69,6 +70,7 @@ describe('createRaceRecord', () => {
     expect(() => createRaceRecord({ entries: ['ok', '   '], seed: 'x' })).toThrow(/names/);
     expect(() => createRaceRecord({ entries: [{ id: 'same', name: 'A' }, { id: 'same', name: 'B' }], seed: 'x' })).toThrow(/duplicate participant id/);
     expect(() => createRaceRecord({ entries: ['A'], seed: 'x', duration: 0.0001 })).toThrow(/one millisecond/);
+    expect(() => createRaceRecord({ entries: ['A'], seed: 'x', presentationShuffle: 'yes' })).toThrow(/boolean/);
   });
 
   it('uses rejection sampling for an unbiased cryptographic Fisher-Yates draw', () => {
@@ -101,10 +103,13 @@ describe('createRaceRecord', () => {
       duration: 9,
       stage: 'sunset-marsh',
       appearances: entries.map(() => ({ breed: 'mandarin', accessory: 'medal' })),
+      presentationShuffle: false,
     });
 
     expect(marsh.order).toEqual(forest.order);
     expect(marsh.presentationSeed).toBe(forest.presentationSeed);
+    expect(forest.presentationShuffle).toBe(true);
+    expect(marsh.presentationShuffle).toBe(false);
     for (const elapsed of [0, 17, 1000, 4500, 9000, 9720]) {
       expect(sampleRace(marsh, elapsed)).toEqual(sampleRace(forest, elapsed));
     }
@@ -196,6 +201,10 @@ describe('validateRaceRecord', () => {
     expect(validateRaceRecord({ ...valid, order: [valid.order[0], valid.order[0]] })).toBe(false);
     expect(validateRaceRecord({ ...valid, drawMode: 'crypto' })).toBe(false);
     expect(validateRaceRecord({ ...valid, presentationSeed: 'not-hex' })).toBe(false);
+    expect(validateRaceRecord({ ...valid, presentationShuffle: 'yes' })).toBe(false);
+    const earlyV1 = { ...valid };
+    delete earlyV1.presentationShuffle;
+    expect(validateRaceRecord(earlyV1)).toBe(true);
     expect(validateRaceRecord({ ...valid, appearances: [{}] })).toBe(false);
     expect(validateRaceRecord({ ...valid, eliminationPlaces: [0, 0] })).toBe(false);
   });

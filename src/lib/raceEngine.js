@@ -19,6 +19,7 @@ const validatedImmutableRecords = new WeakSet();
  * @property {'crypto'|'seeded'} drawMode
  * @property {string} seed Empty for a fresh cryptographic draw.
  * @property {string} presentationSeed 128-bit hexadecimal animation seed.
+ * @property {boolean} [presentationShuffle] Whether display lanes use presentation-seeded placement.
  * @property {number} durationMs Time at which the winner crosses the finish.
  * @property {string} stage
  * @property {ReadonlyArray<unknown>} appearances Participant-aligned cosmetics, or an empty array.
@@ -242,6 +243,7 @@ function normalizeEliminationPlaces(places, participantCount) {
  * @param {string} [options.stage='forest-lake']
  * @param {Array<unknown>} [options.appearances=[]]
  * @param {Array<number>} [options.eliminationPlaces=[]]
+ * @param {boolean} [options.presentationShuffle=true]
  * @param {{getRandomValues:(array:Uint32Array)=>Uint32Array}} [cryptoSource=globalThis.crypto]
  * @returns {Readonly<RaceRecordV1>}
  */
@@ -254,6 +256,7 @@ export function createRaceRecord(
     stage = 'forest-lake',
     appearances = [],
     eliminationPlaces = [],
+    presentationShuffle = true,
   },
   cryptoSource = globalThis.crypto,
 ) {
@@ -268,6 +271,7 @@ export function createRaceRecord(
     throw new RangeError('podiumCount must be a positive integer');
   }
   if (typeof stage !== 'string' || stage.trim() === '') throw new TypeError('stage must be a non-empty string');
+  if (typeof presentationShuffle !== 'boolean') throw new TypeError('presentationShuffle must be a boolean');
 
   const drawMode = seed.length > 0 ? 'seeded' : 'crypto';
   const orderSource = drawMode === 'seeded'
@@ -288,6 +292,7 @@ export function createRaceRecord(
     drawMode,
     seed,
     presentationSeed: seedHex(presentationSource),
+    presentationShuffle,
     durationMs,
     stage: stage.trim(),
     appearances: normalizeAppearances(appearances, participants.length),
@@ -316,6 +321,7 @@ export function validateRaceRecord(record) {
     drawMode,
     seed,
     presentationSeed,
+    presentationShuffle,
     durationMs,
     stage,
     appearances,
@@ -338,6 +344,7 @@ export function validateRaceRecord(record) {
   if (drawMode !== 'crypto' && drawMode !== 'seeded') return false;
   if (typeof seed !== 'string' || (drawMode === 'crypto' ? seed !== '' : seed.length === 0)) return false;
   if (typeof presentationSeed !== 'string' || !/^[0-9a-f]{32}$/.test(presentationSeed)) return false;
+  if (presentationShuffle !== undefined && typeof presentationShuffle !== 'boolean') return false;
   if (!Number.isInteger(durationMs) || durationMs < 1 || durationMs > MAX_DURATION_SECONDS * 1000) return false;
   if (typeof stage !== 'string' || stage.trim() === '') return false;
   if (!Array.isArray(appearances) || (appearances.length !== 0 && appearances.length !== participants.length)) return false;
