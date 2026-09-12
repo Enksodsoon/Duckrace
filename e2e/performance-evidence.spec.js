@@ -77,10 +77,14 @@ async function finishGraphicsCapture(page) {
 
 async function runStage(page, profile, stageId, stageName) {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Play Race', exact: true }).first().click();
+  await page.getByRole('main').getByRole('button', { name: 'Play Race', exact: true }).click();
   await page.getByLabel('Race entries', { exact: true }).fill(entrants);
   await page.getByLabel('Race duration', { exact: true }).selectOption('30');
-  await page.getByRole('button', { name: 'Stages', exact: true }).first().click();
+  if (profile.id === 'mobile-viewport') {
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+  }
+  await page.getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('button', { name: 'Stages', exact: true }).click();
   await page.getByRole('button', { name: new RegExp(stageName) }).click();
   await page.getByRole('button', { name: 'Continue to Race', exact: true }).click();
 
@@ -143,6 +147,41 @@ async function runStage(page, profile, stageId, stageName) {
   });
 }
 
+function summarize(runs) {
+  const sampleSeconds = runs.reduce((sum, run) => sum + run.sampleSeconds, 0);
+  const sampleFrames = runs.reduce((sum, run) => sum + run.sampleFrames, 0);
+  return {
+    runCount: runs.length,
+    sampleSeconds,
+    sampleFrames,
+    weightedFps: sampleSeconds ? sampleFrames / sampleSeconds : null,
+    minFps: runs.length ? Math.min(...runs.map(run => run.minFps)) : null,
+    gpu: [...new Set(runs.map(run => run.gpu))],
+  };
+}
+
+function writeProfileEvidence(profile) {
+  const runs = evidence.runs.filter(run => run.profile === profile.id);
+  expect(runs).toHaveLength(stages.length);
+  const report = {
+    schemaVersion: evidence.schemaVersion,
+    generatedAt: new Date().toISOString(),
+    qualification: {
+      targetsAreAssertions: false,
+      profile: profile.id === 'mobile-viewport'
+        ? evidence.qualification.mobile
+        : evidence.qualification.desktop,
+    },
+    environment: evidence.environment,
+    summary: summarize(runs),
+    runs,
+  };
+  fs.writeFileSync(
+    path.join(evidenceRoot, `performance-${profile.id}-latest.json`),
+    `${JSON.stringify(report, null, 2)}\n`,
+  );
+}
+
 for (const profile of [
   { id: 'desktop', viewport: { width: 1440, height: 900 } },
   { id: 'mobile-viewport', viewport: { width: 390, height: 844 } },
@@ -164,22 +203,17 @@ for (const profile of [
     for (const [stageId, stageName] of stages) {
       await test.step(`${stageName} real-time race`, () => runStage(page, profile, stageId, stageName));
     }
+    writeProfileEvidence(profile);
   });
 }
 
 test.afterAll(() => {
   if (!enabled) return;
-  const sampleSeconds = evidence.runs.reduce((sum, run) => sum + run.sampleSeconds, 0);
-  const sampleFrames = evidence.runs.reduce((sum, run) => sum + run.sampleFrames, 0);
+  const complete = ['desktop', 'mobile-viewport']
+    .every(profile => evidence.runs.filter(run => run.profile === profile).length === stages.length);
+  if (!complete) return;
   evidence.generatedAt = new Date().toISOString();
-  evidence.summary = {
-    runCount: evidence.runs.length,
-    sampleSeconds,
-    sampleFrames,
-    weightedFps: sampleSeconds ? sampleFrames / sampleSeconds : null,
-    minFps: evidence.runs.length ? Math.min(...evidence.runs.map(run => run.minFps)) : null,
-    gpu: [...new Set(evidence.runs.map(run => run.gpu))],
-  };
+  evidence.summary = summarize(evidence.runs);
   fs.mkdirSync(evidenceRoot, { recursive: true });
   fs.writeFileSync(path.join(evidenceRoot, 'performance-latest.json'), `${JSON.stringify(evidence, null, 2)}\n`);
 });
