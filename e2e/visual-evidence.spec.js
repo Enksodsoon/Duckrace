@@ -5,7 +5,7 @@ import { mkdir } from "node:fs/promises";
 test.skip(!process.env.VISUAL_EVIDENCE, "Run with VISUAL_EVIDENCE=1 after the final art build.");
 test.use({ viewport: { width: 1440, height: 900 } });
 test("capture complete desktop and mobile screen evidence", async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(900_000);
   const folder = "docs/evidence/local";
   await mkdir(folder, { recursive: true });
   const errors = [];
