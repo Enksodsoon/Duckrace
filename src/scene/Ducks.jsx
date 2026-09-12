@@ -28,6 +28,10 @@ function AnimatedDuck({ model, position, rotation, scale, accessory, moving, fin
   const group = useRef();
   const object = useMemo(() => clone(model.scene), [model]);
   const mixer = useMemo(() => new THREE.AnimationMixer(object), [object]);
+  const standingRoot = useMemo(() => {
+    const bone = object.getObjectByName('Body');
+    return bone ? { bone, position: bone.position.clone() } : null;
+  }, [object]);
   useLayoutEffect(() => {
     object.traverse(node => {
       const cosmetic = cosmeticId(node);
@@ -45,6 +49,10 @@ function AnimatedDuck({ model, position, rotation, scale, accessory, moving, fin
   useFrame(({ clock }, delta) => {
     if (!reducedMotion) {
       mixer.update(Math.min(delta, .05));
+      // The exported celebration translation follows the tilted body bone's
+      // local axes, which can lower the feet. Keep standing root translation
+      // at its bind position; head, neck and wing tracks still animate.
+      if (!moving && standingRoot) standingRoot.bone.position.copy(standingRoot.position);
       // Only swimming ducks float. Standing heroes keep their webbed feet
       // above the planks while the rig animates their head and wings.
       group.current.position.y = position[1] + (moving ? Math.sin(clock.elapsedTime * 1.8 + position[0]) * .023 : 0);
