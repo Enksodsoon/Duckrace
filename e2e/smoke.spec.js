@@ -1,78 +1,40 @@
 import { test, expect } from '@playwright/test';
+async function setup(page) { await page.goto('/'); await page.getByRole('button', { name: 'Play Race', exact: true }).first().click(); }
 
-test('loads with title and 3D race shell', async ({ page }) => {
-  await page.goto('/');
-  await expect(page).toHaveTitle(/Duck Race Randomizer/);
-  const shell = page.getByLabel('Real 3D duck race track');
-  await expect(shell).toBeVisible();
-  await expect(shell).toHaveAttribute('data-racing', 'false');
+test('instant shortcut works from a focused control but not while typing entries', async ({ page }) => {
+  await setup(page);
+  await page.getByLabel('Race entries').fill('A\nB');
+  await page.keyboard.press('i');
+  await expect(page.getByRole('heading', { name: 'Race Setup', exact: true })).toBeVisible();
+  await page.getByLabel('Race entries').fill('A\nB');
+  await page.getByRole('button', { name: 'Home', exact: true }).focus();
+  await page.keyboard.press('i');
+  await expect(page.locator('.result-list li')).toHaveCount(2);
 });
+test('loads home title and exactly one 3D renderer', async ({ page }) => { await page.goto('/'); await expect(page).toHaveTitle(/Duck Race Randomizer/); await expect(page.getByLabel('Real 3D duck race track')).toBeVisible(); await expect(page.locator('canvas')).toHaveCount(1); await page.screenshot({ path: 'test-results/home.png' }); });
+test('overlay route displays one scene and hides navigation', async ({ page }) => { await page.goto('/?view=overlay'); await expect(page.getByRole('heading', { name: 'Audience Mode' })).toBeVisible(); await expect(page.getByRole('navigation')).toHaveCount(0); await expect(page.getByLabel('Real 3D duck race track')).toHaveCount(1); });
+test('manual entries persist across reload', async ({ page }) => { await setup(page); await page.getByLabel('Race entries').fill('Alpha\nBeta\nGamma'); await page.reload(); await page.getByRole('button', { name: 'Play Race', exact: true }).first().click(); await expect(page.getByLabel('Race entries')).toHaveValue('Alpha\nBeta\nGamma'); });
+test('number generator creates sequence and bounds large input', async ({ page }) => { await setup(page); await page.getByText('Advanced options', { exact: true }).click(); await page.getByPlaceholder('Start', { exact: true }).fill('1'); await page.getByPlaceholder('End', { exact: true }).fill('4'); await page.getByPlaceholder('Prefix', { exact: true }).fill('Duck '); await page.getByRole('button', { name: 'Generate', exact: true }).click(); await expect(page.getByLabel('Race entries')).toHaveValue('Duck 1\nDuck 2\nDuck 3\nDuck 4'); await page.getByPlaceholder('End', { exact: true }).fill('10000000000'); await page.getByRole('button', { name: 'Generate', exact: true }).click(); await expect(page.getByText('Use whole numbers defining no more than 100 entries.')).toBeVisible(); });
+test('timed race finishes with complete ranking', async ({ page }) => { await setup(page); await page.getByLabel('Race duration').selectOption('3'); await page.getByRole('button', { name: 'Start Race', exact: true }).click(); await expect(page.getByLabel('Real 3D duck race track')).toHaveAttribute('data-racing', 'true'); await expect(page.getByRole('heading', { name: 'Results', exact: true })).toBeVisible({ timeout: 30000 }); await expect(page.getByLabel('Real 3D duck race track')).toHaveAttribute('data-winner-progress', '100'); await expect(page.locator('.result-list li')).toHaveCount(6); });
+test('app shell and entries work offline after service worker activates', async ({ page, context }) => { await setup(page); await page.getByLabel('Race entries').fill('Saved A\nSaved B'); await page.evaluate(() => navigator.serviceWorker.ready); await page.reload(); await context.setOffline(true); await page.reload(); await expect(page.getByRole('heading', { name: 'Duck Race', exact: true })).toBeVisible(); await page.getByRole('button', { name: 'Play Race', exact: true }).first().click(); await expect(page.getByLabel('Race entries')).toHaveValue('Saved A\nSaved B'); await page.getByRole('button', { name: 'Instant Pick', exact: true }).click(); await expect(page.locator('.result-list li')).toHaveCount(2); });
+test('WebGL failure preserves randomizer workflow', async ({ page }) => { await page.addInitScript(() => { const get = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function(type, ...args) { return type.startsWith('webgl') ? null : get.call(this, type, ...args); }; }); await setup(page); await page.getByRole('button', { name: 'Instant Pick', exact: true }).click(); await expect(page.locator('.result-list li')).toHaveCount(6); });
 
-test('overlay route renders the race shell standalone', async ({ page }) => {
-  await page.goto('/?view=overlay');
-  await expect(page.getByText('Audience Mode').first()).toBeVisible();
-  // Overlay-only route hides the dashboard, so exactly one shell renders.
-  await expect(page.getByLabel('Real 3D duck race track')).toHaveCount(1);
-});
-
-test('manual entries persist across reload', async ({ page }) => {
+test('offline upgrade uses current shell when a previous release cache exists', async ({ page, context }) => {
+  await page.route('**/cache-fixture', route => route.fulfill({ contentType: 'text/html', body: '<title>Cache fixture</title>' }));
+  await page.goto('/cache-fixture');
+  await page.evaluate(async () => {
+    const old = await caches.open('duck-race-v1');
+    await old.put('/index.html', new Response('<h1>Obsolete release fixture</h1>', { headers: { 'Content-Type': 'text/html' } }));
+    localStorage.setItem('duck-race-randomizer:v2', JSON.stringify({ entriesText: 'Retained A\nRetained B' }));
+  });
   await page.goto('/');
-  const entries = page.getByPlaceholder('One entry per line, or use commas');
-  await entries.fill('Alpha\nBeta\nGamma');
-  await expect(entries).toHaveValue('Alpha\nBeta\nGamma');
+  await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
-  await expect(page.getByPlaceholder('One entry per line, or use commas')).toHaveValue(
-    'Alpha\nBeta\nGamma',
-  );
-});
-
-test('number generation produces a prefixed sequence', async ({ page }) => {
-  await page.goto('/');
-  await page.getByPlaceholder('Start').fill('1');
-  await page.getByPlaceholder('End').fill('4');
-  await page.getByPlaceholder('Prefix').fill('Duck ');
-  await page.getByRole('button', { name: 'Generate' }).click();
-  await expect(page.getByPlaceholder('One entry per line, or use commas')).toHaveValue(
-    'Duck 1\nDuck 2\nDuck 3\nDuck 4',
-  );
-});
-
-test('instant pick shows a winner, reset clears it but keeps entries', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Pick', exact: true }).click();
-  const shell = page.getByLabel('Real 3D duck race track');
-  await expect(shell).toHaveAttribute('data-racing', 'false');
-  await expect(shell).toHaveAttribute('data-winner-progress', '100');
-  await expect(page.getByText('No podium yet.')).toBeHidden();
-  const entriesBefore = await page
-    .getByPlaceholder('One entry per line, or use commas')
-    .inputValue();
-  await page.getByRole('button', { name: 'Reset', exact: true }).click();
-  await expect(page.getByText('No podium yet.')).toBeVisible();
-  await expect(page.getByPlaceholder('One entry per line, or use commas')).not.toHaveValue('');
-  expect(entriesBefore.length).toBeGreaterThan(0);
-});
-
-test('app shell loads offline after first visit', async ({ page, context }) => {
-  await page.goto('/');
-  const shell = page.getByLabel('Real 3D duck race track');
-  await expect(shell).toBeVisible();
-  // Wait until the service worker is active, reload once online so it takes
-  // control and runtime-caches the hashed chunks, then go offline.
-  await page.evaluate(() => navigator.serviceWorker?.ready);
-  await page.reload();
-  await expect(shell).toBeVisible();
   await context.setOffline(true);
   await page.reload();
-  await expect(shell).toBeVisible({ timeout: 15_000 });
-  await expect(page).toHaveTitle(/Duck Race Randomizer/);
-});
-
-test('timed race completes with the winner at 100%', async ({ page }) => {  await page.goto('/');
-  await page.getByLabel('Race duration').fill('3');
-  await page.getByRole('button', { name: 'Start Race' }).click();
-  const shell = page.getByLabel('Real 3D duck race track');
-  await expect(shell).toHaveAttribute('data-racing', 'false', { timeout: 30_000 });
-  await expect(shell).toHaveAttribute('data-winner-progress', '100');
-  await expect(page.getByText('1st').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Duck Race', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Play Race', exact: true }).first().click();
+  await expect(page.getByLabel('Race entries')).toHaveValue('Retained A\nRetained B');
+  await page.getByRole('button', { name: 'Instant Pick', exact: true }).click();
+  await expect(page.locator('.result-list li')).toHaveCount(2);
 });
