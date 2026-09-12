@@ -16,6 +16,7 @@ export default [
       sourceType: "module",
       parserOptions: { ecmaFeatures: { jsx: true } },
       globals: {
+        __ASSET_VERSION__: "readonly",
         window: "readonly",
         document: "readonly",
         navigator: "readonly",

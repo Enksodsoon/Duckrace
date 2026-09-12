@@ -1,16 +1,14 @@
 // Duck Race Randomizer offline shell. Bump CACHE when the app shell changes.
 const CACHE = 'duck-race-v1';
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const currentMatch = async request => (await caches.open(CACHE)).match(request);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
       .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
-      .catch(() => {
-        // Offline precache is best-effort; runtime caching still applies.
-      }),
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -19,7 +17,8 @@ self.addEventListener('activate', (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))),
+        // Retain the previous release for still-open tabs and offline rollback.
+        Promise.all(keys.filter((key) => key.startsWith('duck-race-') && key !== CACHE).slice(0, -1).map((key) => caches.delete(key))),
       )
       .then(() => self.clients.claim()),
   );
@@ -42,6 +41,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
+          if (!response.ok) return currentMatch('/index.html').then(hit => hit || response);
           const copy = response.clone();
           caches
             .open(CACHE)
@@ -49,14 +49,16 @@ self.addEventListener('fetch', (event) => {
             .catch(() => {});
           return response;
         })
-        .catch(() => caches.match('/index.html').then((hit) => hit || caches.match('/'))),
+        .catch(() => currentMatch('/index.html').then((hit) => hit || currentMatch('/'))),
     );
     return;
   }
 
-  // Static assets: serve from cache immediately, refresh in background.
+  // Versioned assets are immutable; old tabs never receive a newer model at an old URL.
   event.respondWith(
-    caches.match(request).then((hit) => {
+    currentMatch(request).then(async current => {
+      const hit = current || (url.pathname.startsWith('/assets/') ? await caches.match(request) : undefined);
+      if (hit) return hit;
       const network = fetch(request)
         .then((response) => {
           if (response.ok) {
@@ -69,7 +71,7 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => hit);
-      return hit || network;
+      return network;
     }),
   );
 });
