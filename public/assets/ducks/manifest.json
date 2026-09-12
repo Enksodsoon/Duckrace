@@ -11,70 +11,70 @@
   "breeds": [
     {
       "file": "mallard.glb",
-      "bytes": 6648400,
+      "bytes": 6838196,
       "vertices": 18181,
       "triangles": 35828,
       "materials": 5
     },
     {
       "file": "mallard-lod.glb",
-      "bytes": 1275960,
+      "bytes": 1468984,
       "vertices": 5205,
       "triangles": 10124,
       "materials": 5
     },
     {
       "file": "pekin.glb",
-      "bytes": 6567604,
+      "bytes": 7391596,
       "vertices": 18181,
       "triangles": 35828,
       "materials": 5
     },
     {
       "file": "pekin-lod.glb",
-      "bytes": 1221292,
+      "bytes": 1556272,
       "vertices": 5205,
       "triangles": 10124,
       "materials": 5
     },
     {
       "file": "khaki.glb",
-      "bytes": 6781288,
+      "bytes": 6820404,
       "vertices": 18181,
       "triangles": 35828,
       "materials": 5
     },
     {
       "file": "khaki-lod.glb",
-      "bytes": 1287992,
+      "bytes": 1427444,
       "vertices": 5205,
       "triangles": 10124,
       "materials": 5
     },
     {
       "file": "mandarin.glb",
-      "bytes": 6859948,
+      "bytes": 7050120,
       "vertices": 20101,
       "triangles": 39548,
       "materials": 5
     },
     {
       "file": "mandarin-lod.glb",
-      "bytes": 1344480,
+      "bytes": 1537164,
       "vertices": 6525,
       "triangles": 12684,
       "materials": 5
     },
     {
       "file": "runner.glb",
-      "bytes": 7026804,
+      "bytes": 7321884,
       "vertices": 18181,
       "triangles": 35828,
       "materials": 5
     },
     {
       "file": "runner-lod.glb",
-      "bytes": 1295932,
+      "bytes": 1495652,
       "vertices": 5205,
       "triangles": 10124,
       "materials": 5

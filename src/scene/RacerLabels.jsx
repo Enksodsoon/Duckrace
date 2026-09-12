@@ -40,5 +40,5 @@ export default function RacerLabels({ participants, progress, followId, cameraMo
     const neighbors = participants.map((_participant, index) => index).sort((a, b) => Math.abs(a - focus) - Math.abs(b - focus));
     for (const index of neighbors) { if (visible.size >= 8) break; visible.add(index); }
   }
-  return [...visible].filter(index => participants[index]).map(index => <RacerLabel key={participants[index].id} participant={participants[index]} index={index} count={participants.length} progress={progress[index]} selected={index === selected} leader={index === leader} />);
+  return <group name="race-labels">{[...visible].filter(index => participants[index]).map(index => <RacerLabel key={participants[index].id} participant={participants[index]} index={index} count={participants.length} progress={progress[index]} selected={index === selected} leader={index === leader} />)}</group>;
 }
