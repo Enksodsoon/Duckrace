@@ -3,6 +3,9 @@ export const RACE_RECORD_VERSION = 1;
 const UINT32_RANGE = 0x100000000;
 const MAX_PARTICIPANTS = 100;
 const MAX_DURATION_SECONDS = 3600;
+const MAX_APPEARANCE_DEPTH = 64;
+const MAX_APPEARANCE_NODES = 10000;
+const validatedImmutableRecords = new WeakSet();
 
 /**
  * @typedef {object} RaceParticipant
@@ -29,18 +32,45 @@ function isPlainObject(value) {
   return prototype === Object.prototype || prototype === null;
 }
 
-function isJsonValue(value, seen = new Set()) {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
-  if (typeof value === 'number') return Number.isFinite(value);
-  if (typeof value !== 'object' || seen.has(value)) return false;
+function isJsonValue(value) {
+  const ancestors = new Set();
+  const stack = [{ value, depth: 0, exiting: false }];
+  let visited = 0;
 
-  seen.add(value);
-  const valid = Array.isArray(value)
-    ? value.every((item) => isJsonValue(item, seen))
-    : isPlainObject(value)
-      && Object.entries(value).every(([key, item]) => key.length > 0 && isJsonValue(item, seen));
-  seen.delete(value);
-  return valid;
+  try {
+    while (stack.length > 0) {
+      const frame = stack.pop();
+      if (frame.exiting) {
+        ancestors.delete(frame.value);
+        continue;
+      }
+
+      visited += 1;
+      if (visited > MAX_APPEARANCE_NODES || frame.depth > MAX_APPEARANCE_DEPTH) return false;
+      const item = frame.value;
+      if (item === null || typeof item === 'string' || typeof item === 'boolean') continue;
+      if (typeof item === 'number') {
+        if (!Number.isFinite(item)) return false;
+        continue;
+      }
+      if (typeof item !== 'object' || ancestors.has(item)) return false;
+      if (!Array.isArray(item) && !isPlainObject(item)) return false;
+
+      const entries = Array.isArray(item)
+        ? item.map((child) => [null, child])
+        : Object.entries(item);
+      if (entries.some(([key]) => key !== null && key.length === 0)) return false;
+
+      ancestors.add(item);
+      stack.push({ value: item, depth: frame.depth, exiting: true });
+      for (let index = entries.length - 1; index >= 0; index -= 1) {
+        stack.push({ value: entries[index][1], depth: frame.depth + 1, exiting: false });
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function cloneJsonValue(value) {
@@ -265,7 +295,9 @@ export function createRaceRecord(
     eliminationPlaces: normalizeEliminationPlaces(eliminationPlaces, participants.length),
   };
 
-  return deepFreeze(record);
+  const immutableRecord = deepFreeze(record);
+  validatedImmutableRecords.add(immutableRecord);
+  return immutableRecord;
 }
 
 /**
@@ -276,6 +308,7 @@ export function createRaceRecord(
  * @returns {record is RaceRecordV1}
  */
 export function validateRaceRecord(record) {
+  if (record && typeof record === 'object' && validatedImmutableRecords.has(record)) return true;
   if (!isPlainObject(record) || record.version !== RACE_RECORD_VERSION) return false;
   const {
     participants,
@@ -350,19 +383,21 @@ export function sampleRace(record, elapsedMs) {
   const finishGapMs = participantCount > 1 ? tailMs / (participantCount - 1) : 0;
   const totalDurationMs = record.durationMs + tailMs;
   const sampledElapsedMs = Math.min(Math.max(0, elapsedMs), totalDurationMs);
+  const finished = sampledElapsedMs >= totalDurationMs;
   const orderIndex = new Map(record.order.map((id, index) => [id, index]));
   const participantIndex = new Map(record.participants.map(({ id }, index) => [id, index]));
 
   const progress = record.participants.map(({ id }) => {
     const rank = orderIndex.get(id);
     const finishMs = record.durationMs + rank * finishGapMs;
-    const normalizedTime = Math.min(1, sampledElapsedMs / finishMs);
+    if (finished || sampledElapsedMs >= finishMs) return 100;
+    const normalizedTime = sampledElapsedMs / finishMs;
     const rankFraction = participantCount === 1 ? 0 : rank / (participantCount - 1);
     // Lower placed ducks lead early; the later finish times force real overtakes.
     // A small deterministic variation keeps the motion from looking uniform.
     const variation = (presentationFraction(record.presentationSeed, id) - 0.5) * 0.08;
     const exponent = 1.24 - rankFraction * 0.46 + variation;
-    return normalizedTime >= 1 ? 100 : 100 * normalizedTime ** exponent;
+    return 100 * normalizedTime ** exponent;
   });
 
   const ranking = record.participants
@@ -378,7 +413,7 @@ export function sampleRace(record, elapsedMs) {
   return {
     progress,
     ranking,
-    finished: sampledElapsedMs >= totalDurationMs,
+    finished,
     elapsedMs: sampledElapsedMs,
   };
 }

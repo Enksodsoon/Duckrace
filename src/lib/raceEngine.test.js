@@ -174,6 +174,17 @@ describe('sampleRace', () => {
     expect(sampleRace(record, 99999)).toMatchObject({ elapsedMs: 1150, finished: true });
     expect(() => sampleRace(record, Number.NaN)).toThrow(/elapsedMs/);
   });
+
+  it('finishes all 100 ducks exactly at the clamped completion sample', () => {
+    const entries = Array.from({ length: 100 }, (_, index) => `Duck ${index}`);
+    const record = createRaceRecord({ entries, seed: 'hundred-finishers', duration: 1 });
+    const completed = sampleRace(record, 1150);
+
+    expect(completed.finished).toBe(true);
+    expect(completed.progress).toHaveLength(100);
+    expect(completed.progress.every((value) => value === 100)).toBe(true);
+    expect(completed.ranking).toEqual(record.order);
+  });
 });
 
 describe('validateRaceRecord', () => {
@@ -187,5 +198,30 @@ describe('validateRaceRecord', () => {
     expect(validateRaceRecord({ ...valid, presentationSeed: 'not-hex' })).toBe(false);
     expect(validateRaceRecord({ ...valid, appearances: [{}] })).toBe(false);
     expect(validateRaceRecord({ ...valid, eliminationPlaces: [0, 0] })).toBe(false);
+  });
+
+  it('rejects pathologically deep appearance data without overflowing the stack', () => {
+    const valid = JSON.parse(JSON.stringify(createRaceRecord({ entries: ['A'], seed: 'valid' })));
+    const deeplyNested = [];
+    let cursor = deeplyNested;
+    for (let index = 0; index < 20000; index += 1) {
+      const child = [];
+      cursor.push(child);
+      cursor = child;
+    }
+
+    expect(() => validateRaceRecord({ ...valid, appearances: [deeplyNested] })).not.toThrow();
+    expect(validateRaceRecord({ ...valid, appearances: [deeplyNested] })).toBe(false);
+
+    const cyclic = [];
+    cyclic.push(cyclic);
+    expect(validateRaceRecord({ ...valid, appearances: [cyclic] })).toBe(false);
+  });
+
+  it('revalidates mutable records rather than caching stale results', () => {
+    const mutable = JSON.parse(JSON.stringify(createRaceRecord({ entries: ['A', 'B'], seed: 'mutable' })));
+    expect(validateRaceRecord(mutable)).toBe(true);
+    mutable.order[1] = mutable.order[0];
+    expect(validateRaceRecord(mutable)).toBe(false);
   });
 });
