@@ -127,9 +127,9 @@ function Shore({ config, width, low, medium, stage }) {
   return <group>
     <mesh geometry={g.left} material={m.land} receiveShadow />
     <mesh geometry={g.right} material={m.land} receiveShadow />
-    <mesh position={[10, -4, 265]} scale={[1.4, stage === 'forest-lake' ? 1.05 : config.pine ? 1.5 : stage === 'sunset-marsh' ? .22 : .7, 1]} geometry={g.distant} material={m.mountain} />
-    <mesh position={[-110, -4, 168]} scale={[.65, stage === 'forest-lake' ? .7 : config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
-    <mesh position={[110, -4, 196]} scale={[-.65, stage === 'forest-lake' ? .8 : config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
+    <mesh position={[10, -4, stage === 'forest-lake' ? 310 : 265]} scale={[stage === 'forest-lake' ? 1.65 : 1.4, stage === 'forest-lake' ? .52 : config.pine ? 1.5 : stage === 'sunset-marsh' ? .22 : .7, 1]} geometry={g.distant} material={m.mountain} />
+    <mesh position={[-110, -4, stage === 'forest-lake' ? 195 : 168]} scale={[.65, stage === 'forest-lake' ? .45 : config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
+    <mesh position={[110, -4, stage === 'forest-lake' ? 225 : 196]} scale={[-.65, stage === 'forest-lake' ? .5 : config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <Instances geometry={g.trunk} material={m.trunk} entries={resources.trunks} shadow={!low} />
     {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} />}
     {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} />}

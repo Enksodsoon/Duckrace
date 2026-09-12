@@ -58,6 +58,8 @@ export function makeMountain(seed, config, distant = false) {
   const width = 270, depth = 100, cols = 100, rows = 36;
   const positions = [], colors = [], indices = [], uvs = [];
   const stone = new THREE.Color(config.mountain), snow = new THREE.Color('#e0e5e0');
+  const peakCenters = [-116, -91, -45, -18, 28, 76, 108];
+  const peakHeights = [46, 63, 78, 51, 70, 57, 42];
   for (let z = 0; z <= rows; z++) for (let x = 0; x <= cols; x++) {
     const wx = (x / cols - .5) * width, wz = z / rows * depth;
     const ridges = Math.pow(Math.abs(Math.sin(wx * .024 + seed)), 2) * 36 + Math.pow(Math.abs(Math.sin(wx * .067 + 2)), 3) * 20;
@@ -65,15 +67,17 @@ export function makeMountain(seed, config, distant = false) {
     const edge = Math.pow(Math.sin(x / cols * Math.PI), .7);
     let alpine = 0;
     for (let peak = 0; peak < 7; peak++) {
-      const centerX = -110 + peak * 35 + (noise(peak, seed) - .5) * 17;
+      const centerX = peakCenters[peak] + (noise(peak, seed) - .5) * 11;
       const centerZ = 34 + noise(peak, seed + 1) * 32;
-      const flank = Math.abs((wx - centerX) / (23 + noise(peak, seed + 2) * 20));
+      const ridgeWarp = Math.sin(wz * .085 + seed + peak) * 4 + Math.sin(wz * .21 + peak) * 1.8;
+      const slopeX = wx - centerX - ridgeWarp;
+      const flank = Math.abs(slopeX / (30 + noise(peak, seed + 2) * 23));
       const depthFlank = Math.abs((wz - centerZ) / (27 + noise(peak, seed + 3) * 20));
-      const crest = Math.max(0, 1 - Math.pow(flank, .83) - depthFlank * .7);
-      alpine = Math.max(alpine, crest * (52 + noise(peak, seed + 4) * 36));
+      const crest = Math.max(0, 1 - flank * (slopeX < 0 ? .73 : 1.19) - depthFlank * .63);
+      alpine = Math.max(alpine, crest * (peakHeights[peak] + noise(peak, seed + 4) * 10));
     }
     // Interlocking, asymmetric crests and diagonal gullies replace round sine-wave cones.
-    const gullies = Math.abs(Math.sin(wx * .21 + wz * .09 + seed)) * Math.sin(wx * .48 - wz * .17) * 3.2;
+    const gullies = Math.abs(Math.sin(wx * .21 + wz * .09 + seed)) * Math.sin(wx * .48 - wz * .17) * 4.6 + Math.sin(wx * .73 + wz * .31) * 1.8;
     const h = config.pine
       ? 2 + (alpine + ridges * .17 + gullies * Math.min(1, alpine / 20)) * Math.pow(envelope, .4) * edge * (distant ? 1.08 : .85)
       : 4 + (ridges + 5 + noise(x + z * 139, seed) * 5) * envelope * edge * (distant ? 1.25 : .7);
