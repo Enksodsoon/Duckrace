@@ -141,7 +141,7 @@ export function makeBarkTexture() {
 }
 
 export function makeNeedleGeometry(seed = 7, distant = false) {
-  // Crossed twig cards sample only the photographed pine twig in the CC0 atlas.
+  // Crossed twig cards sample the spruce spray in the original foliage atlas.
   // Hundreds of short branchlets create a porous volume, rather than long foliage fans.
   const positions = [], uvs = [], indices = [];
   const layers = distant ? 6 : 9, twigs = distant ? 2 : 4;
@@ -236,16 +236,19 @@ export function makeBroadleafTrunkGeometry() {
 export function makeLeafGeometry(drooping = false) {
   const positions = [], uvs = [], indices = [];
   const center = new THREE.Vector3(), normal = new THREE.Vector3(), tangent = new THREE.Vector3(), up = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
-  for (let i = 0; i < 48; i++) {
+  // Each atlas card already contains a complete leafy spray. Layering 48 long
+  // willow cards per cluster shaded the same pixels repeatedly without adding
+  // a useful silhouette; fewer distributed sprays keep the crown readable.
+  for (let i = 0; i < (drooping ? 20 : 32); i++) {
     const a = noise(i, 11) * Math.PI * 2, b = Math.acos(2 * noise(i, 12) - 1);
     normal.set(Math.sin(b) * Math.cos(a), Math.cos(b), Math.sin(b) * Math.sin(a));
     center.copy(normal).multiplyScalar(.4 + noise(i, 13) * .65);
     if (drooping) {
-      center.y = .2 - noise(i, 19) * .9;
+      center.y = .45 - noise(i, 19) * 1.1;
       normal.y = .08; normal.normalize();
     }
-    tangent.crossVectors(normal, yAxis).normalize().multiplyScalar(.34);
-    up.crossVectors(tangent, normal).normalize().multiplyScalar(drooping ? .95 : .48);
+    tangent.crossVectors(normal, yAxis).normalize().multiplyScalar(.24 + noise(i, 23) * .2);
+    up.crossVectors(tangent, normal).normalize().multiplyScalar(drooping ? .55 + noise(i, 27) * .8 : .35 + noise(i, 27) * .25);
     const start = positions.length / 3;
     for (const [x, y] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) positions.push(center.x + tangent.x * x + up.x * y, center.y + tangent.y * x + up.y * y, center.z + tangent.z * x + up.z * y);
     uvs.push(0, 0, 1, 0, 1, 1, 0, 1); indices.push(start, start + 1, start + 2, start, start + 2, start + 3);

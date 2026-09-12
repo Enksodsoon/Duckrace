@@ -74,7 +74,9 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
     const materials = {
       land: new THREE.MeshStandardMaterial({ color: stage === 'forest-lake' ? '#8bb48b' : '#ffffff', vertexColors: true, map: groundColor, normalMap: groundNormal, normalScale: new THREE.Vector2(.6, .6), roughness: .97, side: THREE.DoubleSide }),
       mountain: new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .99 }),
-      needles: new THREE.MeshStandardMaterial({ color: '#d2ddcb', map: config.pine ? needles : leaves, emissiveMap: config.pine ? needles : leaves, emissive: '#779851', emissiveIntensity: .08, alphaTest: .3, alphaToCoverage: true, roughness: .92, side: THREE.DoubleSide }),
+      // Thin matte foliage needs diffuse lighting, not a full per-pixel metal/
+      // roughness + environment BRDF on every overlapping transparent leaf.
+      needles: new THREE.MeshLambertMaterial({ color: '#d2ddcb', map: config.pine ? needles : leaves, emissiveMap: config.pine ? needles : leaves, emissive: '#779851', emissiveIntensity: .08, alphaTest: .3, alphaToCoverage: true, side: THREE.DoubleSide }),
       trunk: new THREE.MeshStandardMaterial({ map: barkColor, normalMap: barkNormal, normalScale: new THREE.Vector2(.55, .55), roughness: .95 }),
       rock: new THREE.MeshStandardMaterial({ color: '#bbbdb4', map: rockColor, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .92 }),
       reed: new THREE.MeshStandardMaterial({ color: stage === 'sunset-marsh' ? '#b4a268' : '#7d8951', roughness: .9 }),
