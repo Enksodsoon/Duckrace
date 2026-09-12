@@ -3,6 +3,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnvironment } from '@react-three/drei';
 import * as THREE from 'three';
+import { assetUrl } from './assetUrl';
 
 const vertex = `
   varying vec3 vWorld;
@@ -61,9 +62,9 @@ const fragment = `
   }
 `;
 
-export default function Water({ config, reducedMotion, low }) {
+export default function Water({ config, reducedMotion, low, medium }) {
   const material = useRef();
-  const environment = useEnvironment({ files: '/assets/environment/kloppenheim_06_puresky_2k.hdr' });
+  const environment = useEnvironment({ files: assetUrl('/assets/environment/kloppenheim_06_puresky_2k.hdr') });
   const uniforms = useMemo(() => ({
     uTime: { value: 0 }, uDeep: { value: new THREE.Color(config.water) },
     uShallow: { value: new THREE.Color(config.shallows) }, uSky: { value: new THREE.Color(config.sky) },
@@ -72,7 +73,7 @@ export default function Water({ config, reducedMotion, low }) {
   }), [config, environment]);
   useFrame((state) => { if (material.current && !reducedMotion) material.current.uniforms.uTime.value = state.clock.elapsedTime; });
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.025, 40]} receiveShadow>
-    <planeGeometry args={[210, 390, low ? 50 : 110, low ? 100 : 180]} />
+    <planeGeometry args={[210, 390, low ? 50 : medium ? 80 : 110, low ? 100 : medium ? 140 : 180]} />
     <shaderMaterial ref={material} vertexShader={vertex} fragmentShader={fragment} uniforms={uniforms} />
   </mesh>;
 }

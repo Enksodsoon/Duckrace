@@ -4,6 +4,7 @@ import { Environment as LightingEnvironment, useTexture } from '@react-three/dre
 import * as THREE from 'three';
 import { bankX, makeBank, makeBarkTexture, makeMountain, makeNeedleGeometry, makeNeedleTexture, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
 import Water from './Water';
+import { assetUrl } from './assetUrl';
 
 function Instances({ geometry, material, entries, shadow = false }) {
   const ref = useRef();
@@ -28,8 +29,8 @@ function configureRockTextures(textures) {
   textures.forEach(texture => { texture.anisotropy = 4; texture.wrapS = texture.wrapT = THREE.RepeatWrapping; });
 }
 
-function Shore({ config, width, low, stage }) {
-  const [rockColor, rockNormal, groundColor, groundNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg'], configureRockTextures);
+function Shore({ config, width, low, medium, stage }) {
+  const [rockColor, rockNormal, groundColor, groundNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg'].map(assetUrl), configureRockTextures);
   const resources = useMemo(() => {
     const geometries = {
       left: makeBank(-1, config, width), right: makeBank(1, config, width),
@@ -53,7 +54,7 @@ function Shore({ config, width, low, stage }) {
       petal: new THREE.MeshStandardMaterial({ color: '#edb5b6', roughness: .63 }),
     };
     const trunks = [], crowns = [], rocks = [], reeds = [], lilies = [], petals = [];
-    const treeCount = Math.round((low ? 170 : 310) * config.density);
+    const treeCount = Math.round((low ? 170 : medium ? 230 : 310) * config.density);
     for (let i = 0; i < treeCount; i++) {
       const side = i % 2 ? 1 : -1, z = -38 + noise(i, 11) * 201;
       const spread = 2 + noise(i, 15) * 36;
@@ -66,19 +67,19 @@ function Shore({ config, width, low, stage }) {
         for (let j = 0; j < 4; j++) crowns.push({ position: [x + Math.sin(j * 2.4) * scale, ground + (5 + noise(j + i, 5) * 2) * scale, z + Math.cos(j * 2.4) * scale], scale: [scale * 1.7, scale * 1.4, scale * 1.7], color: new THREE.Color(config.foliage).multiplyScalar(.8 + noise(i + j, 9) * .5).getStyle() });
       }
     }
-    for (let i = 0; i < (low ? 150 : 290); i++) {
+    for (let i = 0; i < (low ? 150 : medium ? 220 : 290); i++) {
       const side = i % 2 ? 1 : -1, z = -45 + noise(i, 21) * 190;
       const x = bankX(z, side, width) + side * noise(i, 22) * 2;
       const s = .3 + noise(i, 23) * 1.5;
       rocks.push({ position: [x, .05 + s * .14, z], scale: [s * 1.5, s * .65, s], rotation: [noise(i) * 2, noise(i, 2) * 6, noise(i, 3)], color: new THREE.Color('#929389').multiplyScalar(.67 + noise(i, 20) * .5).getStyle() });
     }
-    for (let i = 0; i < (low ? 600 : 1500); i++) {
+    for (let i = 0; i < (low ? 600 : medium ? 1000 : 1500); i++) {
       const side = i % 2 ? 1 : -1, z = -38 + noise(Math.floor(i / 7), 35) * 174 + noise(i, 31) * 2;
       const x = bankX(z, side, width) + side * (noise(i, 32) * 2 - .8);
       const s = .45 + noise(i, 33) * 1.2;
       reeds.push({ position: [x, s * .55, z], scale: [1.2, s, 1], rotation: [(noise(i, 34) - .5) * .42, noise(i, 35) * 6, (noise(i, 36) - .5) * .45] });
     }
-    const lilyCount = stage === 'lotus-pond' ? (low ? 65 : 130) : stage === 'sunset-marsh' ? 35 : 14;
+    const lilyCount = stage === 'lotus-pond' ? (low ? 65 : medium ? 95 : 130) : stage === 'sunset-marsh' ? 35 : 14;
     for (let i = 0; i < lilyCount; i++) {
       const side = i % 2 ? 1 : -1, z = -24 + noise(i, 42) * 145;
       const x = bankX(z, side, width) - side * (1.2 + noise(i, 43) * 3.5), scale = .55 + noise(i, 44) * .6;
@@ -89,7 +90,7 @@ function Shore({ config, width, low, stage }) {
       }
     }
     return { geometries, materials, trunks, crowns, rocks, reeds, lilies, petals, bark, needles, leaves };
-  }, [config, width, low, stage, rockColor, rockNormal, groundColor, groundNormal]);
+  }, [config, width, low, medium, stage, rockColor, rockNormal, groundColor, groundNormal]);
   useEffect(() => () => {
     Object.values(resources.geometries).forEach(geometry => geometry.dispose());
     Object.values(resources.materials).forEach(material => material.dispose());
@@ -203,16 +204,16 @@ function Buoys({ width, stage }) {
   return <><Instances geometry={geometry} material={material} entries={data.entries} /><Instances geometry={ropeGeometry} material={ropeMaterial} entries={data.ropes} /></>;
 }
 
-export default function RaceEnvironment({ config, stage, screen, width, low, reducedMotion }) {
+export default function RaceEnvironment({ config, stage, screen, width, low, medium, reducedMotion }) {
   return <>
     <color attach="background" args={[config.sky]} />
     <fog attach="fog" args={[config.fog, 85, 310]} />
     <hemisphereLight args={[config.sky, '#58604b', 1.05]} />
-    <directionalLight position={config.sunPosition} color={config.sun} intensity={3.1} castShadow={!low} shadow-mapSize-width={1024} shadow-mapSize-height={1024} shadow-camera-left={-25} shadow-camera-right={25} shadow-camera-top={25} shadow-camera-bottom={-25} shadow-camera-far={180} shadow-bias={-.0005} shadow-normalBias={.06} />
+    <directionalLight position={config.sunPosition} color={config.sun} intensity={3.1} castShadow={!low} shadow-mapSize-width={medium ? 512 : 1024} shadow-mapSize-height={medium ? 512 : 1024} shadow-camera-left={-25} shadow-camera-right={25} shadow-camera-top={25} shadow-camera-bottom={-25} shadow-camera-far={180} shadow-bias={-.0005} shadow-normalBias={.06} />
     {screen !== 'race' && <directionalLight position={[15, 12, -28]} color="#ffe6b9" intensity={2.0} />}
-    <LightingEnvironment files="/assets/environment/kloppenheim_06_puresky_2k.hdr" background backgroundBlurriness={.03} environmentIntensity={.75} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
-    <Water config={config} reducedMotion={reducedMotion} low={low} />
-    <Shore config={config} width={width} low={low} stage={stage} />
+    <LightingEnvironment files={assetUrl('/assets/environment/kloppenheim_06_puresky_2k.hdr')} background backgroundBlurriness={.03} environmentIntensity={.75} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
+    <Water config={config} reducedMotion={reducedMotion} low={low} medium={medium} />
+    <Shore config={config} width={width} low={low} medium={medium} stage={stage} />
     <Dock position={[width - .5, 0, -17]} rotation={[0, -.18, 0]} long />
     {screen !== 'race' && screen !== 'stages' && <HeroDock />}
     <Dock position={[-width + 1.2, 0, 20]} rotation={[0, .12, 0]} />

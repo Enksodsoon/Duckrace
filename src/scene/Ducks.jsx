@@ -4,23 +4,20 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
+import { BREEDS, COSMETICS, accessoryId, breedId, duckAssetPlan, duckAssetUrls } from './duckAssets';
 
-export const BREEDS = ['mallard', 'pekin', 'khaki', 'mandarin', 'runner'];
-const aliases = { white: 'pekin', 'white-pekin': 'pekin', 'khaki-campbell': 'khaki', 'indian-runner': 'runner' };
-export function breedId(value) { return BREEDS.includes(value) ? value : aliases[value] || 'mallard'; }
-const cosmetics = ['hat', 'glasses', 'bow', 'medal', 'charm', 'badge'];
+export { BREEDS, breedId } from './duckAssets';
 function cosmeticId(object) {
   let current = object;
   while (current) {
     if (current.userData.cosmetic) return current.userData.cosmetic;
     const lower = current.name.toLowerCase();
-    const found = cosmetics.find(id => lower.startsWith(`accessory_${id}`));
+    const found = COSMETICS.find(id => lower.startsWith(`accessory_${id}`));
     if (found) return found;
     current = current.parent;
   }
   return null;
 }
-function accessoryId(value) { return value === 'bow-tie' || value === 'bowtie' ? 'bow' : value === 'cap' ? 'hat' : value; }
 
 export function laneX(index, count) {
   return (index - (count - 1) * .5) * (count > 32 ? .84 : 1.28);
@@ -161,17 +158,27 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
   </instancedMesh>;
 }
 
-export default function Ducks({ screen, participants, progress, appearances, reducedMotion, isRacing, finished, onReady }) {
-  const models = useGLTF(BREEDS.map(breed => `/assets/ducks/${breed}.glb`));
-  const lodModels = useGLTF(BREEDS.map(breed => `/assets/ducks/${breed}-lod.glb`));
-  useEffect(() => { onReady?.(); }, [onReady]);
+function RaceDucks({ participants, progress, appearances, reducedMotion, isRacing }) {
+  const plan = useMemo(() => duckAssetPlan('race', participants, appearances), [participants, appearances]);
+  const models = useGLTF(duckAssetUrls(plan));
   const groups = useMemo(() => BREEDS.map(breed => participants.map((participant, index) => ({ ...participant, index, total: participants.length })).filter(row => breedId(appearances[row.index]?.breed) === breed)), [participants, appearances]);
-  if (screen === 'race') return <>
-    {groups.map((rows, i) => rows.length > 0 && <DuckInstances key={BREEDS[i]} model={participants.length > 24 ? lodModels[i] : models[i]} cosmeticModel={models[i]} rows={rows} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} highDetail={participants.length <= 24} />)}
-    {participants.length > 0 && <Wakes count={participants.length} progress={progress} reducedMotion={reducedMotion} isRacing={isRacing} />}
+  let offset = 0;
+  return <>
+    {plan.map(item => {
+      const model = models[offset++];
+      const cosmeticModel = item.cosmetics ? models[offset++] : undefined;
+      return <DuckInstances key={item.breed} model={model} cosmeticModel={cosmeticModel} rows={groups[BREEDS.indexOf(item.breed)]} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} highDetail={!item.lod} />;
+    })}
+    <Wakes count={participants.length} progress={progress} reducedMotion={reducedMotion} isRacing={isRacing} />
   </>;
-  const heroBreed = breedId(appearances[0]?.breed);
-  const heroIndex = BREEDS.indexOf(heroBreed);
-  if (screen === 'stages') return null;
-  return <AnimatedDuck model={models[heroIndex]} position={[-4, 1.2, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
+}
+
+function HeroDuck({ screen, appearances, finished, reducedMotion }) {
+  const [model] = useGLTF(duckAssetUrls(duckAssetPlan(screen, [], appearances)));
+  return <AnimatedDuck model={model} position={[-4, 1.2, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
+}
+
+export default function Ducks(props) {
+  if (props.screen === 'stages' || (props.screen === 'race' && !props.participants.length)) return null;
+  return props.screen === 'race' ? <RaceDucks {...props} /> : <HeroDuck {...props} />;
 }
