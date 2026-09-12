@@ -28,10 +28,11 @@ jobs:
       - run: npm test -- --run
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
+      - run: npm run test:e2e -- --fully-parallel --shard=${{ matrix.shard }}/3
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: browser-failure-evidence-${{ matrix.shard }}
           path: test-results/
       - run: npm audit --audit-level=high
+
