@@ -86,30 +86,35 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     return { meshes: results, rigs };
   }, [model, cosmeticModel]);
   const meshes = animated.meshes;
+  // A zero-scale instance still executes the full vertex shader. Compact cosmetic
+  // batches so only the racers wearing an accessory submit its geometry.
+  const batches = useMemo(() => meshes.map(mesh => ({
+    ...mesh,
+    entries: mesh.cosmetic ? rows.filter(row => mesh.cosmetic === accessoryId(appearances[row.index]?.accessory)) : rows,
+  })).filter(batch => batch.entries.length), [meshes, rows, appearances]);
   useEffect(() => () => {
     animated.meshes.forEach(mesh => mesh.material.dispose());
     animated.rigs.forEach(rig => { rig.mixer.stopAllAction(); rig.mixer.uncacheRoot(rig.scene); rig.skeletons.forEach(skeleton => skeleton.dispose()); });
   }, [animated]);
   const refs = useRef([]);
-  const state = useRef({ rows, appearances, progress });
-  useLayoutEffect(() => { state.current = { rows, appearances, progress }; }, [rows, appearances, progress]);
+  const state = useRef(progress);
+  useLayoutEffect(() => { state.current = progress; }, [progress]);
   const scratch = useMemo(() => ({ matrix: new THREE.Matrix4(), out: new THREE.Matrix4(), quaternion: new THREE.Quaternion(), euler: new THREE.Euler(), position: new THREE.Vector3(), scale: new THREE.Vector3() }), []);
   useFrame(({ clock }, delta) => {
-    const { rows: entries, appearances: looks, progress: values } = state.current;
+    const values = state.current;
     const time = reducedMotion ? 0 : clock.elapsedTime;
     animated.rigs.forEach(rig => {
       if (isRacing && !reducedMotion) rig.mixer.update(Math.min(delta, .05));
       rig.scene.updateMatrixWorld(true);
       rig.skeletons.forEach(skeleton => skeleton.update());
     });
-    entries.forEach((row, instanceIndex) => {
-      const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
-      scratch.position.set(laneX(row.index, row.total), y, raceZ(values[row.index]));
-      scratch.euler.set(0, Math.sin(time * 1.2 + row.index) * (isRacing ? .025 : .07), reducedMotion ? 0 : Math.sin(time * 1.7 + row.index) * .015);
-      scratch.quaternion.setFromEuler(scratch.euler);
-      meshes.forEach((mesh, meshIndex) => {
-        const visible = !mesh.cosmetic || mesh.cosmetic === accessoryId(looks[row.index]?.accessory);
-        scratch.scale.setScalar(visible ? .53 : 0);
+    batches.forEach((mesh, meshIndex) => {
+      mesh.entries.forEach((row, instanceIndex) => {
+        const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
+        scratch.position.set(laneX(row.index, row.total), y, raceZ(values[row.index]));
+        scratch.euler.set(0, Math.sin(time * 1.2 + row.index) * (isRacing ? .025 : .07), reducedMotion ? 0 : Math.sin(time * 1.7 + row.index) * .015);
+        scratch.quaternion.setFromEuler(scratch.euler);
+        scratch.scale.setScalar(.53);
         scratch.matrix.compose(scratch.position, scratch.quaternion, scratch.scale);
         scratch.out.multiplyMatrices(scratch.matrix, mesh.transform);
         refs.current[meshIndex]?.setMatrixAt(instanceIndex, scratch.out);
@@ -117,7 +122,7 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     });
     refs.current.forEach(mesh => { if (mesh) mesh.instanceMatrix.needsUpdate = true; });
   });
-  return meshes.map((mesh, i) => <instancedMesh key={mesh.name + i} ref={node => { refs.current[i] = node; }} args={[mesh.geometry, mesh.material, rows.length]} frustumCulled={false} castShadow={highDetail} receiveShadow dispose={null} />);
+  return batches.map((mesh, i) => <instancedMesh key={mesh.name + i} ref={node => { refs.current[i] = node; }} args={[mesh.geometry, mesh.material, mesh.entries.length]} frustumCulled={false} castShadow={highDetail} receiveShadow dispose={null} />);
 }
 
 function Wakes({ count, progress, reducedMotion, isRacing }) {

@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Environment as LightingEnvironment, RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { bankX, makeBank, makeBarkTexture, makeMountain, makeNeedleGeometry, makePineTrunkGeometry, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
+import { bankX, bankHeight, makeBank, makeBarkTexture, makeMountain, makeNeedleGeometry, makePineTrunkGeometry, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
 import Water from './Water';
 import { assetUrl, skyAssetUrl } from './assetUrl';
 
@@ -38,13 +38,14 @@ function Shore({ config, width, low, medium, stage }) {
       left: makeBank(-1, config, width), right: makeBank(1, config, width),
       distant: makeMountain(3, config, true), near: makeMountain(8, config),
       needles: makeNeedleGeometry(7), needlesB: makeNeedleGeometry(19), needlesC: makeNeedleGeometry(31), trunk: config.pine ? makePineTrunkGeometry() : new THREE.CylinderGeometry(.10, .24, 7, 7),
+      distantNeedles: makeNeedleGeometry(7, true),
       rock: new THREE.IcosahedronGeometry(1, 2), reed: new THREE.ConeGeometry(.035, 1.4, 3),
       leaf: makeLeafGeometry(), lily: new THREE.CircleGeometry(.7, 16),
       petal: new THREE.SphereGeometry(1, 8, 6),
     };
     const leaves = makeLeafTexture();
     const materials = {
-      land: new THREE.MeshStandardMaterial({ vertexColors: true, map: groundColor, normalMap: groundNormal, normalScale: new THREE.Vector2(.6, .6), roughness: .97, side: THREE.DoubleSide }),
+      land: new THREE.MeshStandardMaterial({ color: stage === 'forest-lake' ? '#8bb48b' : '#ffffff', vertexColors: true, map: groundColor, normalMap: groundNormal, normalScale: new THREE.Vector2(.6, .6), roughness: .97, side: THREE.DoubleSide }),
       mountain: new THREE.MeshStandardMaterial({ vertexColors: true, map: rockColor, normalMap: rockNormal, normalScale: new THREE.Vector2(1.2, 1.2), roughness: .99 }),
       needles: new THREE.MeshStandardMaterial({ color: config.pine ? '#becaa5' : '#b0be99', map: config.pine ? twigColor : leaves, alphaMap: config.pine ? twigAlpha : null, alphaTest: .32, roughness: .87, side: THREE.DoubleSide }),
       trunk: new THREE.MeshStandardMaterial({ map: barkColor, normalMap: barkNormal, normalScale: new THREE.Vector2(.55, .55), roughness: .95 }),
@@ -66,11 +67,13 @@ function Shore({ config, width, low, medium, stage }) {
     const treeCount = Math.round((low ? 170 : medium ? 230 : 310) * config.density);
     for (let i = 0; i < treeCount; i++) {
       const cluster = Math.floor(i / 7);
-      const side = cluster % 2 ? 1 : -1, z = -35 + noise(cluster, 11) * 275 + (noise(i, 21) - .5) * 13;
-      const spread = 1.5 + noise(cluster, 15) * 31 + noise(i, 16) * 6;
+      const side = cluster % 2 ? 1 : -1;
+      const nearCluster = cluster < 8;
+      const z = (nearCluster ? -25 + Math.floor(cluster / 2) * 43 : -35 + noise(cluster, 11) * 275) + (noise(i, 21) - .5) * 21;
+      const spread = nearCluster ? 3 + noise(cluster, 15) * 6 + noise(i, 16) * 7 : 1.5 + noise(cluster, 15) * 31 + noise(i, 16) * 6;
       const x = bankX(z, side, width) + side * spread;
       const scale = .45 + Math.pow(noise(i, 13), 1.4) * 2.25;
-      const ground = 1 + Math.min(spread * .08, 2), heightScale = scale * (.9 + noise(i, 17) * .5);
+      const ground = bankHeight(spread, z), heightScale = scale * (.9 + noise(i, 17) * .5);
       const rotation = [(noise(i, 18) - .5) * .06, noise(i, 14) * 6.28, (noise(i, 19) - .5) * .07];
       trunks.push({ position: [x, ground + 3.5 * heightScale, z], rotation, scale: [scale, heightScale, scale] });
       if (config.pine) crowns.push({ position: [x, ground, z], rotation, scale: [scale, heightScale, scale], color: new THREE.Color('#ffffff').lerp(new THREE.Color('#94a978'), noise(i, 72) * .45).getStyle() });
@@ -100,7 +103,8 @@ function Shore({ config, width, low, medium, stage }) {
         petals.push({ position: [x + Math.sin(a) * .15, .16, z + Math.cos(a) * .15], scale: [.10, .08, .25], rotation: [.35, a, 0] });
       }
     }
-    return { geometries, materials, trunks, crowns, crownGroups: [0, 1, 2].map(index => crowns.filter((_item, i) => i % 3 === index)), rocks, reeds, lilies, petals, leaves };
+    const distantCrown = item => low && (item.position[2] > 130 || Math.abs(item.position[0]) > width + 23);
+    return { geometries, materials, trunks, crowns, crownGroups: [0, 1, 2].map(index => crowns.filter((item, i) => i % 3 === index && !distantCrown(item))), distantCrowns: crowns.filter(distantCrown), rocks, reeds, lilies, petals, leaves };
   }, [config, width, low, medium, stage, rockColor, rockNormal, groundColor, groundNormal, twigColor, twigAlpha, barkColor, barkNormal]);
   useEffect(() => () => {
     Object.values(resources.geometries).forEach(geometry => geometry.dispose());
@@ -111,11 +115,12 @@ function Shore({ config, width, low, medium, stage }) {
   return <group>
     <mesh geometry={g.left} material={m.land} receiveShadow />
     <mesh geometry={g.right} material={m.land} receiveShadow />
-    <mesh position={[10, -4, 265]} scale={[1.4, config.pine ? 1.5 : stage === 'sunset-marsh' ? .22 : .7, 1]} geometry={g.distant} material={m.mountain} />
-    <mesh position={[-110, -4, 168]} scale={[.65, config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
-    <mesh position={[110, -4, 196]} scale={[-.65, config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
+    <mesh position={[10, -4, 265]} scale={[1.4, stage === 'forest-lake' ? 1.05 : config.pine ? 1.5 : stage === 'sunset-marsh' ? .22 : .7, 1]} geometry={g.distant} material={m.mountain} />
+    <mesh position={[-110, -4, 168]} scale={[.65, stage === 'forest-lake' ? .7 : config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
+    <mesh position={[110, -4, 196]} scale={[-.65, stage === 'forest-lake' ? .8 : config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <Instances geometry={g.trunk} material={m.trunk} entries={resources.trunks} shadow={!low} />
     {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} />}
+    {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} />}
     <Instances geometry={g.rock} material={m.rock} entries={resources.rocks} shadow={!low} />
     <Instances geometry={g.reed} material={m.reed} entries={resources.reeds} />
     <Instances geometry={g.lily} material={m.lily} entries={resources.lilies} />

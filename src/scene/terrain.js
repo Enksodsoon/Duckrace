@@ -8,7 +8,7 @@ export function noise(i, seed = 0) {
 }
 
 export const STAGES = {
-  'forest-lake': { sky: '#b9cfe0', fog: '#b1c3c5', water: '#183f44', shallows: '#507768', land: '#576246', foliage: '#274733', sun: '#ffe0a5', sunPosition: [35, 28, 90], mountain: '#6c8090', snow: true, pine: true, density: 1 },
+  'forest-lake': { sky: '#b9cfe0', fog: '#b1c3c5', water: '#183f44', shallows: '#507768', land: '#344b32', foliage: '#274733', sun: '#ffe0a5', sunPosition: [35, 28, 90], mountain: '#496052', snow: true, pine: true, density: 1 },
   'mountain-river': { sky: '#bbd6e8', fog: '#bfd0d5', water: '#245d69', shallows: '#679b98', land: '#6d7360', foliage: '#354c3c', sun: '#fff7e7', sunPosition: [-35, 60, 30], mountain: '#667d91', snow: true, pine: true, density: .8 },
   'lotus-pond': { sky: '#c9d9ca', fog: '#bdcabb', water: '#294a3b', shallows: '#799067', land: '#697449', foliage: '#45663d', sun: '#ffefd1', sunPosition: [40, 35, 40], mountain: '#7e9283', snow: false, pine: false, density: .7 },
   'sunset-marsh': { sky: '#e6bd9c', fog: '#bca798', water: '#514d49', shallows: '#97836c', land: '#7d714c', foliage: '#68613b', sun: '#ffd198', sunPosition: [-25, 10, 90], mountain: '#897e84', snow: false, pine: false, density: .45 },
@@ -17,6 +17,10 @@ export const STAGES = {
 
 export function bankX(z, side, width = 14) {
   return side * (width + Math.sin(z * .039 + side * .7) * (width > 20 ? 6 : 2.6) + Math.sin(z * .13 + side) * 1.2);
+}
+
+export function bankHeight(away, z) {
+  return .35 + Math.min(away * .11, 3.5) + Math.sin(z * .045 + away * .095) * 1.15 * (1 - Math.exp(-away * .22));
 }
 
 export function makeBank(side, config, width) {
@@ -29,7 +33,7 @@ export function makeBank(side, config, width) {
     for (let ix = 0; ix <= columns; ix++) {
       const away = ix * 2.5;
       const x = bankX(z, side, width) + side * away;
-      const y = ix === 0 ? -.28 : .35 + Math.min(away * .09, 2) + Math.sin(z * .14 + ix * .3) * .45 + noise(ix + iz * 51, 4) * .55;
+      const y = ix === 0 ? -.28 : bankHeight(away, z) + Math.sin(z * .14 + ix * .3) * .25 + noise(ix + iz * 51, 4) * .25;
       positions.push(x, y, z);
       uvs.push(x / 5, z / 5);
       const shade = .7 + noise(ix * 17 + iz, 8) * .5;
@@ -62,7 +66,7 @@ export function makeMountain(seed, config, distant = false) {
     const h = 4 + (ridges + 5 + noise(x + z * 139, seed) * 5) * envelope * edge * (distant ? 1.25 : .7);
     positions.push(wx, h, wz);
     uvs.push(wx / 18, wz / 18 + h / 18);
-    const isSnow = config.snow && h > (distant ? 32 : 28) + noise(x + z * 39) * 7;
+    const isSnow = config.snow && h > (distant ? 52 : 39) + noise(x + z * 39) * 7;
     const color = (isSnow ? snow : stone).clone().multiplyScalar(.72 + noise(x + z * 32, 7) * .4);
     colors.push(color.r, color.g, color.b);
   }
@@ -95,21 +99,22 @@ export function makeBarkTexture() {
   return texture;
 }
 
-export function makeNeedleGeometry(seed = 7) {
+export function makeNeedleGeometry(seed = 7, distant = false) {
   // Crossed twig cards sample only the photographed pine twig in the CC0 atlas.
   // Hundreds of short branchlets create a porous volume, rather than long foliage fans.
   const positions = [], uvs = [], indices = [];
-  for (let layer = 0; layer < 10; layer++) {
-    const h = layer / 10;
+  const layers = distant ? 6 : 10, twigs = distant ? 5 : 9;
+  for (let layer = 0; layer < layers; layer++) {
+    const h = layer / layers;
     for (let branch = 0; branch < 6; branch++) {
       if (noise(layer * 6 + branch, seed) < .13) continue;
       const a = branch / 6 * Math.PI * 2 + layer * 2.11 + noise(branch, seed);
       const radius = (.18 + Math.pow(1 - h, .75) * 2.2) * (.75 + noise(branch + layer * 6, seed + 1) * .4);
       const y = 1.65 + h * 5.8 + noise(branch + layer * 6, seed + 2) * .28;
-      for (let twig = 0; twig < 9; twig++) {
-        const t = .16 + twig / 11, fork = (twig % 2 ? -1 : 1) * (.16 + .28 * (1 - t));
+      for (let twig = 0; twig < twigs; twig++) {
+        const t = .16 + twig / (twigs + 2), fork = (twig % 2 ? -1 : 1) * (.16 + .28 * (1 - t));
         const direction = a + fork * 1.7;
-        const length = .42 + noise(twig + branch * 17, seed) * .4;
+        const length = (.42 + noise(twig + branch * 17, seed) * .4) * (distant ? 1.35 : 1);
         const root = new THREE.Vector3(Math.cos(a) * radius * t, y - t * .16, Math.sin(a) * radius * t);
         const along = new THREE.Vector3(Math.cos(direction) * .75, .50, Math.sin(direction) * .75).normalize().multiplyScalar(length);
         const across = new THREE.Vector3(-Math.sin(direction), 0, Math.cos(direction)).multiplyScalar(length * .25);

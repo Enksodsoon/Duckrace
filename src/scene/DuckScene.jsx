@@ -80,7 +80,7 @@ function Health({ onError, onMetrics, onSlow, quality, count }) {
     samples.current.time += delta; samples.current.frames++;
     if (samples.current.time >= 2) {
       const fps = samples.current.frames / samples.current.time;
-      onMetrics?.({ fps: Math.round(fps), drawCalls: gl.info.render.calls, triangles: gl.info.render.triangles, duckCount: count, quality, renderer: 'three-webgl', gpu });
+      onMetrics?.({ fps: Math.round(fps), sampleSeconds: samples.current.time, sampleFrames: samples.current.frames, focused: document.hasFocus(), drawCalls: gl.info.render.calls, triangles: gl.info.render.triangles, duckCount: count, quality, renderer: 'three-webgl', gpu });
       // Chromium can throttle an occluded window while visibilityState stays visible.
       // Report those frames truthfully, but never reduce quality because it lost focus.
       if (fps < 28 && document.hasFocus()) samples.current.slowIntervals++; else samples.current.slowIntervals = 0;
