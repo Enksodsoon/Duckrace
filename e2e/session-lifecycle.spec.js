@@ -38,8 +38,44 @@ test('rapid repeated start and a suspended clock interval save exactly one resul
     button.click();
   });
   await expect(page.getByLabel('Real 3D duck race track')).toHaveAttribute('data-racing', 'true');
+  await expect(page.locator('.scene-layer[data-phase="countdown"]')).toBeVisible();
 
   await page.clock.fastForward(10_000);
+  await expect(page.getByRole('heading', { name: 'Results', exact: true })).toBeVisible();
+  await expect(page.locator('.result-list li')).toHaveCount(2);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('duck-race-randomizer:v3')).history.length)).toBe(1);
+});
+
+test('race waits for delayed duck assets before countdown and saves one result', async ({ page }) => {
+  await openSetup(page);
+  await page.getByLabel('Race entries', { exact: true }).fill('Alpha\nBeta');
+  await page.getByLabel('Race duration', { exact: true }).selectOption('3');
+  await page.clock.install();
+
+  let releaseAsset;
+  const assetReleased = new Promise(resolve => { releaseAsset = resolve; });
+  let delayedUrl = '';
+  await page.route(/\/assets\/(?:releases\/[^/]+\/)?ducks\/.*\.glb(?:\?.*)?$/, async route => {
+    if (!delayedUrl) {
+      delayedUrl = route.request().url();
+      await assetReleased;
+    }
+    await route.continue();
+  });
+
+  await page.getByRole('button', { name: 'Start Race', exact: true }).click();
+  await expect(page.locator('.scene-layer[data-phase="preparing"]')).toBeVisible();
+  await expect.poll(() => delayedUrl).not.toBe('');
+
+  await page.clock.fastForward(30_000);
+  await expect(page.locator('.scene-layer[data-phase="preparing"]')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Results', exact: true })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('duck-race-randomizer:v3')).history.length)).toBe(0);
+
+  releaseAsset();
+  await expect(page.locator('.scene-layer[data-phase="countdown"]')).toBeVisible();
+  await page.clock.fastForward(10_000);
+
   await expect(page.getByRole('heading', { name: 'Results', exact: true })).toBeVisible();
   await expect(page.locator('.result-list li')).toHaveCount(2);
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('duck-race-randomizer:v3')).history.length)).toBe(1);
