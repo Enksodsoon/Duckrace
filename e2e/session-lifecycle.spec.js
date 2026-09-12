@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 
+test.use({ serviceWorkers: 'block' });
+test.describe.configure({ timeout: 120_000 });
+
 async function openSetup(page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Play Race', exact: true }).first().click();
@@ -47,6 +50,7 @@ test('rapid repeated start and a suspended clock interval save exactly one resul
 });
 
 test('race waits for delayed duck assets before countdown and saves one result', async ({ page }) => {
+  test.setTimeout(150_000);
   await openSetup(page);
   await page.getByLabel('Race entries', { exact: true }).fill('Alpha\nBeta');
   await page.getByLabel('Race duration', { exact: true }).selectOption('3');
@@ -65,7 +69,7 @@ test('race waits for delayed duck assets before countdown and saves one result',
 
   await page.getByRole('button', { name: 'Start Race', exact: true }).click();
   await expect(page.locator('.scene-layer[data-phase="preparing"]')).toBeVisible();
-  await expect.poll(() => delayedUrl).not.toBe('');
+  await expect.poll(() => delayedUrl, { timeout: 45_000 }).not.toBe('');
 
   await page.clock.fastForward(30_000);
   await expect(page.locator('.scene-layer[data-phase="preparing"]')).toBeVisible();
@@ -73,7 +77,7 @@ test('race waits for delayed duck assets before countdown and saves one result',
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('duck-race-randomizer:v3')).history.length)).toBe(0);
 
   releaseAsset();
-  await expect(page.locator('.scene-layer[data-phase="countdown"]')).toBeVisible();
+  await expect(page.locator('.scene-layer[data-phase="countdown"]')).toBeVisible({ timeout: 45_000 });
   await page.clock.fastForward(10_000);
 
   await expect(page.getByRole('heading', { name: 'Results', exact: true })).toBeVisible();

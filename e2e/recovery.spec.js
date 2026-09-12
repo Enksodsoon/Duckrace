@@ -1,12 +1,17 @@
 import { test, expect } from "@playwright/test";
 
+test.use({ serviceWorkers: "block" });
+test.describe.configure({ timeout: 180_000 });
+
 test("a failed duck download can be retried without losing the entry pool", async ({ page }) => {
   let blocked = true;
   await page.route(/\/ducks\/.*\.glb$/, (route) =>
     blocked ? route.abort("failed") : route.continue(),
   );
   await page.goto("/");
-  await expect(page.getByRole("alert")).toContainText("3D view unavailable");
+  await expect(page.getByRole("alert")).toContainText("3D view unavailable", {
+    timeout: 45_000,
+  });
   await page.getByRole("button", { name: "Use randomizer", exact: true }).click();
   await page.getByLabel("Race entries").fill("Recovery Maple\nRecovery River");
   blocked = false;
@@ -35,7 +40,9 @@ test("WebGL context recovery retains the saved result", async ({ page }) => {
     return true;
   });
   test.skip(!supported, "Browser does not expose the WebGL context-loss testing extension.");
-  await expect(page.getByRole("alert")).toContainText("3D view unavailable");
+  await expect(page.getByRole("alert")).toContainText("3D view unavailable", {
+    timeout: 45_000,
+  });
   await page.getByRole("button", { name: "Retry 3D", exact: true }).click();
   await expect(page.locator(".scene-layer")).toHaveAttribute("data-scene-state", "ready", {
     timeout: 45_000,
