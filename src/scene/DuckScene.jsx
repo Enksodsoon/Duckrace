@@ -38,7 +38,8 @@ function CameraRig({ screen, participants, progress, cameraMode, followId, reduc
         target.set(lane, .38, z + 2);
       } else {
         const half = participants.length < 12 ? .12 : .9;
-        desired.set(lane * half, mobile ? 5.5 : 3.8, z - (mobile ? 16 : 14));
+        const closePack = participants.length <= 6;
+        desired.set(lane * half, mobile ? 5.5 : closePack ? 2.5 : 3.8, z - (mobile ? 16 : closePack ? 10.5 : 14));
         target.set(lane * half, .35, z + 3);
       }
     } else if (screen === 'garage') {

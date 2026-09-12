@@ -8,7 +8,7 @@ export function noise(i, seed = 0) {
 }
 
 export const STAGES = {
-  'forest-lake': { sky: '#b9cfe0', fog: '#b1c3c5', water: '#183f44', shallows: '#507768', land: '#344b32', foliage: '#274733', sun: '#ffe0a5', sunPosition: [35, 28, 90], mountain: '#496052', snow: true, pine: true, density: 1 },
+  'forest-lake': { sky: '#bdd1cd', fog: '#cbcbb9', water: '#173d3c', shallows: '#4b7959', land: '#39642b', foliage: '#274733', sun: '#ffce85', sunPosition: [46, 13, 90], mountain: '#3b4c52', snow: true, pine: true, density: 1 },
   'mountain-river': { sky: '#bbd6e8', fog: '#bfd0d5', water: '#245d69', shallows: '#679b98', land: '#6d7360', foliage: '#354c3c', sun: '#fff7e7', sunPosition: [-35, 60, 30], mountain: '#667d91', snow: true, pine: true, density: .8 },
   'lotus-pond': { sky: '#c9d9ca', fog: '#bdcabb', water: '#294a3b', shallows: '#799067', land: '#697449', foliage: '#45663d', sun: '#ffefd1', sunPosition: [40, 35, 40], mountain: '#7e9283', snow: false, pine: false, density: .7 },
   'sunset-marsh': { sky: '#e6bd9c', fog: '#bca798', water: '#514d49', shallows: '#97836c', land: '#7d714c', foliage: '#68613b', sun: '#ffd198', sunPosition: [-25, 10, 90], mountain: '#897e84', snow: false, pine: false, density: .45 },
@@ -63,11 +63,25 @@ export function makeMountain(seed, config, distant = false) {
     const ridges = Math.pow(Math.abs(Math.sin(wx * .024 + seed)), 2) * 36 + Math.pow(Math.abs(Math.sin(wx * .067 + 2)), 3) * 20;
     const envelope = Math.sin(z / rows * Math.PI);
     const edge = Math.pow(Math.sin(x / cols * Math.PI), .7);
-    const h = 4 + (ridges + 5 + noise(x + z * 139, seed) * 5) * envelope * edge * (distant ? 1.25 : .7);
+    let alpine = 0;
+    for (let peak = 0; peak < 7; peak++) {
+      const centerX = -110 + peak * 35 + (noise(peak, seed) - .5) * 17;
+      const centerZ = 34 + noise(peak, seed + 1) * 32;
+      const flank = Math.abs((wx - centerX) / (23 + noise(peak, seed + 2) * 20));
+      const depthFlank = Math.abs((wz - centerZ) / (27 + noise(peak, seed + 3) * 20));
+      const crest = Math.max(0, 1 - Math.pow(flank, .83) - depthFlank * .7);
+      alpine = Math.max(alpine, crest * (52 + noise(peak, seed + 4) * 36));
+    }
+    // Interlocking, asymmetric crests and diagonal gullies replace round sine-wave cones.
+    const gullies = Math.abs(Math.sin(wx * .21 + wz * .09 + seed)) * Math.sin(wx * .48 - wz * .17) * 3.2;
+    const h = config.pine
+      ? 2 + (alpine + ridges * .17 + gullies * Math.min(1, alpine / 20)) * Math.pow(envelope, .4) * edge * (distant ? 1.08 : .85)
+      : 4 + (ridges + 5 + noise(x + z * 139, seed) * 5) * envelope * edge * (distant ? 1.25 : .7);
     positions.push(wx, h, wz);
     uvs.push(wx / 18, wz / 18 + h / 18);
-    const isSnow = config.snow && h > (distant ? 52 : 39) + noise(x + z * 39) * 7;
-    const color = (isSnow ? snow : stone).clone().multiplyScalar(.72 + noise(x + z * 32, 7) * .4);
+    const snowline = (distant ? 33 : 28) + Math.sin(wx * .11 + wz * .07) * 4 + noise(x + z * 39) * 3;
+    const snowCover = config.snow ? THREE.MathUtils.smoothstep(h, snowline, snowline + 7) : 0;
+    const color = stone.clone().lerp(snow, snowCover).multiplyScalar(.78 + noise(x + z * 32, 7) * .22);
     colors.push(color.r, color.g, color.b);
   }
   for (let z = 0; z < rows; z++) for (let x = 0; x < cols; x++) {
@@ -80,6 +94,29 @@ export function makeMountain(seed, config, distant = false) {
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   g.setIndex(indices); g.computeVertexNormals();
   return g;
+}
+
+export function makeGrassTuftGeometry() {
+  const positions = [], colors = [], indices = [];
+  for (let blade = 0; blade < 7; blade++) {
+    const angle = blade * 2.4, height = .28 + noise(blade, 47) * .35;
+    const x = Math.cos(angle) * .16, z = Math.sin(angle) * .16;
+    const sideways = new THREE.Vector3(Math.cos(angle + .8), 0, Math.sin(angle + .8));
+    const start = positions.length / 3;
+    for (let step = 0; step < 3; step++) {
+      const t = step / 2, halfWidth = .035 * (1 - t) + .002;
+      for (const side of [-1, 1]) {
+        positions.push(x + Math.cos(angle) * t * t * .19 + sideways.x * halfWidth * side, t * height, z + Math.sin(angle) * t * t * .19 + sideways.z * halfWidth * side);
+        const color = new THREE.Color('#284c21').lerp(new THREE.Color('#9ca857'), t);
+        colors.push(color.r, color.g, color.b);
+      }
+    }
+    for (let segment = 0; segment < 2; segment++) { const a = start + segment * 2; indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices); geometry.computeVertexNormals(); return geometry;
 }
 
 export function makeBarkTexture() {

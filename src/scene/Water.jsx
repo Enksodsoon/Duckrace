@@ -19,7 +19,7 @@ const vertex = `
   }
 `;
 const fragment = `
-  uniform float uTime;
+  uniform float uTime, uGolden;
   uniform vec3 uDeep, uShallow, uSky, uSun, uSunDirection;
   uniform sampler2D uEnvironment;
   varying vec3 vWorld;
@@ -51,6 +51,8 @@ const fragment = `
     float fresnel = .035 + .965 * pow(1. - max(dot(view,normal), 0.), 5.);
     vec2 skyUv = vec2(atan(reflectDirection.z, reflectDirection.x) / 6.2831853 + .5 + 1.2 / 6.2831853, asin(clamp(reflectDirection.y, -1., 1.)) / 3.14159265 + .5);
     vec3 reflectedSky = texture2D(uEnvironment, skyUv).rgb * .8;
+    reflectedSky *= mix(vec3(1.), vec3(1.08, 1., .82), uGolden);
+    reflectedSky = mix(reflectedSky, uSun * .72, uGolden * .22 * pow(1. - clamp(reflectDirection.y, 0., 1.), 3.));
     // Analytic distant treeline and mountain silhouettes in the distorted reflection.
     float horizon = sin(reflectDirection.x * 17.) * .035 + sin(reflectDirection.x * 43.) * .018;
     float mountain = sin(reflectDirection.x * 9.) * .07 + .10;
@@ -74,11 +76,11 @@ export default function Water({ config, stage, reducedMotion, low, medium }) {
   const environment = useEnvironment({ files: skyAssetUrl(stage) });
   const defines = useMemo(() => low ? { LOW_QUALITY: '' } : {}, [low]);
   const uniforms = useMemo(() => ({
-    uTime: { value: 0 }, uDeep: { value: new THREE.Color(config.water) },
+    uTime: { value: 0 }, uGolden: { value: stage === 'forest-lake' ? 1 : 0 }, uDeep: { value: new THREE.Color(config.water) },
     uShallow: { value: new THREE.Color(config.shallows) }, uSky: { value: new THREE.Color(config.sky) },
     uSun: { value: new THREE.Color(config.sun) }, uSunDirection: { value: new THREE.Vector3(...config.sunPosition).normalize() },
     uEnvironment: { value: environment },
-  }), [config, environment]);
+  }), [config, stage, environment]);
   useFrame((state) => { if (material.current && !reducedMotion) material.current.uniforms.uTime.value = state.clock.elapsedTime; });
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.025, 40]} receiveShadow>
     <planeGeometry args={[210, 390, low ? 50 : medium ? 80 : 110, low ? 100 : medium ? 140 : 180]} />

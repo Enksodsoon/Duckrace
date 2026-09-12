@@ -144,7 +144,7 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
       const sign = side ? 1 : -1, start = positions.length / 3;
       for (let j = 0; j <= 18; j++) {
         const t = j / 18, width = .2 + t * .75;
-        positions.push(sign * width, 0, -t * 3.5, sign * (width + .08 + t * .3), 0, -t * 3.5);
+        positions.push(sign * width, 0, -t * 4.3, sign * (width + .13 + t * .35), 0, -t * 4.3);
         uvs.push(t, 0, t, 1);
         if (j < 18) { const a = start + j * 2; indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
       }
@@ -167,7 +167,7 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
   return <instancedMesh ref={ref} args={[geometry, undefined, count]} frustumCulled={false}>
     <shaderMaterial ref={shader} transparent depthWrite={false} side={THREE.DoubleSide} uniforms={uniforms}
       vertexShader={`varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.); }`}
-      fragmentShader={`uniform float time,moving; varying vec2 vUv; void main(){ float foam=sin(vUv.x*85.-time*5.)*.35+.55; float edge=sin(vUv.y*3.14159); float fade=pow(1.-vUv.x,1.5); gl_FragColor=vec4(.82,.9,.87,foam*edge*fade*moving*.7); }`} />
+      fragmentShader={`uniform float time,moving; varying vec2 vUv; void main(){ float foam=.58+sin(vUv.x*49.-time*4.)*.16+sin(vUv.x*117.+time)*.13; float edge=sin(vUv.y*3.14159); float fade=pow(1.-vUv.x,1.35); gl_FragColor=vec4(.88,.93,.87,foam*edge*fade*moving*.82); }`} />
   </instancedMesh>;
 }
 
