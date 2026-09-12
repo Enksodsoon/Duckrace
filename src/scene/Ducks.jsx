@@ -99,26 +99,34 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
   const refs = useRef([]);
   const state = useRef(progress);
   useLayoutEffect(() => { state.current = progress; }, [progress]);
-  const scratch = useMemo(() => ({ matrix: new THREE.Matrix4(), out: new THREE.Matrix4(), quaternion: new THREE.Quaternion(), euler: new THREE.Euler(), position: new THREE.Vector3(), scale: new THREE.Vector3() }), []);
-  useFrame(({ clock }, delta) => {
+  const scratch = useMemo(() => ({ matrix: new THREE.Matrix4(), out: new THREE.Matrix4(), quaternion: new THREE.Quaternion(), euler: new THREE.Euler(), position: new THREE.Vector3(), scale: new THREE.Vector3(), viewProjection: new THREE.Matrix4(), frustum: new THREE.Frustum(), bounds: new THREE.Sphere(new THREE.Vector3(), 1.4) }), []);
+  useFrame(({ clock, camera }, delta) => {
     const values = state.current;
     const time = reducedMotion ? 0 : clock.elapsedTime;
+    scratch.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    scratch.frustum.setFromProjectionMatrix(scratch.viewProjection);
     animated.rigs.forEach(rig => {
       if (isRacing && !reducedMotion) rig.mixer.update(Math.min(delta, .05));
       rig.scene.updateMatrixWorld(true);
       rig.skeletons.forEach(skeleton => skeleton.update());
     });
     batches.forEach((mesh, meshIndex) => {
-      mesh.entries.forEach((row, instanceIndex) => {
+      let visibleCount = 0;
+      mesh.entries.forEach(row => {
         const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
         scratch.position.set(laneX(row.index, row.total), y, raceZ(values[row.index]));
+        scratch.bounds.center.copy(scratch.position); scratch.bounds.center.y += .4;
+        // Bounds include the full wing span and tallest cosmetic. Off-screen
+        // racers retain their simulation positions and re-enter without LOD swaps.
+        if (!scratch.frustum.intersectsSphere(scratch.bounds)) return;
         scratch.euler.set(0, Math.sin(time * 1.2 + row.index) * (isRacing ? .025 : .07), reducedMotion ? 0 : Math.sin(time * 1.7 + row.index) * .015);
         scratch.quaternion.setFromEuler(scratch.euler);
         scratch.scale.setScalar(.53);
         scratch.matrix.compose(scratch.position, scratch.quaternion, scratch.scale);
         scratch.out.multiplyMatrices(scratch.matrix, mesh.transform);
-        refs.current[meshIndex]?.setMatrixAt(instanceIndex, scratch.out);
+        refs.current[meshIndex]?.setMatrixAt(visibleCount++, scratch.out);
       });
+      if (refs.current[meshIndex]) refs.current[meshIndex].count = visibleCount;
     });
     refs.current.forEach(mesh => { if (mesh) mesh.instanceMatrix.needsUpdate = true; });
   });

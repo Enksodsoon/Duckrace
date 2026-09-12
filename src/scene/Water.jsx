@@ -37,8 +37,15 @@ const fragment = `
   }
   void main() {
     vec2 p = vWorld.xz;
-    float e = .035;
-    vec3 normal = normalize(vec3((waves(p-vec2(e,0))-waves(p+vec2(e,0))) * 1.1, 1., (waves(p-vec2(0,e))-waves(p+vec2(0,e))) * 1.1));
+    #ifdef LOW_QUALITY
+      // Analytic derivatives keep the same three wave scales with three cosine
+      // evaluations instead of four finite-difference noise/wave samples.
+      vec3 waveCos = cos(vec3(p.x*1.7+p.y*1.1+uTime*1.2, p.y*3.5-p.x*.8+uTime*.78, p.x*9.1+p.y*6.2-uTime*1.6));
+      vec3 normal = normalize(vec3(-dot(waveCos,vec3(.544,-.136,.4095))*.077, 1., -dot(waveCos,vec3(.352,.595,.279))*.077));
+    #else
+      float e = .035;
+      vec3 normal = normalize(vec3((waves(p-vec2(e,0))-waves(p+vec2(e,0))) * 1.1, 1., (waves(p-vec2(0,e))-waves(p+vec2(0,e))) * 1.1));
+    #endif
     vec3 view = normalize(cameraPosition-vWorld);
     vec3 reflectDirection = reflect(-view, normal);
     float fresnel = .035 + .965 * pow(1. - max(dot(view,normal), 0.), 5.);
@@ -65,6 +72,7 @@ const fragment = `
 export default function Water({ config, stage, reducedMotion, low, medium }) {
   const material = useRef();
   const environment = useEnvironment({ files: skyAssetUrl(stage) });
+  const defines = useMemo(() => low ? { LOW_QUALITY: '' } : {}, [low]);
   const uniforms = useMemo(() => ({
     uTime: { value: 0 }, uDeep: { value: new THREE.Color(config.water) },
     uShallow: { value: new THREE.Color(config.shallows) }, uSky: { value: new THREE.Color(config.sky) },
@@ -74,6 +82,6 @@ export default function Water({ config, stage, reducedMotion, low, medium }) {
   useFrame((state) => { if (material.current && !reducedMotion) material.current.uniforms.uTime.value = state.clock.elapsedTime; });
   return <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -.025, 40]} receiveShadow>
     <planeGeometry args={[210, 390, low ? 50 : medium ? 80 : 110, low ? 100 : medium ? 140 : 180]} />
-    <shaderMaterial ref={material} vertexShader={vertex} fragmentShader={fragment} uniforms={uniforms} />
+    <shaderMaterial ref={material} vertexShader={vertex} fragmentShader={fragment} defines={defines} uniforms={uniforms} />
   </mesh>;
 }
