@@ -7,7 +7,7 @@ import { bankX, bankHeight, makeBank, makeBarkTexture, makeMountain, makeGrassTu
 import Water from './Water';
 import { assetUrl, skyAssetUrl } from './assetUrl';
 
-function InstanceCell({ geometry, material, entries, shadow = false }) {
+function InstanceCell({ geometry, material, entries, shadow = false, receiveShadow = true }) {
   const ref = useRef();
   useLayoutEffect(() => {
     const matrix = new THREE.Matrix4(), quaternion = new THREE.Quaternion(), vector = new THREE.Vector3();
@@ -21,7 +21,7 @@ function InstanceCell({ geometry, material, entries, shadow = false }) {
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
     ref.current.computeBoundingSphere();
   }, [entries]);
-  return <instancedMesh ref={ref} args={[geometry, material, entries.length]} castShadow={shadow} receiveShadow />;
+  return <instancedMesh ref={ref} args={[geometry, material, entries.length]} castShadow={shadow} receiveShadow={receiveShadow} />;
 }
 
 function Instances(props) {
@@ -165,8 +165,8 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
     <mesh position={[-110, -4, stage === 'forest-lake' ? 195 : 168]} scale={[.65, stage === 'forest-lake' ? .45 : config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <mesh position={[110, -4, stage === 'forest-lake' ? 225 : 196]} scale={[-.65, stage === 'forest-lake' ? .5 : config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <Instances geometry={g.trunk} material={m.trunk} entries={resources.trunks} shadow={!low} />
-    {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} />}
-    {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} />}
+    {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} receiveShadow={false} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} receiveShadow={false} />}
+    {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} receiveShadow={false} />}
     <Instances geometry={g.rock} material={m.rock} entries={resources.rocks} shadow={!low} />
     <Instances geometry={g.reed} material={m.reed} entries={resources.reeds} />
     {resources.grasses.length > 0 && <><Instances geometry={g.grass} material={m.grass} entries={resources.grasses} /><Instances geometry={g.leaf} material={m.shrub} entries={resources.shrubs} /></>}

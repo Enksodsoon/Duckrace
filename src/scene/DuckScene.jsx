@@ -84,7 +84,8 @@ function Health({ onError, onMetrics, onSlow, quality, count }) {
       onMetrics?.({ fps: Math.round(fps), sampleSeconds: samples.current.time, sampleFrames: samples.current.frames, focused: document.hasFocus(), drawCalls: gl.info.render.calls, triangles: gl.info.render.triangles, duckCount: count, quality, renderer: 'three-webgl', gpu });
       // Chromium can throttle an occluded window while visibilityState stays visible.
       // Report those frames truthfully, but never reduce quality because it lost focus.
-      if (fps < 28 && document.hasFocus()) samples.current.slowIntervals++; else samples.current.slowIntervals = 0;
+      const target = gl.domElement.clientWidth < 720 ? 27 : 48;
+      if (fps < target && document.hasFocus()) samples.current.slowIntervals++; else samples.current.slowIntervals = 0;
       if (samples.current.slowIntervals >= 2) { onSlow(); samples.current.slowIntervals = 0; }
       samples.current.time = 0; samples.current.frames = 0;
     }
@@ -148,8 +149,12 @@ export default function DuckScene({ screen = 'home', stage = 'forest-lake', part
   const config = STAGES[stage] || STAGES['forest-lake'];
   const width = screen === 'race' ? Math.max(14, Math.abs(laneX(0, participants.length)) + 4.5) : 26;
   const handleSlow = useCallback(() => {
-    if (quality === 'auto') setAdaptiveQuality(current => current === 'high' ? 'medium' : 'low');
-  }, [quality]);
+    if (quality !== 'auto') return;
+    // Preserve materials, reflections and foliage first. Respond to visible
+    // desktop stutter before the old 28 FPS threshold was reached.
+    if (renderDpr > .86) setRenderDpr(Math.max(.85, renderDpr * .9));
+    else setAdaptiveQuality(current => current === 'high' ? 'medium' : 'low');
+  }, [quality, renderDpr]);
   const readyRef = useRef(onReady);
   useEffect(() => { readyRef.current = onReady; }, [onReady]);
   const handleReady = useCallback(info => readyRef.current?.(info), []);
