@@ -293,6 +293,16 @@ main {
   color: #dfe5d8;
   margin-top: 7px;
 }
+.stage-screen > .page-heading,
+.garage-screen > .page-heading,
+.results-screen > .page-heading {
+  width: fit-content;
+  max-width: 100%;
+  padding: 14px 18px;
+  background: rgba(17, 25, 23, 0.9);
+  border-left: 2px solid var(--gold);
+  border-radius: 4px;
+}
 .selected {
   border-color: #f1d273 !important;
   box-shadow:
