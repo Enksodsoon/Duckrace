@@ -5,7 +5,9 @@ export default defineConfig({
   // Each test owns a WebGL scene; avoid competing GPU/software-renderer contexts.
   workers: 1,
   reporter: 'list',
-  timeout: 60_000,
+  // Hosted Linux runners rasterize WebGL in software; full GPU timings are
+  // qualified separately by the opt-in real-time performance suite.
+  timeout: process.env.CI ? 180_000 : 60_000,
   expect: { timeout: 10_000 },
   use: {
     baseURL: 'http://localhost:4173',

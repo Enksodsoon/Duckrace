@@ -35,7 +35,7 @@ test('same seed repeats results with different cosmetic and stage choices', asyn
 test('timed replay does not draw, eliminate or add history again', async ({ page }) => {
   await setup(page); await entries(page).fill('Ant\nBee\nCat'); await page.getByLabel('Race duration').selectOption('3'); await page.getByLabel('Elimination rule').selectOption('first'); await page.getByRole('button', { name: 'Instant Pick', exact: true }).click();
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('duck-race-randomizer:v3')));
-  await page.getByRole('button', { name: 'Replay', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Results', exact: true })).toBeVisible({ timeout: 15000 });
+  await page.getByRole('button', { name: 'Replay', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Results', exact: true })).toBeVisible({ timeout: process.env.CI ? 120_000 : 15000 });
   const after = await page.evaluate(() => JSON.parse(localStorage.getItem('duck-race-randomizer:v3'))); expect(after.history).toEqual(before.history); expect(after.settings.entriesText).toBe(before.settings.entriesText);
 });
 test('cancel countdown produces no result and preserves entries', async ({ page }) => {
