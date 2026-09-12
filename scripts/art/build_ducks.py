@@ -1,11 +1,13 @@
 """Original Duck Race assets. Run with Blender 4.5 --background --python this_file.
 
-All topology, UVs, plumage maps, rig and actions are authored here. No asset inputs.
+Original topology, UVs, rig and actions are authored here. Retained original
+imagegen color maps are mapped and baked into PBR delivery textures by Blender.
 Blender axes: X right, -Y forward, Z up. glTF exporter converts to Y up/+Z forward.
 """
 import bpy, math, random, json, os, bmesh
 from pathlib import Path
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +25,7 @@ BREEDS = {
 }
 
 def atlas(name, colors, lod=False):
+    breed=name
     if lod:name += '_lod'
     # Original UV feather atlas: softly scalloped covert vanes, fine barbs and rachis.
     n=512 if lod else 1024; cell=n//4
@@ -42,11 +45,15 @@ def atlas(name, colors, lod=False):
         for ch in range(3): arr[(k//4)*cell:(k//4+1)*cell,(k%4)*cell:(k%4+1)*cell,ch]=np.clip(c[ch]*shade,0,1)
     im=bpy.data.images.new(name+'_plumage',width=n,height=n)
     im.pixels.foreach_set(arr.ravel()); im.filepath_raw=str(SOURCE/(name+'_plumage.png')); im.file_format='PNG'; im.save(); im.pack()
+    if (SOURCE/'mallard-atlas-imagegen.png').exists():
+        im=bpy.data.images.load(str(SOURCE/'mallard-atlas-imagegen.png'),check_existing=False)
+        if lod:im.scale(512,512)
+        im.pixels[0];im.filepath_raw=str(SOURCE/(name+'_runtime_color.jpg'));im.file_format='JPEG';im.save();im.pack()
     mat=bpy.data.materials.new(name+'_feather_atlas'); mat.use_nodes=True
-    bs=mat.node_tree.nodes.get('Principled BSDF'); bs.inputs['Roughness'].default_value=.55
+    bs=mat.node_tree.nodes.get('Principled BSDF'); bs.inputs['Roughness'].default_value=.72
     tex=mat.node_tree.nodes.new('ShaderNodeTexImage'); tex.image=im; mat.node_tree.links.new(tex.outputs['Color'],bs.inputs['Base Color'])
     # Bump for Blender preview; exported topology + atlas carries browser feather detail.
-    bump=mat.node_tree.nodes.new('ShaderNodeBump'); bump.inputs['Strength'].default_value=.13; bump.inputs['Distance'].default_value=.006
+    bump=mat.node_tree.nodes.new('ShaderNodeBump'); bump.inputs['Strength'].default_value=.18; bump.inputs['Distance'].default_value=.003
     mat.node_tree.links.new(tex.outputs['Color'],bump.inputs['Height']); mat.node_tree.links.new(bump.outputs['Normal'],bs.inputs['Normal'])
     return mat
 
@@ -54,6 +61,22 @@ def simple(name,c,rough=.4,metal=0):
     m=bpy.data.materials.new(name); m.diffuse_color=(*c,1); m.use_nodes=True
     p=m.node_tree.nodes.get('Principled BSDF'); p.inputs['Base Color'].default_value=(*c,1); p.inputs['Roughness'].default_value=rough; p.inputs['Metallic'].default_value=metal
     return m
+
+def bake_bump_normal(mat,name,lod=False):
+    """Bake authored Blender bump into real tangent RGB; glTF cannot export Bump."""
+    n=512 if lod else 1024
+    im=bpy.data.images.new(name+'_baked_normal',n,n);im.colorspace_settings.name='Non-Color'
+    ns=mat.node_tree.nodes;lk=mat.node_tree.links
+    target=ns.new('ShaderNodeTexImage');target.image=im;ns.active=target
+    bpy.ops.object.select_all(action='DESELECT');bpy.ops.mesh.primitive_plane_add(size=1,location=(0,0,-10))
+    plane=bpy.context.object;plane.data.materials.append(mat)
+    scene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=1
+    bpy.ops.object.bake(type='NORMAL',normal_space='TANGENT',margin=0,use_clear=True)
+    bpy.data.objects.remove(plane,do_unlink=True)
+    im.filepath_raw=str(SOURCE/(name+'_baked_normal.png'));im.file_format='PNG';im.save();im.pack()
+    node=ns.new('ShaderNodeNormalMap');node.inputs['Strength'].default_value=.7
+    lk.new(target.outputs['Color'],node.inputs['Color']);lk.new(node.outputs['Normal'],ns.get('Principled BSDF').inputs['Normal'])
+    return im
 
 def mesh(name,verts,faces,mat,slot=0,bone='Body',uvs=None):
     me=bpy.data.meshes.new(name); me.from_pydata(verts,[],faces); me.update()
@@ -100,9 +123,9 @@ def feather(name,start,end,width,mat,slot,bone='Body',side=1,detail=5):
     if normal.z<0: normal=-normal
     vs=[];uv=[];fs=[]
     for k in range(detail+1):
-        t=k/detail; shape=math.sin(math.pi*(.06+.94*t))**.62 * (1-.33*t)
+        t=k/detail; shape=max(.007,math.sin(math.pi*(.015+.985*t))**.66 * (1-.20*t))
         for j in range(5):
-            f=(j-2)/2; p=a+axis*t+across*(width*shape*f*(1 if f<0 else .85))+normal*(width*.13*(1-f*f)*math.sin(math.pi*t))
+            f=(j-2)/2; p=a+axis*t+across*(width*shape*f*(1 if f<0 else .85))+normal*(width*.22*(1-f*f)*math.sin(math.pi*t))
             vs.append(tuple(p)); uv.append(((f+1)/2,t))
     for k in range(detail):
         for j in range(4):
@@ -112,6 +135,9 @@ def feather(name,start,end,width,mat,slot,bone='Body',side=1,detail=5):
 def sphere(name,loc,scale,mat,bone=None):
     bpy.ops.mesh.primitive_uv_sphere_add(segments=16,ring_count=8,location=loc); ob=bpy.context.object; ob.name=name; ob.scale=scale
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True); ob.data.materials.append(mat)
+    for layer in ob.data.uv_layers:
+        layer.name='PlumageUV'
+        for loop in layer.data:loop.uv=((.03+.94*loop.uv.x)/4,(.03+.94*loop.uv.y)/4)
     for p in ob.data.polygons:p.use_smooth=True
     if bone: ob.vertex_groups.new(name=bone).add(list(range(len(ob.data.vertices))),1,'REPLACE')
     return ob
@@ -120,8 +146,8 @@ def tube(name,coords,r,mat,bone=None):
     vs=[];fs=[]
     for i,c in enumerate(coords):
         tangent=Vector(coords[min(i+1,len(coords)-1)])-Vector(coords[max(0,i-1)])
-        tangent.normalize(); x=tangent.cross(Vector((0,0,1)))
-        if x.length<.01:x=Vector((1,0,0))
+        tangent.normalize(); x=Vector((1,0,0));x-=tangent*x.dot(tangent)
+        if x.length<.01:x=Vector((0,1,0))-tangent*tangent.y
         x.normalize(); y=tangent.cross(x)
         for j in range(8):vs.append(tuple(Vector(c)+r*(x*math.cos(j*math.tau/8)+y*math.sin(j*math.tau/8))))
     for i in range(len(coords)-1):
@@ -156,12 +182,21 @@ def body_plumage(body,breed,stretch,lod=False):
     gy,gx=np.gradient(edge*.22+barbs*.08+grain*.10);normal=np.stack([-gx*5,-gy*5,np.ones_like(gx)],axis=-1);normal/=np.linalg.norm(normal,axis=-1,keepdims=True)
     narr=np.ones((n,n,4),dtype=np.float32);narr[:,:,:3]=normal*.5+.5
     ni=bpy.data.images.new(tag+'_body_normal',n,n);ni.colorspace_settings.name='Non-Color';ni.pixels.foreach_set(narr.ravel());ni.filepath_raw=str(SOURCE/(tag+'_body_normal.png'));ni.file_format='PNG';ni.save();ni.pack()
-    m=simple(breed+'_body_feathers',(.5,.5,.5),.63);ns=m.node_tree.nodes;lk=m.node_tree.links;p=ns.get('Principled BSDF')
+    generated=(SOURCE/(breed+'-body-imagegen.png')).exists()
+    if generated:
+        im=bpy.data.images.load(str(SOURCE/(breed+'-body-imagegen.png')),check_existing=False)
+        if lod:im.scale(512,512)
+        im.pixels[0];im.filepath_raw=str(SOURCE/(tag+'_body_runtime_color.jpg'));im.file_format='JPEG';im.save();im.pack()
+    m=simple(breed+'_body_feathers',(.5,.5,.5),.79);ns=m.node_tree.nodes;lk=m.node_tree.links;p=ns.get('Principled BSDF')
     tex=ns.new('ShaderNodeTexImage');tex.image=im;lk.new(tex.outputs['Color'],p.inputs['Base Color'])
-    nt=ns.new('ShaderNodeTexImage');nt.image=ni;normalnode=ns.new('ShaderNodeNormalMap');normalnode.inputs['Strength'].default_value=.17;lk.new(nt.outputs['Color'],normalnode.inputs['Color']);lk.new(normalnode.outputs['Normal'],p.inputs['Normal'])
+    if generated:
+        bump=ns.new('ShaderNodeBump');bump.inputs['Strength'].default_value=.23;bump.inputs['Distance'].default_value=.004;lk.new(tex.outputs['Color'],bump.inputs['Height']);lk.new(bump.outputs['Normal'],p.inputs['Normal'])
+    else:
+        nt=ns.new('ShaderNodeTexImage');nt.image=ni;normalnode=ns.new('ShaderNodeNormalMap');normalnode.inputs['Strength'].default_value=.17;lk.new(nt.outputs['Color'],normalnode.inputs['Color']);lk.new(normalnode.outputs['Normal'],p.inputs['Normal'])
     body.data.materials.clear();body.data.materials.append(m)
     for li in range(len(body.data.loops)):
         vi=body.data.loops[li].vertex_index;body.data.uv_layers[0].data[li].uv=((vi%seg)/(seg-1),(vi//seg)/(rings-1))
+    if generated:bake_bump_normal(m,tag+'_body',lod)
 
 def rigged(ob,rig):
     mod=ob.modifiers.new('Duck skeleton','ARMATURE'); mod.object=rig; ob.parent=rig
@@ -180,33 +215,65 @@ def join(obs,name):
     for o in obs:o.select_set(True)
     bpy.context.view_layer.objects.active=obs[0];bpy.ops.object.join();o=bpy.context.object;o.name=name;return o
 
-def cosmetics(rig,hy,hz,mat):
+def cosmetics(rig,hy,hz,mat,surface):
     gold=simple('brushed brass',(.65,.39,.10),.28,.8); red=simple('garnet silk',(.29,.018,.02),.55); dark=simple('hat navy ribbon',(.015,.024,.035),.8); straw=simple('woven straw',(.46,.30,.13),.85)
+    if (SOURCE/'cosmetics-atlas-imagegen.png').exists():
+        ci=bpy.data.images.load(str(SOURCE/'cosmetics-atlas-imagegen.png'),check_existing=False);ci.pixels[0];ci.filepath_raw=str(SOURCE/'cosmetics_runtime_color.jpg');ci.file_format='JPEG';ci.save();ci.pack()
+        for material,slot in [(straw,0),(red,1),(dark,2),(gold,3)]:
+            material['atlasTile']=slot;node=material.node_tree.nodes.new('ShaderNodeTexImage');node.image=ci;material.node_tree.links.new(node.outputs['Color'],material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
     sets={k:[] for k in ['hat','glasses','bow','medal','charm','badge']}
-    # Hat brim and pinched crown use cross-section topology.
-    for name,pts in [('brim',[(hy,hz+.2,.32,.018),(hy,hz+.23,.32,.018)]),('crown',[(hy,hz+.23,.195,.13),(hy,hz+.44,.15,.10),(hy,hz+.45,.01,.01)])]:
-        # Vertical rings in XY, centered at head, with oval brim.
-        vs=[];fs=[]
-        for _,z,w,d in pts:
-            for j in range(32):ang=j*math.tau/32;vs.append((w*math.cos(ang),hy+(d if name=='crown' else .29)*math.sin(ang),z))
-        for k in range(len(pts)-1):
-            for j in range(32):a=k*32+j;b=k*32+(j+1)%32;fs.append((a,b,b+32,a+32))
-        sets['hat'].append(mesh(name,vs,fs,straw,bone='Head'))
+    # Seat the brim into the current crown surface, rather than a stale head offset.
+    crown_hit=surface.ray_cast(Vector((0,hy,3)),Vector((0,0,-1)))
+    hat_z=(crown_hit[0].z if crown_hit[0] else hz+.16)-.055
+    def oval_rings(name,rings,material):
+        vs=[];fs=[];uv=[];segs=48
+        for k,(rx,ry,z) in enumerate(rings):
+            for j in range(segs+1):
+                a=j*math.tau/segs;lift=.016*math.sin(a)**2 if name=='curved brim' else 0
+                vs.append((rx*math.cos(a),hy+ry*math.sin(a),z+lift));uv.append((j/segs,k/(len(rings)-1)))
+        for k in range(len(rings)-1):
+            for j in range(segs):a=k*(segs+1)+j;fs.append((a,a+1,a+segs+2,a+segs+1))
+        o=mesh(name,vs,fs,material,bone='Head',uvs=uv);sets['hat'].append(o)
+    oval_rings('curved brim',[(.17,.145,hat_z),(.235,.22,hat_z-.003),(.315,.275,hat_z+.006),(.315,.275,hat_z-.006),(.17,.145,hat_z-.012)],straw)
+    oval_rings('pinched crown',[(.181,.15,hat_z),(.184,.154,hat_z+.045),(.174,.143,hat_z+.15),(.151,.123,hat_z+.195),(.10,.079,hat_z+.188),(.003,.003,hat_z+.17)],straw)
+    oval_rings('visible navy hatband',[(.188,.158,hat_z+.025),(.184,.153,hat_z+.074)],dark)
+    sets['hat'].append(sphere('hat brass pin',(0,hy-.163,hat_z+.049),(.024,.005,.017),gold,'Head'))
+    lenses=simple('subtle smoke glass',(.05,.09,.10),.09,.05);lenses.node_tree.nodes.get('Principled BSDF').inputs['Alpha'].default_value=.22;lenses.surface_render_method='DITHERED'
     for s in [-1,1]:
-        coords=[(s*.13+.115*math.cos(t*math.tau/24),hy-.205,hz+.02+.09*math.sin(t*math.tau/24)) for t in range(25)]
+        coords=[(s*.115+.095*math.cos(t*math.tau/24),hy-.285,hz+.017+.070*math.sin(t*math.tau/24)) for t in range(25)]
         sets['glasses'].append(tube('aviator frame',coords,.010,gold,'Head'))
-        sets['glasses'].append(tube('temple',[(s*.245,hy-.205,hz+.055),(s*.26,hy+.12,hz+.065)],.009,gold,'Head'))
-        a=(s*.018,-.665,.53);b=(s*.18,-.665,.53)
-        sets['bow'].append(mesh('silk bow',[(s*.02,-.7,.53),(s*.19,-.67,.62),(s*.20,-.67,.44),(s*.07,-.73,.53)],[(0,1,3),(0,3,2),(1,2,3)],red,bone='Neck'))
-    sets['glasses'].append(tube('bridge',[(-.025,hy-.205,hz+.06),(.025,hy-.205,hz+.06)],.009,gold,'Head'))
+        sets['glasses'].append(mesh('smoke lens',[(s*.115,hy-.285,hz+.017)]+coords[:-1],[(0,j+1,(j+1)%24+1) for j in range(24)],lenses,bone='Head'))
+        sets['glasses'].append(tube('temple',[(s*.212,hy-.285,hz+.045),(s*.218,hy-.10,hz+.045),(s*.20,hy+.085,hz+.045)],.007,gold,'Head'))
+        bv=[];bf=[];bu=[]
+        for k in range(7):
+            t=k/6
+            for j in range(5):
+                f=(j-2)/2;bv.append((s*(.02+.17*t),-.71-.03*math.sin(math.pi*t)*(1-f*f),.53+f*(.033+.056*t)));bu.append((t,(f+1)/2))
+        for k in range(6):
+            for j in range(4):a=k*5+j;bf.append((a,a+1,a+6,a+5))
+        bow=mesh('curved silk bow',bv,bf,red,bone='Neck',uvs=bu);sets['bow'].append(bow)
+        bpy.context.view_layer.objects.active=bow;bow.select_set(True);mod=bow.modifiers.new('Silk thickness','SOLIDIFY');mod.thickness=.003;bpy.ops.object.modifier_apply(modifier=mod.name);bow.select_set(False)
+    sets['glasses'].append(tube('bridge',[(-.024,hy-.285,hz+.055),(.024,hy-.285,hz+.055)],.007,gold,'Head'))
     sets['bow'].append(sphere('bow knot',(0,-.71,.53),(.035,.025,.036),red,'Neck'))
     for s in [-1,1]:sets['medal'].append(tube('ribbon',[(s*.12,-.62,.59),(0,-.69,.34)],.018,dark,'Neck'))
     # Coin and embossed duck silhouette.
     sets['medal'].append(sphere('medallion',(0,-.705,.30),(.087,.015,.087),gold,'Neck'))
+    clover=simple('green enamel clover',(.035,.29,.018),.28,.20)
     for s in [-1,1]:
-        for t in [-1,1]: sets['charm'].append(sphere('clover leaf',(s*.035,-.705,.33+t*.03),(.036,.012,.032),mat,'Neck'))
+        for t in [-1,1]: sets['charm'].append(sphere('clover leaf',(s*.035,-.705,.33+t*.03),(.036,.012,.032),clover,'Neck'))
     sets['charm'].append(tube('chain',[(0,-.67,.55),(0,-.705,.39)],.006,gold,'Neck'))
     sets['badge'].append(mesh('shield',[(-.075,-.705,.4),(.075,-.705,.4),(.065,-.73,.27),(0,-.74,.22),(-.065,-.73,.27)],[(0,1,2,3,4)],gold,bone='Neck'))
+    # UV remap into the exact quadrant of the original generated material atlas.
+    for objects in sets.values():
+        for ob in objects:
+            material=ob.data.materials[0]
+            if 'atlasTile' not in material:continue
+            slot=material['atlasTile']
+            for layer in ob.data.uv_layers:
+                for loop in layer.data:
+                    u,v=loop.uv
+                    if layer.name=='PlumageUV':u=(u*4-.03)/.94;v=(v*4-.03)/.94
+                    loop.uv=(slot%2*.5+.015+.47*u,slot//2*.5+.015+.47*v)
     for k,obs in sets.items():
         o=join(obs,'Accessory_'+k); o['cosmetic']=k; rigged(o,rig)
     return [bpy.data.objects['Accessory_'+k] for k in sets]
@@ -232,11 +299,12 @@ def actions(rig):
 def build(breed,lod=False):
     bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
     bpy.ops.outliner.orphans_purge(do_recursive=True)
-    mat=atlas(breed,BREEDS[breed],lod); eye=simple('wet black cornea',(.006,.004,.002),.095); iris=simple('warm iris',(.14,.085,.025),.26)
+    mat=atlas(breed,BREEDS[breed],lod); eye=simple('wet black cornea',(.004,.002,.001),.22); iris=simple('warm iris',(.045,.022,.005),.36)
+    bake_bump_normal(mat,breed+('_lod' if lod else '')+'_feathers',lod)
     runner=breed=='runner'; pekin=breed=='pekin'; mandarin=breed=='mandarin'
     stretch=.33 if runner else 0; hy=-.86; hz=1.04+stretch
     rig=make_rig(hy,hz); parts=[]
-    bodypts=[(.98,.26,.014,.018),(.80,.22,.20,.15),(.52,.19,.36,.27),(.12,.20,.425,.325),(-.20,.24,.40,.335),(-.43,.31,.285,.27),(-.50,.48,.175,.19),(-.53,.65+stretch*.5,.128,.145),(-.63,.86+stretch,.17,.17),(-.78,1.02+stretch,.21,.215),(-.95,1.00+stretch,.19,.17),(-1.065,.94+stretch,.12,.065)]
+    bodypts=[(.98,.26,.014,.018),(.80,.22,.20,.15),(.52,.19,.36,.27),(.12,.20,.425,.325),(-.20,.24,.40,.335),(-.43,.31,.285,.27),(-.50,.48,.175,.19),(-.53,.65+stretch*.5,.128,.145),(-.63,.86+stretch,.17,.17),(-.80,1.00+stretch,.195,.19),(-.96,.99+stretch,.18,.15),(-1.085,.97+stretch,.105,.045)]
     if pekin:bodypts=[(y,z,w*1.08,r*1.05) for y,z,w,r in bodypts]
     if runner:bodypts=[(y,z+.12*math.exp(-((y-.12)/.5)**2),w*(1-.23*math.exp(-((y-.12)/.5)**2)),r*(1-.12*math.exp(-((y-.12)/.5)**2))) for y,z,w,r in bodypts]
     body=loft('continuous body neck head',bodypts,mat,0,segments=20 if lod else 36,steps=2 if lod else 4)
@@ -245,21 +313,26 @@ def build(breed,lod=False):
     for v in body.data.vertices:
         neck=max(0,min(1,(v.co.z-.36)/.30)); head=max(0,min(1,(v.co.z-(.78+stretch*.5))/.20))
         body.vertex_groups['Body'].add([v.index],1-neck,'REPLACE');vgN.add([v.index],neck*(1-head),'REPLACE');vgH.add([v.index],neck*head,'REPLACE')
+    bm=bmesh.new();bm.from_mesh(body.data);bmesh.ops.remove_doubles(bm,verts=bm.verts,dist=.00001);bm.to_mesh(body.data);bm.free()
+    sub=body.modifiers.new('Smooth anatomical silhouette','SUBSURF');sub.levels=1;sub.render_levels=1
+    bpy.context.view_layer.objects.active=body;body.select_set(True);bpy.ops.object.modifier_apply(modifier=sub.name);body.select_set(False)
+    surface=BVHTree.FromPolygons([v.co for v in body.data.vertices],[p.vertices for p in body.data.polygons],all_triangles=False)
     parts.append(body)
     # Dorsal contour feathers and fully separate overlapping flight/coverts.
     for s in [-1,1]:
         bone='Wing.'+('L' if s==1 else 'R')
         for j in range(7 if lod else 11):
             t=j/(6 if lod else 10)
-            parts.append(feather('primary flight', (s*(.29+.11*t),-.27+.14*t,.50-.13*t),(s*(.20+.16*t),.87-.13*t,.30-.06*t),.065 if lod else .060,mat,4 if j<3 else 5 if j<7 else 0,bone,s,3 if lod else 7))
+            flight=feather('primary flight', (s*(.29+.11*t),-.27+.14*t,.50-.13*t),(s*(.12+.04*t),.80-.10*t,.30-.06*t),.056,mat,5 if breed=='mallard' and j in [5,6] else 4 if breed in ['mallard','khaki'] else 3 if pekin else 0,bone,s,4 if lod else 10)
+            flight['feather_lift']=.008+j*.0007;parts.append(flight)
         for row in range(2 if lod else 4):
             for j in range(5 if lod else 8):
                 t=j/(4 if lod else 7);y=-.20+row*.12+t*.07;x=s*(.13+.23*t);z=.205+.325*math.sqrt(max(.05,1-(abs(x)/.445)**2))+row*.004
-                covert=feather('overlapping covert',(x,y,z),(x+s*.008,y+.36,z-.045),.065,mat,4 if breed=='mallard' and row<3 else 3 if mandarin else 0,bone,s,3 if lod else 5)
-                covert['feather_lift']=.026+row*.002+j*.0003
+                covert=feather('overlapping covert',(x,y,z),(x+s*.008,y+.36,z-.045),.052,mat,4 if breed in ['mallard','khaki'] else 3 if mandarin or pekin else 0,bone,s,4 if lod else 10)
+                covert['feather_lift']=.008+row*.0015+j*.0002
                 parts.append(covert)
         for j in range(5 if lod else 10):
-            t=j/(4 if lod else 9);parts.append(feather('tail feather',(s*.08*t,.56,.31),(s*(.05+.16*t),1.07-.10*t,.33),.044,mat,4 if breed=='mallard' else 0,'Body',s,4))
+            t=j/(4 if lod else 9);parts.append(feather('tail feather',(s*.08*t,.56,.31),(s*(.05+.16*t),1.07-.10*t,.33),.044,mat,4 if breed in ['mallard','khaki'] else 3 if pekin else 0,'Body',s,4))
         # Scale covered tarsus and three long toes with an actual broad web membrane.
         foot='Foot.'+('L' if s==1 else 'R');x=s*.20
         parts.append(tube('tarsus',[(x,.11,.085 if runner else -.045),(x,.13,-.24),(x,.07,-.32)],.027,mat,foot))
@@ -267,21 +340,29 @@ def build(breed,lod=False):
         parts.append(mesh('web membrane',web,[(0,1,2),(0,2,3),(0,3,4),(0,4,5)],mat,7,foot))
         for dx,y in [(-.15,-.22),(0,-.28),(.15,-.20)]:parts.append(tube('toe',[(x,.06,-.325),(x+dx*.55,y*.5,-.35),(x+dx,y,-.355)],.012,mat,foot))
         # Small dark eye set into an almond-shaped raised eyelid rim.
-        parts.append(sphere('iris',(s*.174,hy-.065,hz+.045),(.027,.024,.026),iris,'Head'))
-        parts.append(sphere('cornea',(s*.190,hy-.073,hz+.047),(.012,.019,.020),eye,'Head'))
-    billpts=[(-1.015,.94+stretch,.115,.047),(-1.15,.92+stretch,.125,.038),(-1.33,.894+stretch,.108,.021),(-1.43,.884+stretch,.071,.017),(-1.465,.887+stretch,.012,.008)]
-    parts.append(loft('bill upper and lower',billpts,mat,6,'Head',segments=16 if lod else 28,steps=2))
+        eye_y,eye_z=hy-.04,hz+.020
+        hit=surface.ray_cast(Vector((s*3,eye_y,eye_z)),Vector((-s,0,0)))
+        ex=abs(hit[0].x) if hit[0] else .174
+        parts.append(sphere('iris',(s*(ex-.003),eye_y,eye_z),(.008,.030,.029),iris,'Head'))
+        parts.append(sphere('cornea',(s*(ex+.002),eye_y-.001,eye_z),(.006,.024,.023),eye,'Head'))
+    billpts=[(-1.04,.965+stretch,.111,.046),(-1.15,.942+stretch,.12,.035),(-1.32,.916+stretch,.101,.021),(-1.415,.903+stretch,.066,.015),(-1.45,.905+stretch,.010,.007)]
+    bill=loft('bill upper and lower',billpts,mat,6,'Head',segments=16 if lod else 28,steps=2)
+    bill.data.materials.clear();bill.data.materials.append(simple('bill keratin',BREEDS[breed][6],.48))
+    parts.append(bill)
+    bill_surface=BVHTree.FromPolygons([v.co for v in bill.data.vertices],[p.vertices for p in bill.data.polygons],all_triangles=False)
     for s in [-1,1]:
-        parts.append(sphere('nostril',(s*.057,-1.174,.948+stretch),(.015,.024,.004),eye,'Head'))
-        parts.append(tube('bill seam',[(s*.12,-1.12,.91+stretch),(s*.104,-1.31,.89+stretch),(s*.06,-1.423,.883+stretch)],.0028,eye,'Head'))
-    parts.append(sphere('bill nail',(0,-1.443,.899+stretch),(.027,.022,.006),iris,'Head'))
+        hit=bill_surface.ray_cast(Vector((s*.050,-1.17,3)),Vector((0,0,-1)))
+        nostril_z=hit[0].z+.001 if hit[0] else .970+stretch
+        parts.append(sphere('nostril',(s*.050,-1.17,nostril_z),(.007,.013,.0025),eye,'Head'))
+        parts.append(tube('bill seam',[(s*.114,-1.14,.934+stretch),(s*.098,-1.31,.908+stretch),(s*.06,-1.413,.899+stretch)],.0012,iris,'Head'))
+    parts.append(sphere('bill nail',(0,-1.433,.918+stretch),(.016,.014,.002),iris,'Head'))
     if mandarin:
         for s in [-1,1]:
             for j in range(9 if not lod else 4):
                 t=j/(8 if not lod else 3)
-                parts.append(feather('mandarin cheek ruff',(s*.18,-.81,1.03),(s*(.20+.015*t),-.63,.85+.10*t),.037,mat,7,'Head',s,5))
+                parts.append(feather('mandarin cheek ruff',(s*.18,-.81,1.03),(s*(.20+.015*t),-.63,.85+.10*t),.037,mat,10,'Head',s,5))
             for j in range(6):
-                parts.append(feather('mandarin upright sail',(s*.27,.31,.39),(s*(.29+j*.008),.48+j*.024,.76-j*.023),.095,mat,7,'Wing.'+('L' if s==1 else 'R'),s,6))
+                parts.append(feather('mandarin upright sail',(s*.27,.31,.39),(s*(.29+j*.008),.48+j*.024,.76-j*.023),.095,mat,10,'Wing.'+('L' if s==1 else 'R'),s,6))
     if runner:
         for part in parts:
             if any(g.name.startswith('Wing.') for g in part.vertex_groups):
@@ -291,13 +372,22 @@ def build(breed,lod=False):
     body_envelope=sorted(bodypts[:6],key=lambda p:p[0])
     ys=[p[0] for p in body_envelope]
     for part in parts:
+        if part.name.startswith('primary flight'):
+            for vertex in part.data.vertices:
+                hit=surface.find_nearest(vertex.co)
+                if hit[0]:vertex.co=hit[0]+hit[1]*part.get('feather_lift',.010)
         if part.name.startswith('overlapping covert'):
             for vertex in part.data.vertices:
                 x,y,z=vertex.co
-                cz=float(np.interp(y,ys,[p[1] for p in body_envelope]));w=float(np.interp(y,ys,[p[2] for p in body_envelope]));r=float(np.interp(y,ys,[p[3] for p in body_envelope]))
-                vertex.co.z=cz+r*math.sqrt(max(.025,1-(x/max(w,.01))**2))+part.get('feather_lift',.026)
+                hit=surface.find_nearest(vertex.co)
+                if hit[0]:vertex.co=hit[0]+hit[1]*part.get('feather_lift',.008)
+    for part in parts:
+        if any(k in part.name for k in ['covert','flight','tail feather','ruff','sail']):
+            bpy.context.view_layer.objects.active=part;part.select_set(True)
+            modifier=part.modifiers.new('Feather thin closed vane','SOLIDIFY');modifier.thickness=.0012
+            bpy.ops.object.modifier_apply(modifier=modifier.name);part.select_set(False)
     skin=join(parts,'DuckSkin');rigged(skin,rig)
-    accessories=cosmetics(rig,hy,hz,mat) if not lod else []
+    accessories=cosmetics(rig,hy,hz,mat,surface) if not lod else []
     actions(rig)
     bpy.context.scene.render.fps=24
     bpy.context.scene.frame_set(0)
@@ -330,6 +420,18 @@ def build(breed,lod=False):
         bpy.ops.object.camera_add(location=(3.4,-4.5,2.25));cam=bpy.context.object;cam.rotation_euler=(Vector((0,-.15,.48))-cam.location).to_track_quat('-Z','Y').to_euler();cam.data.type='ORTHO';cam.data.ortho_scale=3.1;scene.camera=cam
         scene.render.resolution_x=1100;scene.render.resolution_y=900;scene.render.resolution_percentage=100;scene.render.filepath=str(SOURCE/(breed+'-preview.png'))
         bpy.ops.render.render(write_still=True)
+        scene.cycles.samples=12
+        for cosmetic in (['hat','glasses','bow','medal','charm','badge'] if breed=='mallard' else ['hat']):
+            ob=next(o for o in accessories if o.get('cosmetic')==cosmetic);ob.hide_render=False
+            scene.render.filepath=str(SOURCE/(breed+'-'+cosmetic+'-preview.png'))
+            bpy.ops.render.render(write_still=True);ob.hide_render=True
+        if breed=='mallard':
+            hat=next(o for o in accessories if o.get('cosmetic')=='hat');hat.hide_render=False
+            for clip in ['idle','swim']:
+                for track in rig.animation_data.nla_tracks:track.mute=track.name!=clip
+                scene.frame_set(8);scene.render.filepath=str(SOURCE/(breed+'-hat-'+clip+'-preview.png'));bpy.ops.render.render(write_still=True)
+            for track in rig.animation_data.nla_tracks:track.mute=True
+            hat.hide_render=True;scene.frame_set(0)
     return {'file':target.name,'bytes':target.stat().st_size,'vertices':len(skin.data.vertices),'triangles':sum(len(p.vertices)-2 for p in skin.data.polygons),'materials':len(skin.data.materials)}
 
 if __name__=='__main__':
@@ -340,3 +442,4 @@ if __name__=='__main__':
     for breed in selected:
         for lod in [False,True]:receipt.append(build(breed,lod))
     (OUT/'manifest.json').write_text(json.dumps({'generator':'scripts/art/build_ducks.py','axes':'Y up; forward +Z','waterline':0,'clips':['idle','swim','celebrate'],'cosmeticPrefix':'Accessory_','breeds':receipt},indent=2))
+

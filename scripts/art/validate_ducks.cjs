@@ -16,6 +16,13 @@ const base = path.resolve(__dirname, '../../public/assets/ducks');
     const cosmetics = doc.nodes.filter((n) => n.extras?.cosmetic).map((n) => n.extras.cosmetic);
     if (!file.includes('-lod') && cosmetics.length !== 6) throw new Error(`${file}: cosmetics ${cosmetics.length}`);
     if (!doc.skins?.length) throw new Error(`${file}: no skin`);
+    for (const material of doc.materials || []) {
+      const normal = material.normalTexture;
+      const color = material.pbrMetallicRoughness?.baseColorTexture;
+      if (normal && color && doc.textures[normal.index].source === doc.textures[color.index].source) {
+        throw new Error(`${file}: ${material.name} incorrectly uses albedo as a tangent normal map`);
+      }
+    }
     results.push({ file, bytes: bytes.length, animations, cosmetics, errors: report.issues.numErrors, warnings: report.issues.numWarnings, messages: report.issues.messages });
   }
   fs.writeFileSync(path.join(base, 'validation.json'), JSON.stringify({ validator: 'Khronos glTF Validator', results }, null, 2));
