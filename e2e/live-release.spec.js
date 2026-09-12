@@ -61,7 +61,7 @@ test('synthetic release workflow preserves result, replay, and entry pool', asyn
   const report = {
     schemaVersion: 1,
     label,
-    url: target.href,
+    url: target.origin + target.pathname,
     startedAt: new Date().toISOString(),
     completedAt: null,
     browser: { name: browser.browserType().name(), version: browser.version() },
@@ -82,7 +82,7 @@ test('synthetic release workflow preserves result, replay, and entry pool', asyn
     const navigation = await page.goto(target.href, { waitUntil: 'domcontentloaded' });
     expect(navigation?.ok()).toBe(true);
     expect(new URL(page.url()).origin).toBe(target.origin);
-    report.url = page.url();
+    report.url = new URL(page.url()).origin + new URL(page.url()).pathname;
 
     const release = await page.evaluate(async () => {
       const releaseUrl = new URL('/release.json', window.location.href);

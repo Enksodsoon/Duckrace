@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "label": "preview",
+  "url": "https://duckrace-bm1joh5yg-enk44139-9381s-projects.vercel.app/",
+  "startedAt": "2026-09-12T13:33:29.153Z",
+  "completedAt": "2026-09-12T13:33:46.892Z",
+  "browser": {
+    "name": "chromium",
+    "version": "153.0.8010.12"
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "dataPolicy": "Disposable synthetic entries only; no real people or browser data.",
+  "release": {
+    "url": "https://duckrace-bm1joh5yg-enk44139-9381s-projects.vercel.app/release.json",
+    "status": 200,
+    "body": {
+      "assets": "9eb499948b82922f",
+      "shell": "61faf0f957d4",
+      "commit": "74180904a80f1293a8521dece622c8898cdd48b1"
+    }
+  },
+  "configuration": {
+    "participantCount": 4,
+    "breed": "mandarin",
+    "accessory": "bow",
+    "mixedBreeds": false,
+    "stage": "mountain-river",
+    "durationMs": 3000,
+    "eliminationPlaces": []
+  },
+  "results": [
+    "QA River",
+    "QA, Comma",
+    "QA Cedar",
+    "QA Summit"
+  ],
+  "resultsCsv": {
+    "filename": "results.csv",
+    "contents": "\"rank\",\"name\"\n\"1\",\"QA River\"\n\"2\",\"QA, Comma\"\n\"3\",\"QA Cedar\"\n\"4\",\"QA Summit\""
+  },
+  "replay": {
+    "results": [
+      "QA River",
+      "QA, Comma",
+      "QA Cedar",
+      "QA Summit"
+    ],
+    "matchesOriginal": true,
+    "historyBefore": [
+      {
+        "id": "c297e0ce-8f77-4bed-8091-fefc0186a6eb",
+        "createdAt": "2026-09-12T13:33:40.946Z",
+        "record": {
+          "version": 1,
+          "participants": [
+            {
+              "id": "entry-0",
+              "name": "QA Cedar"
+            },
+            {
+              "id": "entry-1",
+              "name": "QA, Comma"
+            },
+            {
+              "id": "entry-2",
+              "name": "QA River"
+            },
+            {
+              "id": "entry-3",
+              "name": "QA Summit"
+            }
+          ],
+          "order": [
+            "entry-2",
+            "entry-1",
+            "entry-0",
+            "entry-3"
+          ],
+          "drawMode": "crypto",
+          "seed": "",
+          "presentationSeed": "bd314f4e2e2074175db9fdf8333dd583",
+          "presentationShuffle": true,
+          "durationMs": 3000,
+          "stage": "mountain-river",
+          "appearances": [
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            },
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            },
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            },
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            }
+          ],
+          "podiumCount": 3,
+          "eliminationPlaces": []
+        },
+        "eliminatedIds": []
+      }
+    ],
+    "historyAfter": [
+      {
+        "id": "c297e0ce-8f77-4bed-8091-fefc0186a6eb",
+        "createdAt": "2026-09-12T13:33:40.946Z",
+        "record": {
+          "version": 1,
+          "participants": [
+            {
+              "id": "entry-0",
+              "name": "QA Cedar"
+            },
+            {
+              "id": "entry-1",
+              "name": "QA, Comma"
+            },
+            {
+              "id": "entry-2",
+              "name": "QA River"
+            },
+            {
+              "id": "entry-3",
+              "name": "QA Summit"
+            }
+          ],
+          "order": [
+            "entry-2",
+            "entry-1",
+            "entry-0",
+            "entry-3"
+          ],
+          "drawMode": "crypto",
+          "seed": "",
+          "presentationSeed": "bd314f4e2e2074175db9fdf8333dd583",
+          "presentationShuffle": true,
+          "durationMs": 3000,
+          "stage": "mountain-river",
+          "appearances": [
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            },
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            },
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            },
+            {
+              "breed": "mandarin",
+              "accessory": "bow"
+            }
+          ],
+          "podiumCount": 3,
+          "eliminationPlaces": []
+        },
+        "eliminatedIds": []
+      }
+    ]
+  },
+  "retainedEntries": [
+    "QA Cedar",
+    "QA, Comma",
+    "QA River",
+    "QA Summit"
+  ],
+  "screenshot": "docs/evidence/live/preview-results.png",
+  "diagnostics": {
+    "consoleErrors": [],
+    "pageErrors": [],
+    "networkAssetFailures": []
+  },
+  "failure": null
+}
