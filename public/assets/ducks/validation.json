@@ -3,7 +3,7 @@
   "results": [
     {
       "file": "khaki-lod.glb",
-      "bytes": 1427444,
+      "bytes": 1428152,
       "animations": [
         "idle",
         "swim",
@@ -59,7 +59,7 @@
     },
     {
       "file": "khaki.glb",
-      "bytes": 6820404,
+      "bytes": 6280096,
       "animations": [
         "idle",
         "swim",
@@ -248,7 +248,7 @@
     },
     {
       "file": "mallard-lod.glb",
-      "bytes": 1468984,
+      "bytes": 1469692,
       "animations": [
         "idle",
         "swim",
@@ -304,7 +304,7 @@
     },
     {
       "file": "mallard.glb",
-      "bytes": 6838196,
+      "bytes": 6297888,
       "animations": [
         "idle",
         "swim",
@@ -493,7 +493,7 @@
     },
     {
       "file": "mandarin-lod.glb",
-      "bytes": 1537164,
+      "bytes": 1537868,
       "animations": [
         "idle",
         "swim",
@@ -549,7 +549,7 @@
     },
     {
       "file": "mandarin.glb",
-      "bytes": 7050120,
+      "bytes": 6509820,
       "animations": [
         "idle",
         "swim",
@@ -738,7 +738,7 @@
     },
     {
       "file": "pekin-lod.glb",
-      "bytes": 1556272,
+      "bytes": 1556972,
       "animations": [
         "idle",
         "swim",
@@ -794,7 +794,7 @@
     },
     {
       "file": "pekin.glb",
-      "bytes": 7391596,
+      "bytes": 6851572,
       "animations": [
         "idle",
         "swim",
@@ -983,7 +983,7 @@
     },
     {
       "file": "runner-lod.glb",
-      "bytes": 1495652,
+      "bytes": 1496912,
       "animations": [
         "idle",
         "swim",
@@ -1039,7 +1039,7 @@
     },
     {
       "file": "runner.glb",
-      "bytes": 7321884,
+      "bytes": 6782400,
       "animations": [
         "idle",
         "swim",

@@ -31,30 +31,12 @@ const fragment = `
   varying vec4 vReflection;
   varying vec3 vWorld;
   varying vec2 vUv;
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  float noise(vec2 p) {
-    vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
-    return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
-  }
-  float waves(vec2 p) {
-    vec2 warp = vec2(noise(p*.34 + uTime*.05), noise(p*.29 - uTime*.04));
-    p += warp * 1.3;
-    return sin(p.x * 1.7 + p.y * 1.1 + uTime * 1.2) * .21
-      + sin(p.y * 3.5 - p.x * .8 + uTime * .78) * .10
-      + sin(p.x * 9.1 + p.y * 6.2 - uTime * 1.6) * .025
-      + noise(p * 2.2 + uTime * .08) * .18;
-  }
   void main() {
     vec2 p = vWorld.xz;
-    #ifdef LOW_QUALITY
       // Analytic derivatives keep the same three wave scales with three cosine
       // evaluations instead of four finite-difference noise/wave samples.
       vec3 waveCos = cos(vec3(p.x*1.7+p.y*1.1+uTime*1.2, p.y*3.5-p.x*.8+uTime*.78, p.x*9.1+p.y*6.2-uTime*1.6));
       vec3 normal = normalize(vec3(-dot(waveCos,vec3(.357,-.080,.2275))*.065, 1., -dot(waveCos,vec3(.231,.350,.155))*.065));
-    #else
-      float e = .035;
-      vec3 normal = normalize(vec3((waves(p-vec2(e,0))-waves(p+vec2(e,0))) * 1.1, 1., (waves(p-vec2(0,e))-waves(p+vec2(0,e))) * 1.1));
-    #endif
     vec3 view = normalize(cameraPosition-vWorld);
     vec3 reflectDirection = reflect(-view, normal);
     float fresnel = .035 + .965 * pow(1. - max(dot(view,normal), 0.), 5.);
@@ -109,7 +91,8 @@ export default function Water({ config, stage, reducedMotion, low, medium }) {
   }), [config, stage, environment, reflector]);
   useFrame(({ clock, gl, scene, camera }) => {
     if (material.current && !reducedMotion) material.current.uniforms.uTime.value = clock.elapsedTime;
-    if (reflector && surface.current && frame.current++ % 2 === 0) {
+    if (reflector && surface.current && (clock.elapsedTime - frame.current >= (medium ? 1 / 20 : 1 / 30) || frame.current === 0)) {
+      frame.current = clock.elapsedTime;
       surface.current.updateMatrixWorld();
       reflector.matrixWorld.copy(surface.current.matrixWorld);
       // Screen-facing names are UI, not physical objects floating on the lake.

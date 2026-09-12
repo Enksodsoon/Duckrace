@@ -97,6 +97,39 @@ function LoadingSignal({ onLoading }) {
   return null;
 }
 
+function RenderResolution({ quality, onChange }) {
+  const { size } = useThree();
+  useEffect(() => {
+    // Budget 3D pixels independently of CSS/UI resolution. Browser zoom and
+    // high-density monitors otherwise multiply fragment work quadratically.
+    const pixels = quality === 'high' ? 2_400_000 : quality === 'medium' ? 1_800_000 : 1_200_000;
+    const cap = quality === 'high' ? 1.7 : quality === 'medium' ? 1.4 : 1.2;
+    onChange(Math.min(window.devicePixelRatio || 1, cap, Math.sqrt(pixels / Math.max(1, size.width * size.height))));
+  }, [quality, size.width, size.height, onChange]);
+  return null;
+}
+
+// Shore, docks and architecture are static. Re-rendering their shadow map at
+// display refresh costs a full extra scene pass; swimming ducks cast no useful
+// shadow on the custom water shader. Hero animation gets a bounded 12 Hz update.
+function ShadowBudget({ screen, requestKey, quality, reducedMotion }) {
+  const get = useThree(state => state.get);
+  const elapsed = useRef(0);
+  useEffect(() => {
+    const { gl } = get();
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    elapsed.current = 0;
+    return () => { gl.shadowMap.autoUpdate = true; };
+  }, [get, requestKey, quality]);
+  useFrame(({ gl }, delta) => {
+    if (screen === 'race' || screen === 'stages' || reducedMotion) return;
+    elapsed.current += delta;
+    if (elapsed.current >= 1 / 12) { gl.shadowMap.needsUpdate = true; elapsed.current = 0; }
+  }, -2);
+  return null;
+}
+
 function ReadySignal({ onReady, requestKey }) {
   useEffect(() => {
     const [screen, stage] = JSON.parse(requestKey);
@@ -107,6 +140,7 @@ function ReadySignal({ onReady, requestKey }) {
 
 /** A single 3D renderer. All race positions are inputs; no outcome generation occurs here. */
 export default function DuckScene({ screen = 'home', stage = 'forest-lake', participants = [], progress = [], appearances = [], isRacing = false, preparing = false, finished = false, cameraMode = 'chase', followId = null, quality = 'auto', reducedMotion = false, onReady, onLoading, onError, onMetrics }) {
+  const [renderDpr, setRenderDpr] = useState(1);
   const [adaptiveQuality, setAdaptiveQuality] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 720 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) ? 'low' : 'high');
   const effectiveQuality = quality === 'auto' ? adaptiveQuality : quality;
   const low = effectiveQuality === 'low';
@@ -131,10 +165,12 @@ export default function DuckScene({ screen = 'home', stage = 'forest-lake', part
   }, [low, onError]);
   return <div className="duck-scene" aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: config.sky }}>
     <SceneBoundary onError={onError}>
-      <Canvas shadows={!low} dpr={low ? [1, 1.2] : medium ? [1, 1.4] : [1, 1.7]} camera={{ position: [0, 3, -24], fov: 49, near: .1, far: 500 }} gl={createRenderer} fallback={<span>3D graphics unavailable</span>}>
+      <Canvas shadows={!low} dpr={renderDpr} camera={{ position: [0, 3, -24], fov: 49, near: .1, far: 500 }} gl={createRenderer} fallback={<span>3D graphics unavailable</span>}>
+        <RenderResolution quality={effectiveQuality} onChange={setRenderDpr} />
         <CameraRig screen={screen} participants={participants} progress={progress} cameraMode={cameraMode} followId={followId} reducedMotion={reducedMotion} />
         <Health onError={onError} onMetrics={onMetrics} onSlow={handleSlow} quality={low ? 'low' : medium ? 'medium' : 'high'} count={screen === 'race' ? participants.length : screen === 'stages' ? 0 : 1} />
         <Suspense fallback={<LoadingSignal onLoading={onLoading} />}>
+          <ShadowBudget screen={screen} requestKey={requestKey} quality={effectiveQuality} reducedMotion={reducedMotion} />
           <RaceEnvironment config={config} stage={stage} screen={screen} width={width} low={low} medium={medium} reducedMotion={reducedMotion} />
           <Ducks screen={screen} participants={participants} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} finished={finished} />
           {screen === 'race' && <RacerLabels participants={participants} progress={progress} followId={followId} cameraMode={cameraMode} />}

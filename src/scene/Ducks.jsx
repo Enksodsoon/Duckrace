@@ -52,7 +52,7 @@ function AnimatedDuck({ model, position, rotation, scale, accessory, moving, fin
   return <group ref={group} position={position} rotation={rotation} scale={scale}><primitive object={object} dispose={null} /></group>;
 }
 
-function DuckInstances({ model, cosmeticModel, rows, appearances, progress, reducedMotion, isRacing, highDetail }) {
+function DuckInstances({ model, cosmeticModel, rows, appearances, progress, reducedMotion, isRacing }) {
   const animated = useMemo(() => {
     const results = [];
     const rigs = [];
@@ -130,7 +130,7 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     });
     refs.current.forEach(mesh => { if (mesh) mesh.instanceMatrix.needsUpdate = true; });
   });
-  return batches.map((mesh, i) => <instancedMesh key={mesh.name + i} ref={node => { refs.current[i] = node; }} args={[mesh.geometry, mesh.material, mesh.entries.length]} frustumCulled={false} castShadow={highDetail} receiveShadow dispose={null} />);
+  return batches.map((mesh, i) => <instancedMesh key={mesh.name + i} ref={node => { refs.current[i] = node; }} args={[mesh.geometry, mesh.material, mesh.entries.length]} frustumCulled={false} receiveShadow dispose={null} />);
 }
 
 function Wakes({ count, progress, reducedMotion, isRacing }) {
@@ -219,7 +219,7 @@ function RaceDucks({ participants, progress, appearances, reducedMotion, isRacin
     {plan.map(item => {
       const model = models[offset++];
       const cosmeticModel = item.cosmetics ? models[offset++] : undefined;
-      return <DuckInstances key={item.breed} model={model} cosmeticModel={cosmeticModel} rows={groups[BREEDS.indexOf(item.breed)]} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} highDetail={!item.lod} />;
+      return <DuckInstances key={item.breed} model={model} cosmeticModel={cosmeticModel} rows={groups[BREEDS.indexOf(item.breed)]} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} />;
     })}
     <Wakes count={participants.length} progress={progress} reducedMotion={reducedMotion} isRacing={isRacing} />
     <BowSpray count={participants.length} progress={progress} reducedMotion={reducedMotion} isRacing={isRacing} />
@@ -228,7 +228,7 @@ function RaceDucks({ participants, progress, appearances, reducedMotion, isRacin
 
 function HeroDuck({ screen, appearances, finished, reducedMotion }) {
   const [model] = useGLTF(duckAssetUrls(duckAssetPlan(screen, [], appearances)));
-  return <AnimatedDuck model={model} position={[-4, 1.2, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
+  return <AnimatedDuck model={model} position={[-4, 1.23, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
 }
 
 export default function Ducks(props) {

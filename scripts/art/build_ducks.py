@@ -156,8 +156,7 @@ def tube(name,coords,r,mat,bone=None):
 def body_plumage(body,breed,stretch,lod=False):
     n=512 if lod else 1024; y,x=np.mgrid[0:n,0:n].astype(float);u=x/(n-1);v=y/(n-1)
     # Image aligned with the complete continuous ring UV, with feather-scale mottling.
-    rings=len(body.data.vertices)//37 if len(body.data.vertices)%37==0 else len(body.data.vertices)//21
-    seg=37 if len(body.data.vertices)%37==0 else 21
+    seg=body['ring_segments'];rings=len(body.data.vertices)//seg
     ringz=np.array([sum(body.data.vertices[i*seg+j].co.z for j in range(seg))/seg for i in range(rings)])
     ringy=np.array([sum(body.data.vertices[i*seg+j].co.y for j in range(seg))/seg for i in range(rings)])
     z=np.interp(v[:,0],np.linspace(0,1,rings),ringz)[:,None]
@@ -241,7 +240,7 @@ def cosmetics(rig,hy,hz,mat,surface):
         coords=[(s*.115+.095*math.cos(t*math.tau/24),hy-.285,hz+.017+.070*math.sin(t*math.tau/24)) for t in range(25)]
         sets['glasses'].append(tube('aviator frame',coords,.010,gold,'Head'))
         sets['glasses'].append(mesh('smoke lens',[(s*.115,hy-.285,hz+.017)]+coords[:-1],[(0,j+1,(j+1)%24+1) for j in range(24)],lenses,bone='Head'))
-        sets['glasses'].append(tube('temple',[(s*.212,hy-.285,hz+.045),(s*.218,hy-.10,hz+.045),(s*.20,hy+.085,hz+.045)],.007,gold,'Head'))
+        sets['glasses'].append(tube('temple',[(s*.27,hy-.285,hz+.045),(s*.29,hy-.10,hz+.045),(s*.27,hy+.085,hz+.045)],.007,gold,'Head'))
         bv=[];bf=[];bu=[]
         for k in range(7):
             t=k/6
@@ -302,10 +301,11 @@ def build(breed,lod=False):
     runner=breed=='runner'; pekin=breed=='pekin'; mandarin=breed=='mandarin'
     stretch=.33 if runner else -.075; hy=-.86; hz=1.04+stretch
     rig=make_rig(hy,hz); parts=[]
-    bodypts=[(.98,.26,.014,.018),(.80,.22,.22,.17),(.52,.20,.39,.29),(.12,.22,.455,.345),(-.20,.26,.43,.35),(-.43,.33,.31,.28),(-.50,.48,.20,.20),(-.53,.65+stretch*.5,.157,.16),(-.63,.86+stretch,.205,.19),(-.80,1.00+stretch,.235,.225),(-.96,.99+stretch,.215,.19),(-1.085,.97+stretch,.125,.060)]
+    bodypts=[(.98,.26,.014,.018),(.80,.23,.25,.19),(.52,.23,.43,.33),(.12,.24,.51,.39),(-.20,.28,.49,.39),(-.43,.36,.38,.32),(-.50,.50,.26,.24),(-.53,.65+stretch*.5,.225,.21),(-.63,.86+stretch,.26,.235),(-.80,1.00+stretch,.29,.265),(-.96,.99+stretch,.255,.23),(-1.085,.97+stretch,.135,.065)]
     if pekin:bodypts=[(y,z,w*1.08,r*1.05) for y,z,w,r in bodypts]
     if runner:bodypts=[(y,z+.12*math.exp(-((y-.12)/.5)**2),w*(1-.23*math.exp(-((y-.12)/.5)**2)),r*(1-.12*math.exp(-((y-.12)/.5)**2))) for y,z,w,r in bodypts]
-    body=loft('continuous body neck head',bodypts,mat,0,segments=20 if lod else 36,steps=2 if lod else 4)
+    body=loft('continuous body neck head',bodypts,mat,0,segments=20 if lod else 28,steps=2 if lod else 3)
+    body['ring_segments']=21 if lod else 29
     body_plumage(body,breed,stretch,lod)
     vgN=body.vertex_groups.new(name='Neck');vgH=body.vertex_groups.new(name='Head')
     for v in body.data.vertices:
@@ -321,12 +321,12 @@ def build(breed,lod=False):
         bone='Wing.'+('L' if s==1 else 'R')
         for j in range(7 if lod else 11):
             t=j/(6 if lod else 10)
-            flight=feather('primary flight', (s*(.29+.11*t),-.27+.14*t,.50-.13*t),(s*(.12+.04*t),.80-.10*t,.30-.06*t),.056,mat,5 if breed=='mallard' and j in [5,6] else 4 if breed in ['mallard','khaki'] else 3 if pekin else 0,bone,s,4 if lod else 10)
+            flight=feather('primary flight', (s*(.29+.11*t),-.27+.14*t,.50-.13*t),(s*(.12+.04*t),.80-.10*t,.30-.06*t),.056,mat,5 if breed=='mallard' and j in [5,6] else 4 if breed in ['mallard','khaki'] else 3 if pekin else 0,bone,s,4 if lod else 6)
             flight['feather_lift']=.008+j*.0007;parts.append(flight)
         for row in range(2 if lod else 4):
             for j in range(5 if lod else 8):
                 t=j/(4 if lod else 7);y=-.20+row*.12+t*.07;x=s*(.13+.23*t);z=.205+.325*math.sqrt(max(.05,1-(abs(x)/.445)**2))+row*.004
-                covert=feather('overlapping covert',(x,y,z),(x+s*.008,y+.36,z-.045),.052,mat,4 if breed in ['mallard','khaki'] else 3 if mandarin or pekin else 0,bone,s,4 if lod else 10)
+                covert=feather('overlapping covert',(x,y,z),(x+s*.008,y+.36,z-.045),.052,mat,4 if breed in ['mallard','khaki'] else 3 if mandarin or pekin else 0,bone,s,4 if lod else 6)
                 covert['feather_lift']=.008+row*.0015+j*.0002
                 parts.append(covert)
         for j in range(5 if lod else 10):
@@ -341,8 +341,8 @@ def build(breed,lod=False):
         eye_y,eye_z=hy-.04,hz+.020
         hit=surface.ray_cast(Vector((s*3,eye_y,eye_z)),Vector((-s,0,0)))
         ex=abs(hit[0].x) if hit[0] else .174
-        parts.append(sphere('iris',(s*(ex-.002),eye_y,eye_z),(.011,.038,.036),iris,'Head'))
-        parts.append(sphere('cornea',(s*(ex+.004),eye_y-.002,eye_z),(.009,.030,.029),eye,'Head'))
+        parts.append(sphere('iris',(s*(ex-.002),eye_y,eye_z),(.014,.047,.046),iris,'Head'))
+        parts.append(sphere('cornea',(s*(ex+.007),eye_y-.004,eye_z),(.014,.040,.040),eye,'Head'))
     billpts=[(-1.04,.965+stretch,.124,.053),(-1.15,.942+stretch,.136,.038),(-1.32,.916+stretch,.116,.026),(-1.415,.903+stretch,.084,.019),(-1.46,.905+stretch,.022,.009)]
     bill=loft('bill upper and lower',billpts,mat,6,'Head',segments=16 if lod else 28,steps=2)
     bill.data.materials.clear();bill.data.materials.append(simple('bill keratin',BREEDS[breed][6],.48))
@@ -354,6 +354,12 @@ def build(breed,lod=False):
         parts.append(sphere('nostril',(s*.050,-1.17,nostril_z),(.007,.013,.0025),eye,'Head'))
         parts.append(tube('bill seam',[(s*.114,-1.14,.934+stretch),(s*.098,-1.31,.908+stretch),(s*.06,-1.413,.899+stretch)],.0012,iris,'Head'))
     parts.append(sphere('bill nail',(0,-1.433,.918+stretch),(.016,.014,.002),iris,'Head'))
+    # Doodle-inspired soft small bill; deform its details together to retain fit.
+    for part in parts:
+        if part.name.startswith(('bill ', 'nostril')):
+            for vertex in part.data.vertices:
+                world_y=vertex.co.y+part.location.y
+                vertex.co.y=(-1.04+(world_y+1.04)*.66)-part.location.y
     if mandarin:
         for s in [-1,1]:
             for j in range(9 if not lod else 4):
