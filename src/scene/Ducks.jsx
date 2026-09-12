@@ -45,8 +45,10 @@ function AnimatedDuck({ model, position, rotation, scale, accessory, moving, fin
   useFrame(({ clock }, delta) => {
     if (!reducedMotion) {
       mixer.update(Math.min(delta, .05));
-      group.current.position.y = position[1] + Math.sin(clock.elapsedTime * 1.8 + position[0]) * .023;
-      group.current.rotation.z = Math.sin(clock.elapsedTime * 1.35 + position[0]) * .018;
+      // Only swimming ducks float. Standing heroes keep their webbed feet
+      // above the planks while the rig animates their head and wings.
+      group.current.position.y = position[1] + (moving ? Math.sin(clock.elapsedTime * 1.8 + position[0]) * .023 : 0);
+      group.current.rotation.z = moving ? Math.sin(clock.elapsedTime * 1.35 + position[0]) * .018 : 0;
     }
   });
   return <group ref={group} position={position} rotation={rotation} scale={scale}><primitive object={object} dispose={null} /></group>;
@@ -228,7 +230,7 @@ function RaceDucks({ participants, progress, appearances, reducedMotion, isRacin
 
 function HeroDuck({ screen, appearances, finished, reducedMotion }) {
   const [model] = useGLTF(duckAssetUrls(duckAssetPlan(screen, [], appearances)));
-  return <AnimatedDuck model={model} position={[-4, 1.23, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
+  return <AnimatedDuck model={model} position={[-4, 1.26, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
 }
 
 export default function Ducks(props) {
