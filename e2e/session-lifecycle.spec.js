@@ -33,8 +33,8 @@ test('rapid repeated start and a suspended clock interval save exactly one resul
   await openSetup(page);
   await page.getByLabel('Race entries', { exact: true }).fill('Alpha\nBeta');
   await page.getByLabel('Race duration', { exact: true }).selectOption('3');
-  await page.clock.install();
-  await page.clock.pauseAt(Date.now());
+  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-01-02T00:00:00Z'));
 
   const start = page.getByRole('button', { name: 'Start Race', exact: true });
   await start.evaluate(button => {
@@ -55,8 +55,8 @@ test('race waits for delayed duck assets before countdown and saves one result',
   await openSetup(page);
   await page.getByLabel('Race entries', { exact: true }).fill('Alpha\nBeta');
   await page.getByLabel('Race duration', { exact: true }).selectOption('3');
-  await page.clock.install();
-  await page.clock.pauseAt(Date.now());
+  await page.clock.install({ time: new Date('2026-01-01T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-01-02T00:00:00Z'));
 
   let releaseAsset;
   const assetReleased = new Promise(resolve => { releaseAsset = resolve; });
