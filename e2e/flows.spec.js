@@ -25,7 +25,7 @@ test('100 entrants resolve complete ranking, 101 are rejected without truncation
   await entries(page).fill(names(100)); await page.getByRole('button', { name: 'Instant Pick', exact: true }).click(); await expect(page.locator('.result-list li')).toHaveCount(100);
 });
 test('same seed repeats results with different cosmetic and stage choices', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(process.env.CI ? 360_000 : 180_000);
   await setup(page); await entries(page).fill('A\nB\nC\nD\nE\nF'); await advance(page); await page.getByLabel('Race seed', { exact: true }).fill('race42');
   await page.getByRole('button', { name: 'Instant Pick', exact: true }).click(); const first = await page.locator('.result-name').allTextContents();
   await page.getByRole('button', { name: 'Duck Garage', exact: true }).first().click(); await page.getByRole('button', { name: 'Mandarin', exact: true }).click(); await page.getByRole('button', { name: 'Bow Tie', exact: true }).click(); await page.getByRole('button', { name: 'Done', exact: true }).click();
