@@ -48,14 +48,13 @@ async function installGraphicsCapture(page) {
         previousAt = capturedAt;
         return;
       }
-      const sampleSeconds = (capturedAt - previousAt) / 1000;
+      const observedIntervalSeconds = (capturedAt - previousAt) / 1000;
       previousAt = capturedAt;
-      if (!(sampleSeconds > 0)) return;
+      if (!(metrics.sampleSeconds > 0) || !(metrics.sampleFrames > 0)) return;
       samples.push({
         ...metrics,
         capturedAtMs: capturedAt,
-        sampleSeconds,
-        sampleFrames: Number(metrics.fps) * sampleSeconds,
+        observedIntervalSeconds,
       });
     });
     observer.observe(document.documentElement, {
