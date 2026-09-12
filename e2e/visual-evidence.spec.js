@@ -104,8 +104,8 @@ test("capture stage thumbnails directly from the 3D scene", async ({ page }) => 
   test.setTimeout(240_000);
   await mkdir("public/assets/stages", { recursive: true });
   await page.setViewportSize({ width: 800, height: 500 });
-  await page.goto("http://127.0.0.1:5173/scripts/qa/scene-preview.html");
-  await page.getByLabel("Quality", { exact: true }).selectOption("low");
+  await page.goto(process.env.QA_SCENE_URL || "http://127.0.0.1:5173/scripts/qa/scene-preview.html");
+  await page.getByLabel("Quality", { exact: true }).selectOption("high");
   await page.getByLabel("Screen", { exact: true }).selectOption("stages");
   for (const stage of [
     "forest-lake",

@@ -141,10 +141,10 @@ export function makeBarkTexture() {
 }
 
 export function makeNeedleGeometry(seed = 7, distant = false) {
-  // Crossed twig cards sample only the photographed pine twig in the CC0 atlas.
+  // Crossed twig cards sample the spruce spray in the original foliage atlas.
   // Hundreds of short branchlets create a porous volume, rather than long foliage fans.
   const positions = [], uvs = [], indices = [];
-  const layers = distant ? 6 : 10, twigs = distant ? 5 : 9;
+  const layers = distant ? 6 : 9, twigs = distant ? 2 : 4;
   for (let layer = 0; layer < layers; layer++) {
     const h = layer / layers;
     for (let branch = 0; branch < 6; branch++) {
@@ -153,17 +153,17 @@ export function makeNeedleGeometry(seed = 7, distant = false) {
       const radius = (.18 + Math.pow(1 - h, .75) * 2.2) * (.75 + noise(branch + layer * 6, seed + 1) * .4);
       const y = 1.55 + h * 5.8 + (noise(branch + layer * 6, seed + 2) - .5) * .65;
       for (let twig = 0; twig < twigs; twig++) {
-        const t = .16 + twig / (twigs + 2), fork = (twig % 2 ? -1 : 1) * (.16 + .28 * (1 - t));
+        const t = .14 + twig / twigs * .85, fork = (twig % 2 ? -1 : 1) * .28;
         const direction = a + fork * 1.7;
-        const length = (.62 + noise(twig + branch * 17, seed) * .46) * (1 - h * .28) * (distant ? 1.25 : 1);
+        const length = (.70 + noise(twig + branch * 17, seed) * .45) * (1 - h * .28);
         const root = new THREE.Vector3(Math.cos(a) * radius * t, y - t * .16, Math.sin(a) * radius * t);
-        const along = new THREE.Vector3(Math.cos(direction) * .85, .22 + t * .22, Math.sin(direction) * .85).normalize().multiplyScalar(length);
-        const across = new THREE.Vector3(-Math.sin(direction), 0, Math.cos(direction)).multiplyScalar(length * .32);
+        const along = new THREE.Vector3(Math.cos(direction), -.15 + h * .32, Math.sin(direction)).normalize().multiplyScalar(length);
+        const across = new THREE.Vector3(-Math.sin(direction), 0, Math.cos(direction)).multiplyScalar(length * .34);
         for (let crossed = 0; crossed < 2; crossed++) {
           const width = across.clone().applyAxisAngle(along.clone().normalize(), crossed * Math.PI / 2);
           const start = positions.length / 3;
           for (const [u, v] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) positions.push(root.x + width.x * u + along.x * v, root.y + width.y * u + along.y * v, root.z + width.z * u + along.z * v);
-          uvs.push(.025, .55, .235, .55, .235, .99, .025, .99);
+          uvs.push(0, 1, 1, 1, 1, 0, 0, 0);
           indices.push(start, start + 1, start + 2, start, start + 2, start + 3);
         }
       }
@@ -192,7 +192,7 @@ export function makeNeedleTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 256;
   const ctx = c.getContext('2d');
   ctx.lineCap = 'round';
-  ctx.strokeStyle = '#635d3c'; ctx.lineWidth = 3;
+  ctx.strokeStyle = '#5b5336'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(128, 256); ctx.lineTo(128, 4); ctx.stroke();
   for (let twig = 0; twig < 23; twig++) {
     const y = 12 + twig * 10, width = 6 + Math.sin(twig / 25 * Math.PI) * 108;
@@ -203,7 +203,7 @@ export function makeNeedleTexture() {
       for (let n = 0; n < 15; n++) {
         const t = n / 15, x = 128 + (tx - 128) * t, by = y + 12 + (ty - y - 12) * t;
         const shade = Math.floor(85 + noise(n + twig * 19, side) * 60);
-        ctx.strokeStyle = `rgb(${Math.floor(shade * .72)},${shade},${Math.floor(shade * .62)})`; ctx.lineWidth = 1.1;
+        ctx.strokeStyle = `rgb(${Math.floor(shade * .58)},${shade},${Math.floor(shade * .46)})`; ctx.lineWidth = 2.6;
         ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x + side * 9, by - 12 - noise(n, twig) * 6); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(x, by); ctx.lineTo(x - side * 2, by + 12); ctx.stroke();
       }
@@ -212,15 +212,43 @@ export function makeNeedleTexture() {
   const texture = new THREE.CanvasTexture(c); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 4; return texture;
 }
 
-export function makeLeafGeometry() {
+export function makeBroadleafTrunkGeometry() {
+  const parts = [];
+  const branch = (start, end, bottom, top) => {
+    const a = new THREE.Vector3(...start), b = new THREE.Vector3(...end);
+    const direction = b.clone().sub(a);
+    const geometry = new THREE.CylinderGeometry(top, bottom, direction.length(), 7);
+    geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize()));
+    geometry.translate(...a.add(b).multiplyScalar(.5).toArray()); parts.push(geometry);
+  };
+  branch([0, -3.5, 0], [.12, -.7, 0], .27, .18);
+  branch([.12, -.7, 0], [0, 2.9, 0], .18, .025);
+  for (let j = 0; j < 4; j++) {
+    const angle = j * 2.4, end = [Math.sin(angle) * 1.45, 1.8 + (j % 2) * .7, Math.cos(angle) * 1.45];
+    const joint = [end[0] * .5, .4 + (j % 2) * .4, end[2] * .5];
+    branch([.1, -.5 + j * .27, 0], joint, .12, .07);
+    branch(joint, end, .07, .018);
+    branch(joint, [end[0] * .6 + .5, end[1] + .2, end[2] * .8 - .4], .045, .012);
+  }
+  const merged = mergeGeometries(parts); parts.forEach(part => part.dispose()); return merged;
+}
+
+export function makeLeafGeometry(drooping = false) {
   const positions = [], uvs = [], indices = [];
   const center = new THREE.Vector3(), normal = new THREE.Vector3(), tangent = new THREE.Vector3(), up = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
-  for (let i = 0; i < 65; i++) {
+  // Each atlas card already contains a complete leafy spray. Layering 48 long
+  // willow cards per cluster shaded the same pixels repeatedly without adding
+  // a useful silhouette; fewer distributed sprays keep the crown readable.
+  for (let i = 0; i < (drooping ? 20 : 32); i++) {
     const a = noise(i, 11) * Math.PI * 2, b = Math.acos(2 * noise(i, 12) - 1);
     normal.set(Math.sin(b) * Math.cos(a), Math.cos(b), Math.sin(b) * Math.sin(a));
     center.copy(normal).multiplyScalar(.4 + noise(i, 13) * .65);
-    tangent.crossVectors(normal, yAxis).normalize().multiplyScalar(.34);
-    up.crossVectors(tangent, normal).normalize().multiplyScalar(.4);
+    if (drooping) {
+      center.y = .45 - noise(i, 19) * 1.1;
+      normal.y = .08; normal.normalize();
+    }
+    tangent.crossVectors(normal, yAxis).normalize().multiplyScalar(.24 + noise(i, 23) * .2);
+    up.crossVectors(tangent, normal).normalize().multiplyScalar(drooping ? .55 + noise(i, 27) * .8 : .35 + noise(i, 27) * .25);
     const start = positions.length / 3;
     for (const [x, y] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) positions.push(center.x + tangent.x * x + up.x * y, center.y + tangent.y * x + up.y * y, center.z + tangent.z * x + up.z * y);
     uvs.push(0, 0, 1, 0, 1, 1, 0, 1); indices.push(start, start + 1, start + 2, start, start + 2, start + 3);

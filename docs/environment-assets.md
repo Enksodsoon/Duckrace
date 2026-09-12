@@ -15,6 +15,8 @@ The environment combines original procedural 3D geometry created for Duck Race o
 | `public/assets/environment/pine-bark-color.jpg` | [Pine Tree 01](https://polyhaven.com/a/pine_tree_01), [direct 1K bark diffuse](https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_diff_1k.jpg) | Rico Cilliers, Rob Tuytel | CC0, verified source page 2026-09-12 |
 | `public/assets/environment/pine-bark-normal.jpg` | [Pine Tree 01](https://polyhaven.com/a/pine_tree_01), [direct 1K bark normal](https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/pine_tree_01/pine_tree_01_bark_nor_gl_1k.jpg) | Rico Cilliers, Rob Tuytel | CC0, verified source page 2026-09-12 |
 
+The desktop-performance revision replaces the runtime pine twig and procedural leaf maps with original `foliage-atlas.png`, generated specifically for the project using the built-in OpenAI image generator. Its unchanged RGBA source and prompt provenance are retained in `art-source/foliage-atlas-imagegen.png` and `art-source/imagegen-prompts.md`. It supplies spruce, alder and willow regions to original spatially batched tree geometry. The former CC0 twig files remain retained but are no longer requested by the scene; their attribution remains above. Branching broadleaf trunks and hanging willow crowns are original code geometry. Stage thumbnails are direct captures of the updated High-detail scene.
+
 | Asset | Source and technique | Use |
 | --- | --- | --- |
 | Shoreline terrain | Original indexed heightfield with deterministic vertex colors and normal calculation | Both banks, all five stages |

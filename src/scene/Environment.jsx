@@ -1,13 +1,13 @@
 /* eslint-disable react/no-unknown-property */
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Environment as LightingEnvironment, RoundedBox, Sky, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { bankX, bankHeight, makeBank, makeBarkTexture, makeMountain, makeGrassTuftGeometry, makeNeedleGeometry, makePineTrunkGeometry, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
+import { bankX, bankHeight, makeBank, makeBarkTexture, makeMountain, makeGrassTuftGeometry, makeNeedleGeometry, makePineTrunkGeometry, makeBroadleafTrunkGeometry, makeLeafGeometry, noise } from './terrain';
 import Water from './Water';
 import { assetUrl, skyAssetUrl } from './assetUrl';
 
-function Instances({ geometry, material, entries, shadow = false }) {
+function InstanceCell({ geometry, material, entries, shadow = false, receiveShadow = true }) {
   const ref = useRef();
   useLayoutEffect(() => {
     const matrix = new THREE.Matrix4(), quaternion = new THREE.Quaternion(), vector = new THREE.Vector3();
@@ -21,37 +21,62 @@ function Instances({ geometry, material, entries, shadow = false }) {
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
     ref.current.computeBoundingSphere();
   }, [entries]);
-  return <instancedMesh ref={ref} args={[geometry, material, entries.length]} castShadow={shadow} receiveShadow />;
+  return <instancedMesh ref={ref} args={[geometry, material, entries.length]} castShadow={shadow} receiveShadow={receiveShadow} />;
+}
+
+function Instances(props) {
+  // Separate spatial cells let Three cull invisible shoreline regions in both
+  // the main and reflection cameras without uploading matrices every frame.
+  const cells = useMemo(() => {
+    const groups = new Map();
+    for (const item of props.entries) {
+      const key = `${Math.floor(item.position[0] / 36)},${Math.floor(item.position[2] / 36)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    }
+    return [...groups.entries()];
+  }, [props.entries]);
+  return cells.map(([key, entries]) => <InstanceCell key={key} {...props} entries={entries} />);
 }
 
 function configureRockTextures(textures) {
   textures[0].colorSpace = THREE.SRGBColorSpace;
   textures[2].colorSpace = THREE.SRGBColorSpace;
   textures[4].colorSpace = THREE.SRGBColorSpace;
-  textures[6].colorSpace = THREE.SRGBColorSpace;
+
   textures.forEach(texture => { texture.anisotropy = 4; texture.wrapS = texture.wrapT = THREE.RepeatWrapping; });
 }
 
 function Shore({ config, width, low, medium, stage, reducedMotion }) {
   const wind = useRef({ value: 0 });
   useFrame(({ clock }) => { wind.current.value = reducedMotion ? 0 : clock.elapsedTime; });
-  const [rockColor, rockNormal, groundColor, groundNormal, twigColor, twigAlpha, barkColor, barkNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg', '/assets/environment/pine-twig-color.jpg', '/assets/environment/pine-twig-alpha.jpg', '/assets/environment/pine-bark-color.jpg', '/assets/environment/pine-bark-normal.jpg'].map(assetUrl), configureRockTextures);
+  const foliageAtlas = useTexture(assetUrl('/assets/environment/foliage-atlas.png'));
+  const [rockColor, rockNormal, groundColor, groundNormal, barkColor, barkNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg', '/assets/environment/pine-bark-color.jpg', '/assets/environment/pine-bark-normal.jpg'].map(assetUrl), configureRockTextures);
   const resources = useMemo(() => {
     const geometries = {
       left: makeBank(-1, config, width), right: makeBank(1, config, width),
       distant: makeMountain(3, config, true), near: makeMountain(8, config),
-      needles: makeNeedleGeometry(7), needlesB: makeNeedleGeometry(19), needlesC: makeNeedleGeometry(31), trunk: config.pine ? makePineTrunkGeometry() : new THREE.CylinderGeometry(.10, .24, 7, 7),
+      needles: makeNeedleGeometry(7), needlesB: makeNeedleGeometry(19), needlesC: makeNeedleGeometry(31), trunk: config.pine ? makePineTrunkGeometry() : makeBroadleafTrunkGeometry(),
       distantNeedles: makeNeedleGeometry(7, true),
       rock: new THREE.IcosahedronGeometry(1, 2), reed: new THREE.ConeGeometry(.035, 1.4, 3),
-      leaf: makeLeafGeometry(), lily: new THREE.CircleGeometry(.7, 16),
+      leaf: makeLeafGeometry(stage === 'lotus-pond' || stage === 'sunset-marsh'), lily: new THREE.CircleGeometry(.7, 16),
       petal: new THREE.SphereGeometry(1, 8, 6),
       grass: makeGrassTuftGeometry(),
     };
-    const leaves = makeLeafTexture();
+    const leaves = foliageAtlas.clone(), needles = foliageAtlas.clone();
+    for (const texture of [leaves, needles]) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.repeat.set(1 / 3 - .004, 1);
+      texture.anisotropy = 4; texture.needsUpdate = true;
+    }
+    leaves.offset.x = (stage === 'lotus-pond' || stage === 'sunset-marsh' ? 2 / 3 : 1 / 3) + .002;
+    needles.offset.x = .002;
     const materials = {
       land: new THREE.MeshStandardMaterial({ color: stage === 'forest-lake' ? '#8bb48b' : '#ffffff', vertexColors: true, map: groundColor, normalMap: groundNormal, normalScale: new THREE.Vector2(.6, .6), roughness: .97, side: THREE.DoubleSide }),
       mountain: new THREE.MeshStandardMaterial({ vertexColors: true, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .99 }),
-      needles: new THREE.MeshStandardMaterial({ color: '#ffffff', map: config.pine ? twigColor : leaves, emissiveMap: config.pine ? twigColor : leaves, emissive: '#a2bf77', emissiveIntensity: .22, alphaMap: config.pine ? twigAlpha : null, alphaTest: .36, alphaToCoverage: true, roughness: .82, side: THREE.DoubleSide }),
+      // Thin matte foliage needs diffuse lighting, not a full per-pixel metal/
+      // roughness + environment BRDF on every overlapping transparent leaf.
+      needles: new THREE.MeshLambertMaterial({ color: '#d2ddcb', map: config.pine ? needles : leaves, emissiveMap: config.pine ? needles : leaves, emissive: '#779851', emissiveIntensity: .08, alphaTest: .3, alphaToCoverage: true, side: THREE.DoubleSide }),
       trunk: new THREE.MeshStandardMaterial({ map: barkColor, normalMap: barkNormal, normalScale: new THREE.Vector2(.55, .55), roughness: .95 }),
       rock: new THREE.MeshStandardMaterial({ color: '#bbbdb4', map: rockColor, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .92 }),
       reed: new THREE.MeshStandardMaterial({ color: stage === 'sunset-marsh' ? '#b4a268' : '#7d8951', roughness: .9 }),
@@ -70,12 +95,6 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
           float bend = pow(clamp(position.y / 8., 0., 1.), 2.);
           transformed.x += sin(uWindTime * .65 + treeRoot.x * .23 + treeRoot.z * .13) * bend * .075;
           transformed.z += sin(uWindTime * .48 + treeRoot.z * .17) * bend * .045;`);
-        if (config.pine) {
-        shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_fragment>', `#include <alphamap_fragment>
-          float twigHeight = clamp((vAlphaMapUv.y - .565) / .4, 0., 1.);
-          float twigHalfWidth = .028 + .076 * smoothstep(0., .55, twigHeight);
-          diffuseColor.a *= 1. - smoothstep(twigHalfWidth, twigHalfWidth + .004, abs(vAlphaMapUv.x - .13));`);
-        }
       };
     materials.needles.customProgramCacheKey = () => `foliage-wind-transmission-${config.pine}`;
     const trunks = [], crowns = [], rocks = [], reeds = [], lilies = [], petals = [], grasses = [], shrubs = [];
@@ -93,7 +112,10 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
       trunks.push({ position: [x, ground + 3.5 * heightScale, z], rotation, scale: [scale, heightScale, scale] });
       if (config.pine) crowns.push({ position: [x, ground, z], rotation, scale: [scale, heightScale, scale], color: new THREE.Color('#ffffff').lerp(new THREE.Color('#94a978'), noise(i, 72) * .45).getStyle() });
       else {
-        for (let j = 0; j < 4; j++) crowns.push({ position: [x + Math.sin(j * 2.4) * scale, ground + (5 + noise(j + i, 5) * 2) * scale, z + Math.cos(j * 2.4) * scale], scale: [scale * 1.7, scale * 1.4, scale * 1.7], color: new THREE.Color(config.foliage).multiplyScalar(.8 + noise(i + j, 9) * .5).getStyle() });
+        for (let j = 0; j < 5; j++) {
+          const angle = j * 2.4 + rotation[1], radius = j === 4 ? 0 : 1.35 * scale;
+          crowns.push({ position: [x + Math.sin(angle) * radius, ground + (j === 4 ? 6.4 : 5.3 + (j % 2) * .7) * heightScale, z + Math.cos(angle) * radius], rotation: [0, angle, 0], scale: [scale * 1.55, heightScale * (stage === 'lotus-pond' || stage === 'sunset-marsh' ? 1.85 : 1.45), scale * 1.55], color: new THREE.Color('#d0d6a2').lerp(new THREE.Color('#94b672'), noise(i + j, 9)).getStyle() });
+        }
       }
     }
     for (let i = 0; i < (low ? 150 : medium ? 220 : 290); i++) {
@@ -128,12 +150,13 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
       }
     }
     const distantCrown = item => low && (item.position[2] > 130 || Math.abs(item.position[0]) > width + 23);
-    return { geometries, materials, trunks, crowns, crownGroups: [0, 1, 2].map(index => crowns.filter((item, i) => i % 3 === index && !distantCrown(item))), distantCrowns: crowns.filter(distantCrown), rocks, reeds, lilies, petals, grasses, shrubs, leaves };
-  }, [config, width, low, medium, stage, rockColor, rockNormal, groundColor, groundNormal, twigColor, twigAlpha, barkColor, barkNormal]);
+    return { geometries, materials, trunks, crowns, crownGroups: [0, 1, 2].map(index => crowns.filter((item, i) => i % 3 === index && !distantCrown(item))), distantCrowns: crowns.filter(distantCrown), rocks, reeds, lilies, petals, grasses, shrubs, leaves, needles };
+  }, [config, width, low, medium, stage, rockColor, rockNormal, groundColor, groundNormal, barkColor, barkNormal, foliageAtlas]);
   useEffect(() => () => {
     Object.values(resources.geometries).forEach(geometry => geometry.dispose());
     Object.values(resources.materials).forEach(material => material.dispose());
     resources.leaves.dispose();
+    resources.needles.dispose();
   }, [resources]);
   useLayoutEffect(() => { wind.current = resources.materials.needles.userData.windUniform; }, [resources]);
   const { geometries: g, materials: m } = resources;
@@ -144,8 +167,8 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
     <mesh position={[-110, -4, stage === 'forest-lake' ? 195 : 168]} scale={[.65, stage === 'forest-lake' ? .45 : config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <mesh position={[110, -4, stage === 'forest-lake' ? 225 : 196]} scale={[-.65, stage === 'forest-lake' ? .5 : config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <Instances geometry={g.trunk} material={m.trunk} entries={resources.trunks} shadow={!low} />
-    {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} />}
-    {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} />}
+    {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} receiveShadow={false} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} receiveShadow={false} />}
+    {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} receiveShadow={false} />}
     <Instances geometry={g.rock} material={m.rock} entries={resources.rocks} shadow={!low} />
     <Instances geometry={g.reed} material={m.reed} entries={resources.reeds} />
     {resources.grasses.length > 0 && <><Instances geometry={g.grass} material={m.grass} entries={resources.grasses} /><Instances geometry={g.leaf} material={m.shrub} entries={resources.shrubs} /></>}
@@ -247,7 +270,7 @@ function Buoys({ width, stage }) {
   return <><Instances geometry={geometry} material={material} entries={data.entries} /><Instances geometry={ropeGeometry} material={ropeMaterial} entries={data.ropes} /></>;
 }
 
-export default function RaceEnvironment({ config, stage, screen, width, low, medium, reducedMotion }) {
+function RaceEnvironment({ config, stage, screen, width, low, medium, reducedMotion }) {
   const golden = stage === 'forest-lake';
   return <>
     <color attach="background" args={[config.sky]} />
@@ -277,3 +300,5 @@ export default function RaceEnvironment({ config, stage, screen, width, low, med
 }
 
 
+
+export default memo(RaceEnvironment);

@@ -1,5 +1,7 @@
 # Editable duck assets
 
+Desktop performance/cuteness revision: fuller oval bodies and rounder heads, larger inset eyes, shorter shaped bills with matching nostrils/seams, and fitted glasses. High-detail body and wing topology is reduced while preserving the silhouette, rig and animations. The original source includes these changes; regenerate all five breeds with the command below. `cute-ducks-natural-trees-concept.png` is the current asset direction. `foliage-atlas-imagegen.png` is the retained RGBA source used directly by the tree material through three atlas regions.
+
 Regenerate with Blender 4.5:
 
 ```powershell
