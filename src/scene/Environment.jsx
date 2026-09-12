@@ -1,10 +1,10 @@
 /* eslint-disable react/no-unknown-property */
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { Environment as LightingEnvironment, useTexture } from '@react-three/drei';
+import { Environment as LightingEnvironment, RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import { bankX, makeBank, makeBarkTexture, makeMountain, makeNeedleGeometry, makeNeedleTexture, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
+import { bankX, makeBank, makeBarkTexture, makeMountain, makeNeedleGeometry, makePineTrunkGeometry, makeLeafGeometry, makeLeafTexture, noise } from './terrain';
 import Water from './Water';
-import { assetUrl } from './assetUrl';
+import { assetUrl, skyAssetUrl } from './assetUrl';
 
 function Instances({ geometry, material, entries, shadow = false }) {
   const ref = useRef();
@@ -26,43 +26,54 @@ function Instances({ geometry, material, entries, shadow = false }) {
 function configureRockTextures(textures) {
   textures[0].colorSpace = THREE.SRGBColorSpace;
   textures[2].colorSpace = THREE.SRGBColorSpace;
+  textures[4].colorSpace = THREE.SRGBColorSpace;
+  textures[6].colorSpace = THREE.SRGBColorSpace;
   textures.forEach(texture => { texture.anisotropy = 4; texture.wrapS = texture.wrapT = THREE.RepeatWrapping; });
 }
 
 function Shore({ config, width, low, medium, stage }) {
-  const [rockColor, rockNormal, groundColor, groundNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg'].map(assetUrl), configureRockTextures);
+  const [rockColor, rockNormal, groundColor, groundNormal, twigColor, twigAlpha, barkColor, barkNormal] = useTexture(['/assets/environment/rock-color.jpg', '/assets/environment/rock-normal.jpg', '/assets/environment/ground-color.jpg', '/assets/environment/ground-normal.jpg', '/assets/environment/pine-twig-color.jpg', '/assets/environment/pine-twig-alpha.jpg', '/assets/environment/pine-bark-color.jpg', '/assets/environment/pine-bark-normal.jpg'].map(assetUrl), configureRockTextures);
   const resources = useMemo(() => {
     const geometries = {
       left: makeBank(-1, config, width), right: makeBank(1, config, width),
       distant: makeMountain(3, config, true), near: makeMountain(8, config),
-      needles: makeNeedleGeometry(), trunk: new THREE.CylinderGeometry(.10, .24, 7, 7),
+      needles: makeNeedleGeometry(7), needlesB: makeNeedleGeometry(19), needlesC: makeNeedleGeometry(31), trunk: config.pine ? makePineTrunkGeometry() : new THREE.CylinderGeometry(.10, .24, 7, 7),
       rock: new THREE.IcosahedronGeometry(1, 2), reed: new THREE.ConeGeometry(.035, 1.4, 3),
       leaf: makeLeafGeometry(), lily: new THREE.CircleGeometry(.7, 16),
       petal: new THREE.SphereGeometry(1, 8, 6),
     };
-    const bark = makeBarkTexture();
-    const needles = makeNeedleTexture();
     const leaves = makeLeafTexture();
     const materials = {
       land: new THREE.MeshStandardMaterial({ vertexColors: true, map: groundColor, normalMap: groundNormal, normalScale: new THREE.Vector2(.6, .6), roughness: .97, side: THREE.DoubleSide }),
       mountain: new THREE.MeshStandardMaterial({ vertexColors: true, map: rockColor, normalMap: rockNormal, normalScale: new THREE.Vector2(1.2, 1.2), roughness: .99 }),
-      needles: new THREE.MeshStandardMaterial({ color: '#b0be99', map: config.pine ? needles : leaves, alphaTest: .28, roughness: .87, side: THREE.DoubleSide }),
-      trunk: new THREE.MeshStandardMaterial({ map: bark, roughness: .95 }),
+      needles: new THREE.MeshStandardMaterial({ color: config.pine ? '#becaa5' : '#b0be99', map: config.pine ? twigColor : leaves, alphaMap: config.pine ? twigAlpha : null, alphaTest: .32, roughness: .87, side: THREE.DoubleSide }),
+      trunk: new THREE.MeshStandardMaterial({ map: barkColor, normalMap: barkNormal, normalScale: new THREE.Vector2(.55, .55), roughness: .95 }),
       rock: new THREE.MeshStandardMaterial({ color: '#bbbdb4', map: rockColor, normalMap: rockNormal, normalScale: new THREE.Vector2(.8, .8), roughness: .92 }),
       reed: new THREE.MeshStandardMaterial({ color: stage === 'sunset-marsh' ? '#b4a268' : '#7d8951', roughness: .9 }),
       lily: new THREE.MeshStandardMaterial({ color: '#5d7950', roughness: .58, side: THREE.DoubleSide }),
       petal: new THREE.MeshStandardMaterial({ color: '#edb5b6', roughness: .63 }),
     };
+    if (config.pine) {
+      materials.needles.onBeforeCompile = shader => {
+        shader.fragmentShader = shader.fragmentShader.replace('#include <alphamap_fragment>', `#include <alphamap_fragment>
+          float twigHeight = clamp((vAlphaMapUv.y - .565) / .4, 0., 1.);
+          float twigHalfWidth = .028 + .076 * smoothstep(0., .55, twigHeight);
+          diffuseColor.a *= 1. - smoothstep(twigHalfWidth, twigHalfWidth + .004, abs(vAlphaMapUv.x - .13));`);
+      };
+      materials.needles.customProgramCacheKey = () => 'pine-twig-atlas-1';
+    }
     const trunks = [], crowns = [], rocks = [], reeds = [], lilies = [], petals = [];
     const treeCount = Math.round((low ? 170 : medium ? 230 : 310) * config.density);
     for (let i = 0; i < treeCount; i++) {
-      const side = i % 2 ? 1 : -1, z = -38 + noise(i, 11) * 201;
-      const spread = 2 + noise(i, 15) * 36;
+      const cluster = Math.floor(i / 7);
+      const side = cluster % 2 ? 1 : -1, z = -35 + noise(cluster, 11) * 275 + (noise(i, 21) - .5) * 13;
+      const spread = 1.5 + noise(cluster, 15) * 31 + noise(i, 16) * 6;
       const x = bankX(z, side, width) + side * spread;
       const scale = .45 + Math.pow(noise(i, 13), 1.4) * 2.25;
-      const ground = 1 + Math.min(spread * .08, 2);
-      trunks.push({ position: [x, ground + 3.5 * scale, z], scale: [scale, scale, scale] });
-      if (config.pine) crowns.push({ position: [x, ground, z], rotation: [0, noise(i, 14) * 6.28, 0], scale: [scale, scale * (1.15 + noise(i, 17) * .5), scale] });
+      const ground = 1 + Math.min(spread * .08, 2), heightScale = scale * (.9 + noise(i, 17) * .5);
+      const rotation = [(noise(i, 18) - .5) * .06, noise(i, 14) * 6.28, (noise(i, 19) - .5) * .07];
+      trunks.push({ position: [x, ground + 3.5 * heightScale, z], rotation, scale: [scale, heightScale, scale] });
+      if (config.pine) crowns.push({ position: [x, ground, z], rotation, scale: [scale, heightScale, scale], color: new THREE.Color('#ffffff').lerp(new THREE.Color('#94a978'), noise(i, 72) * .45).getStyle() });
       else {
         for (let j = 0; j < 4; j++) crowns.push({ position: [x + Math.sin(j * 2.4) * scale, ground + (5 + noise(j + i, 5) * 2) * scale, z + Math.cos(j * 2.4) * scale], scale: [scale * 1.7, scale * 1.4, scale * 1.7], color: new THREE.Color(config.foliage).multiplyScalar(.8 + noise(i + j, 9) * .5).getStyle() });
       }
@@ -89,21 +100,22 @@ function Shore({ config, width, low, medium, stage }) {
         petals.push({ position: [x + Math.sin(a) * .15, .16, z + Math.cos(a) * .15], scale: [.10, .08, .25], rotation: [.35, a, 0] });
       }
     }
-    return { geometries, materials, trunks, crowns, rocks, reeds, lilies, petals, bark, needles, leaves };
-  }, [config, width, low, medium, stage, rockColor, rockNormal, groundColor, groundNormal]);
+    return { geometries, materials, trunks, crowns, crownGroups: [0, 1, 2].map(index => crowns.filter((_item, i) => i % 3 === index)), rocks, reeds, lilies, petals, leaves };
+  }, [config, width, low, medium, stage, rockColor, rockNormal, groundColor, groundNormal, twigColor, twigAlpha, barkColor, barkNormal]);
   useEffect(() => () => {
     Object.values(resources.geometries).forEach(geometry => geometry.dispose());
     Object.values(resources.materials).forEach(material => material.dispose());
-    resources.bark.dispose(); resources.needles.dispose(); resources.leaves.dispose();
+    resources.leaves.dispose();
   }, [resources]);
   const { geometries: g, materials: m } = resources;
   return <group>
     <mesh geometry={g.left} material={m.land} receiveShadow />
     <mesh geometry={g.right} material={m.land} receiveShadow />
-    <mesh position={[0, -4, 149]} scale={[1, config.pine ? 1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.distant} material={m.mountain} />
-    <mesh position={[-15, -4, 131]} scale={[1, config.pine ? 1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
+    <mesh position={[10, -4, 265]} scale={[1.4, config.pine ? 1.5 : stage === 'sunset-marsh' ? .22 : .7, 1]} geometry={g.distant} material={m.mountain} />
+    <mesh position={[-110, -4, 168]} scale={[.65, config.pine ? .9 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
+    <mesh position={[110, -4, 196]} scale={[-.65, config.pine ? 1.1 : stage === 'sunset-marsh' ? .22 : .55, 1]} geometry={g.near} material={m.mountain} />
     <Instances geometry={g.trunk} material={m.trunk} entries={resources.trunks} shadow={!low} />
-    <Instances geometry={config.pine ? g.needles : g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} />
+    {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} />}
     <Instances geometry={g.rock} material={m.rock} entries={resources.rocks} shadow={!low} />
     <Instances geometry={g.reed} material={m.reed} entries={resources.reeds} />
     <Instances geometry={g.lily} material={m.lily} entries={resources.lilies} />
@@ -127,9 +139,9 @@ function HeroDock() {
   useEffect(() => () => { wood.dispose(); shadow.dispose(); }, [wood, shadow]);
   return <group position={[-4, 0, -16]}>
     <mesh position={[0, .618, .2]} rotation={[-Math.PI / 2, 0, -.6]}><planeGeometry args={[2.4, 2.2]} /><meshBasicMaterial map={shadow} transparent opacity={.6} depthWrite={false} /></mesh>
-    {Array.from({ length: 28 }, (_, i) => <mesh key={i} position={[0, .51, -3.5 + i * .28]} castShadow receiveShadow>
-      <boxGeometry args={[7.6, .20, .265]} /><meshStandardMaterial map={wood} color={i % 3 ? '#ceb991' : '#b9a582'} roughness={.84} />
-    </mesh>)}
+    {Array.from({ length: 28 }, (_, i) => <RoundedBox key={i} position={[0, .51 + noise(i, 19) * .005, -3.5 + i * .28]} args={[7.6, .20, .26]} radius={.018} smoothness={2} castShadow receiveShadow>
+      <meshStandardMaterial map={wood} color={i % 3 ? '#ceb991' : '#b9a582'} roughness={.84} />
+    </RoundedBox>)}
     {[-3.55, 3.55].flatMap(x => [-3.2, 3.9].map(z => <Timber key={`${x}-${z}`} position={[x, .25, z]} scale={[.28, 2.8, .28]} color="#6a573e" />))}
     <Timber position={[-3.55, 1.1, .3]} scale={[.11, .14, 7.4]} color="#8b7556" />
     {Array.from({ length: 40 }, (_, i) => <mesh key={`walk${i}`} position={[-4.1 - i * .45, .51, 3]} castShadow receiveShadow><boxGeometry args={[.43, .20, 2.1]} /><meshStandardMaterial map={wood} color="#b8a080" roughness={.84} /></mesh>)}
@@ -207,12 +219,12 @@ function Buoys({ width, stage }) {
 export default function RaceEnvironment({ config, stage, screen, width, low, medium, reducedMotion }) {
   return <>
     <color attach="background" args={[config.sky]} />
-    <fog attach="fog" args={[config.fog, 85, 310]} />
+    <fog attach="fog" args={[config.fog, 70, 450]} />
     <hemisphereLight args={[config.sky, '#58604b', 1.05]} />
     <directionalLight position={config.sunPosition} color={config.sun} intensity={3.1} castShadow={!low} shadow-mapSize-width={medium ? 512 : 1024} shadow-mapSize-height={medium ? 512 : 1024} shadow-camera-left={-25} shadow-camera-right={25} shadow-camera-top={25} shadow-camera-bottom={-25} shadow-camera-far={180} shadow-bias={-.0005} shadow-normalBias={.06} />
     {screen !== 'race' && <directionalLight position={[15, 12, -28]} color="#ffe6b9" intensity={2.0} />}
-    <LightingEnvironment files={assetUrl('/assets/environment/kloppenheim_06_puresky_2k.hdr')} background backgroundBlurriness={.03} environmentIntensity={.75} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
-    <Water config={config} reducedMotion={reducedMotion} low={low} medium={medium} />
+    <LightingEnvironment files={skyAssetUrl(stage)} background backgroundBlurriness={.03} environmentIntensity={.65} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
+    <Water config={config} stage={stage} reducedMotion={reducedMotion} low={low} medium={medium} />
     <Shore config={config} width={width} low={low} medium={medium} stage={stage} />
     <Dock position={[width - .5, 0, -17]} rotation={[0, -.18, 0]} long />
     {screen !== 'race' && screen !== 'stages' && <HeroDock />}

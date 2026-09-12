@@ -3,7 +3,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnvironment } from '@react-three/drei';
 import * as THREE from 'three';
-import { assetUrl } from './assetUrl';
+import { skyAssetUrl } from './assetUrl';
 
 const vertex = `
   varying vec3 vWorld;
@@ -62,9 +62,9 @@ const fragment = `
   }
 `;
 
-export default function Water({ config, reducedMotion, low, medium }) {
+export default function Water({ config, stage, reducedMotion, low, medium }) {
   const material = useRef();
-  const environment = useEnvironment({ files: assetUrl('/assets/environment/kloppenheim_06_puresky_2k.hdr') });
+  const environment = useEnvironment({ files: skyAssetUrl(stage) });
   const uniforms = useMemo(() => ({
     uTime: { value: 0 }, uDeep: { value: new THREE.Color(config.water) },
     uShallow: { value: new THREE.Color(config.shallows) }, uSky: { value: new THREE.Color(config.sky) },

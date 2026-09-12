@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // This deterministic field is exclusively scenery. It never touches the race engine.
 export function noise(i, seed = 0) {
@@ -7,7 +8,7 @@ export function noise(i, seed = 0) {
 }
 
 export const STAGES = {
-  'forest-lake': { sky: '#b9cfe0', fog: '#a9bfca', water: '#183f44', shallows: '#507768', land: '#576246', foliage: '#274733', sun: '#fff1cf', sunPosition: [35, 28, 90], mountain: '#6c8090', snow: true, pine: true, density: 1 },
+  'forest-lake': { sky: '#b9cfe0', fog: '#b1c3c5', water: '#183f44', shallows: '#507768', land: '#576246', foliage: '#274733', sun: '#ffe0a5', sunPosition: [35, 28, 90], mountain: '#6c8090', snow: true, pine: true, density: 1 },
   'mountain-river': { sky: '#bbd6e8', fog: '#bfd0d5', water: '#245d69', shallows: '#679b98', land: '#6d7360', foliage: '#354c3c', sun: '#fff7e7', sunPosition: [-35, 60, 30], mountain: '#667d91', snow: true, pine: true, density: .8 },
   'lotus-pond': { sky: '#c9d9ca', fog: '#bdcabb', water: '#294a3b', shallows: '#799067', land: '#697449', foliage: '#45663d', sun: '#ffefd1', sunPosition: [40, 35, 40], mountain: '#7e9283', snow: false, pine: false, density: .7 },
   'sunset-marsh': { sky: '#e6bd9c', fog: '#bca798', water: '#514d49', shallows: '#97836c', land: '#7d714c', foliage: '#68613b', sun: '#ffd198', sunPosition: [-25, 10, 90], mountain: '#897e84', snow: false, pine: false, density: .45 },
@@ -24,7 +25,7 @@ export function makeBank(side, config, width) {
   const base = new THREE.Color(config.land);
   const rock = new THREE.Color('#909087');
   for (let iz = 0; iz <= rows; iz++) {
-    const z = -65 + iz * 2.4;
+    const z = -65 + iz * 3.6;
     for (let ix = 0; ix <= columns; ix++) {
       const away = ix * 2.5;
       const x = bankX(z, side, width) + side * away;
@@ -57,7 +58,8 @@ export function makeMountain(seed, config, distant = false) {
     const wx = (x / cols - .5) * width, wz = z / rows * depth;
     const ridges = Math.pow(Math.abs(Math.sin(wx * .024 + seed)), 2) * 36 + Math.pow(Math.abs(Math.sin(wx * .067 + 2)), 3) * 20;
     const envelope = Math.sin(z / rows * Math.PI);
-    const h = 4 + (ridges + 5 + noise(x + z * 139, seed) * 5) * envelope * (distant ? 1.25 : .7);
+    const edge = Math.pow(Math.sin(x / cols * Math.PI), .7);
+    const h = 4 + (ridges + 5 + noise(x + z * 139, seed) * 5) * envelope * edge * (distant ? 1.25 : .7);
     positions.push(wx, h, wz);
     uvs.push(wx / 18, wz / 18 + h / 18);
     const isSnow = config.snow && h > (distant ? 32 : 28) + noise(x + z * 39) * 7;
@@ -93,27 +95,51 @@ export function makeBarkTexture() {
   return texture;
 }
 
-export function makeNeedleGeometry() {
-  // Six radial branches per whorl; jagged overlapping fans avoid smooth cone trees.
+export function makeNeedleGeometry(seed = 7) {
+  // Crossed twig cards sample only the photographed pine twig in the CC0 atlas.
+  // Hundreds of short branchlets create a porous volume, rather than long foliage fans.
   const positions = [], uvs = [], indices = [];
-  for (let layer = 0; layer < 8; layer++) {
-    const h = layer / 8;
-    for (let branch = 0; branch < 7; branch++) {
-      const a = branch / 7 * Math.PI * 2 + layer * 1.37;
-      const radius = (1 - h) * (1.25 + noise(layer * 7 + branch) * .5);
-      const y = 1.3 + h * 5.6;
-      const start = positions.length / 3;
-      const px = Math.cos(a), pz = Math.sin(a), bx = -pz * radius * .5, bz = px * radius * .5;
-      positions.push(bx * .18, y + .55, bz * .18, -bx * .18, y + .55, -bz * .18,
-        px * radius - bx, y - .4, pz * radius - bz, px * radius + bx, y - .4, pz * radius + bz);
-      uvs.push(0, 0, 1, 0, 1, 1, 0, 1);
-      indices.push(start, start + 1, start + 2, start, start + 2, start + 3);
+  for (let layer = 0; layer < 10; layer++) {
+    const h = layer / 10;
+    for (let branch = 0; branch < 6; branch++) {
+      if (noise(layer * 6 + branch, seed) < .13) continue;
+      const a = branch / 6 * Math.PI * 2 + layer * 2.11 + noise(branch, seed);
+      const radius = (.18 + Math.pow(1 - h, .75) * 2.2) * (.75 + noise(branch + layer * 6, seed + 1) * .4);
+      const y = 1.65 + h * 5.8 + noise(branch + layer * 6, seed + 2) * .28;
+      for (let twig = 0; twig < 9; twig++) {
+        const t = .16 + twig / 11, fork = (twig % 2 ? -1 : 1) * (.16 + .28 * (1 - t));
+        const direction = a + fork * 1.7;
+        const length = .42 + noise(twig + branch * 17, seed) * .4;
+        const root = new THREE.Vector3(Math.cos(a) * radius * t, y - t * .16, Math.sin(a) * radius * t);
+        const along = new THREE.Vector3(Math.cos(direction) * .75, .50, Math.sin(direction) * .75).normalize().multiplyScalar(length);
+        const across = new THREE.Vector3(-Math.sin(direction), 0, Math.cos(direction)).multiplyScalar(length * .25);
+        for (let crossed = 0; crossed < 2; crossed++) {
+          const width = across.clone().applyAxisAngle(along.clone().normalize(), crossed * Math.PI / 2);
+          const start = positions.length / 3;
+          for (const [u, v] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) positions.push(root.x + width.x * u + along.x * v, root.y + width.y * u + along.y * v, root.z + width.z * u + along.z * v);
+          uvs.push(.025, .55, .235, .55, .235, .99, .025, .99);
+          indices.push(start, start + 1, start + 2, start, start + 2, start + 3);
+        }
+      }
     }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   g.setIndex(indices); g.computeVertexNormals(); return g;
+}
+
+export function makePineTrunkGeometry() {
+  const parts = [new THREE.CylinderGeometry(.045, .18, 7.5, 7, 6)];
+  for (let layer = 0; layer < 9; layer++) for (let branch = 0; branch < 5; branch++) {
+    const h = layer / 9, a = branch / 5 * Math.PI * 2 + layer * 2.11;
+    const length = (.18 + (1 - h) * 1.95) * (.8 + noise(branch + layer, 7) * .3);
+    const start = new THREE.Vector3(0, -2.05 + h * 5.8, 0), end = new THREE.Vector3(Math.cos(a) * length, start.y - .15, Math.sin(a) * length);
+    const direction = end.clone().sub(start), geometry = new THREE.CylinderGeometry(.012, .045 * (1 - h) + .012, direction.length(), 4);
+    geometry.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize()));
+    geometry.translate(...start.add(end).multiplyScalar(.5).toArray()); parts.push(geometry);
+  }
+  const merged = mergeGeometries(parts); parts.forEach(part => part.dispose()); return merged;
 }
 
 export function makeNeedleTexture() {

@@ -5,6 +5,7 @@ import RaceEnvironment from './Environment';
 import Ducks, { laneX, raceZ } from './Ducks';
 import { STAGES } from './terrain';
 import { duckAssetPlan, duckAssetUrls } from './duckAssets';
+import RacerLabels from './RacerLabels';
 
 class SceneBoundary extends Component {
   state = { failed: false };
@@ -90,13 +91,21 @@ function Health({ onError, onMetrics, onSlow, quality, count }) {
   return null;
 }
 
+function LoadingSignal({ onLoading }) {
+  useEffect(() => { onLoading?.(); }, [onLoading]);
+  return null;
+}
+
 function ReadySignal({ onReady, requestKey }) {
-  useEffect(() => { onReady(); }, [onReady, requestKey]);
+  useEffect(() => {
+    const [screen, stage] = JSON.parse(requestKey);
+    onReady({ screen, stage, requestKey });
+  }, [onReady, requestKey]);
   return null;
 }
 
 /** A single 3D renderer. All race positions are inputs; no outcome generation occurs here. */
-export default function DuckScene({ screen = 'home', stage = 'forest-lake', participants = [], progress = [], appearances = [], isRacing = false, finished = false, cameraMode = 'chase', followId = null, quality = 'auto', reducedMotion = false, onReady, onError, onMetrics }) {
+export default function DuckScene({ screen = 'home', stage = 'forest-lake', participants = [], progress = [], appearances = [], isRacing = false, preparing = false, finished = false, cameraMode = 'chase', followId = null, quality = 'auto', reducedMotion = false, onReady, onLoading, onError, onMetrics }) {
   const [adaptiveLow, setAdaptiveLow] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 720 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)));
   const low = quality === 'low' || (quality === 'auto' && adaptiveLow);
   const medium = quality === 'medium';
@@ -105,8 +114,8 @@ export default function DuckScene({ screen = 'home', stage = 'forest-lake', part
   const handleSlow = useCallback(() => { if (quality === 'auto') setAdaptiveLow(true); }, [quality]);
   const readyRef = useRef(onReady);
   useEffect(() => { readyRef.current = onReady; }, [onReady]);
-  const handleReady = useCallback(() => readyRef.current?.(), []);
-  const requestKey = JSON.stringify([screen, stage, ...duckAssetUrls(duckAssetPlan(screen, participants, appearances))]);
+  const handleReady = useCallback(info => readyRef.current?.(info), []);
+  const requestKey = JSON.stringify([screen, stage, preparing, ...duckAssetUrls(duckAssetPlan(screen, participants, appearances))]);
   const createRenderer = useCallback(canvas => {
     try {
       return new THREE.WebGLRenderer({ canvas, antialias: !low, powerPreference: low ? 'low-power' : 'high-performance', alpha: false });
@@ -121,9 +130,10 @@ export default function DuckScene({ screen = 'home', stage = 'forest-lake', part
       <Canvas shadows={!low} dpr={low ? [1, 1.2] : medium ? [1, 1.4] : [1, 1.7]} camera={{ position: [0, 3, -24], fov: 49, near: .1, far: 500 }} gl={createRenderer} fallback={<span>3D graphics unavailable</span>}>
         <CameraRig screen={screen} participants={participants} progress={progress} cameraMode={cameraMode} followId={followId} reducedMotion={reducedMotion} />
         <Health onError={onError} onMetrics={onMetrics} onSlow={handleSlow} quality={low ? 'low' : medium ? 'medium' : 'high'} count={screen === 'race' ? participants.length : screen === 'stages' ? 0 : 1} />
-        <Suspense fallback={null}>
+        <Suspense fallback={<LoadingSignal onLoading={onLoading} />}>
           <RaceEnvironment config={config} stage={stage} screen={screen} width={width} low={low} medium={medium} reducedMotion={reducedMotion} />
           <Ducks screen={screen} participants={participants} progress={progress} appearances={appearances} reducedMotion={reducedMotion} isRacing={isRacing} finished={finished} />
+          {screen === 'race' && <RacerLabels participants={participants} progress={progress} followId={followId} cameraMode={cameraMode} />}
           <ReadySignal onReady={handleReady} requestKey={requestKey} />
         </Suspense>
       </Canvas>

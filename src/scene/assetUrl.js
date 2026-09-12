@@ -7,3 +7,7 @@ export function assetUrl(path) {
   const version = typeof __ASSET_VERSION__ === 'undefined' ? 'development' : __ASSET_VERSION__;
   return releaseAssetUrl(path, version, import.meta.env.PROD);
 }
+
+export function skyAssetUrl(stage) {
+  return assetUrl(`/assets/environment/kloppenheim_${stage === 'sunset-marsh' ? '06' : '05'}_puresky_2k.hdr`);
+}
