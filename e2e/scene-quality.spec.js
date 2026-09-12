@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test('graphics quality changes recover one renderer and settings tabs support keyboard navigation', async ({ page }) => {
+  // Hosted Linux uses SwiftShader. Three complete quality transitions exceeded
+  // 180s there despite passing each assertion; keep the same GPU-path coverage.
+  test.setTimeout(process.env.CI ? 360000 : 60000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => {
