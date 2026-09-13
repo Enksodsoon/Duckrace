@@ -1465,7 +1465,7 @@ legend {
   .stage-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    margin-top: 23vh;
+    margin-top: clamp(80px, 10svh, 120px);
   }
   .stage-card:last-child {
     grid-column: 1/3;
@@ -1492,7 +1492,7 @@ legend {
     font-size: 12px;
   }
   .garage-preview-label {
-    margin-top: 31vh;
+    margin-top: clamp(180px, 28svh, 290px);
     margin-right: 0;
     text-align: center;
   }
@@ -1683,6 +1683,247 @@ legend {
     font-size: 12px;
   }
 }
+/* Small phones need a deliberate single-column reading order.  The previous
+   two-column stage grid and four-column accessory grid technically fit, but
+   made titles and touch targets unnecessarily cramped. */
+@media (max-width: 560px) {
+  .topbar {
+    padding-inline: max(14px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-right));
+  }
+  .brand {
+    gap: 9px;
+  }
+  .brand span {
+    font-size: clamp(19px, 6.4vw, 23px);
+  }
+  .brand > svg {
+    width: 25px;
+    height: 25px;
+  }
+  main {
+    padding-inline: 14px;
+  }
+  .setup-layout {
+    padding-top: clamp(88px, 17svh, 142px);
+  }
+  .setup-panel {
+    padding: 18px;
+  }
+  .entry-tools {
+    align-items: stretch;
+  }
+  .entry-tools .toggle-row {
+    min-height: 44px;
+  }
+  .stage-screen {
+    padding-top: 2vh;
+  }
+  .stage-grid {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: clamp(82px, 15svh, 132px);
+  }
+  .stage-card,
+  .stage-card:last-child {
+    grid-column: auto;
+    min-height: 0;
+  }
+  .stage-art,
+  .stage-card:last-child .stage-art {
+    height: clamp(150px, 43vw, 190px);
+  }
+  .stage-footer {
+    margin-top: 18px;
+  }
+  .stage-footer .button {
+    width: 100%;
+  }
+  .garage-preview-label {
+    margin-top: clamp(150px, 28svh, 240px);
+  }
+  .garage-preview-label h2 {
+    font-size: clamp(28px, 9vw, 34px);
+  }
+  .garage-controls {
+    padding: 14px;
+  }
+  .accessory-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .accessory-grid button {
+    min-height: 74px;
+  }
+  .results-screen .page-heading {
+    margin-top: clamp(70px, 14svh, 120px);
+  }
+  .race-hud {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(104px, .72fr);
+    gap: 8px;
+  }
+  .leaderboard,
+  .timer {
+    width: auto;
+    min-width: 0;
+  }
+  .leaderboard {
+    padding: 8px 9px;
+  }
+  .leaderboard li {
+    gap: 4px;
+  }
+  .leaderboard li > svg {
+    display: none;
+  }
+  .rank-progress {
+    font-size: 8px;
+  }
+  .timer {
+    padding: 9px 7px;
+  }
+  .timer strong {
+    font-size: clamp(17px, 6.2vw, 21px);
+  }
+  .timer > span {
+    letter-spacing: .08em;
+  }
+  .race-bottom {
+    width: calc(100% - 20px);
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .race-progress {
+    padding: 10px;
+    gap: 7px;
+  }
+  .race-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .race-toolbar .button,
+  .camera-control,
+  .follow-control {
+    min-width: 0;
+  }
+  .race-toolbar .button {
+    justify-content: center;
+    padding-inline: 5px;
+  }
+  .camera-control {
+    padding-left: 6px;
+  }
+  .camera-control select,
+  .follow-control select {
+    max-width: 100%;
+    width: 100%;
+  }
+  .follow-control {
+    grid-column: span 2;
+  }
+  .winner-ribbon {
+    top: 38%;
+  }
+}
+@media (max-width: 360px) {
+  .topbar {
+    padding-inline: 12px;
+  }
+  .nav.open {
+    left: 10px;
+    right: 10px;
+  }
+  .home-panel {
+    width: min(100%, 260px);
+  }
+  .timber-title h1 {
+    font-size: 34px;
+  }
+  .entry-tools {
+    flex-wrap: wrap;
+  }
+  .entry-tools .toggle-row {
+    min-width: 0;
+    width: 100%;
+  }
+  .form-stack .field {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-stack .field > input,
+  .form-stack .field > select {
+    width: 100%;
+  }
+  .settings-screen {
+    padding-inline: 14px;
+  }
+  .settings-tabs button {
+    padding-inline: 7px;
+  }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .topbar {
+    height: 58px;
+    padding-block: 6px;
+  }
+  main,
+  .screen-race main {
+    min-height: calc(100svh - 58px);
+  }
+  .home-panel {
+    margin-top: 2vh;
+  }
+  .home-menu {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(100%, 620px);
+    margin-top: 15px;
+  }
+  .home-menu .button,
+  .home-menu .button.primary {
+    min-height: 42px;
+    font-size: 12px;
+    padding-left: 10px;
+    gap: 7px;
+  }
+  .home-caption {
+    margin-block: 12px;
+  }
+  .setup-layout {
+    align-items: flex-start;
+    min-height: 0;
+    padding-top: 4vh;
+  }
+  .setup-panel {
+    max-height: none;
+  }
+  .stage-grid,
+  .garage-preview-label {
+    margin-top: 8vh;
+  }
+  .stage-art {
+    height: 100px;
+  }
+  .leaderboard li:nth-child(n + 4) {
+    display: none;
+  }
+  .leaderboard .muted {
+    display: none;
+  }
+  .timer {
+    padding-block: 6px;
+  }
+  .race-bottom {
+    bottom: 6px;
+  }
+  .race-progress {
+    padding-block: 7px;
+  }
+  .race-toolbar {
+    margin-top: 5px;
+  }
+  .winner-ribbon,
+  .race-ready {
+    top: 32%;
+  }
+}
 @media (max-width: 430px) {
   .home-panel {
     width: 260px;
@@ -1711,7 +1952,7 @@ legend {
     display: none;
   }
   .stage-grid {
-    margin-top: 19vh;
+    margin-top: clamp(82px, 15svh, 132px);
   }
   .stage-art {
     height: 130px;
@@ -1753,7 +1994,7 @@ legend {
     width: 18px;
   }
   .garage-preview-label {
-    margin-top: 30vh;
+    margin-top: clamp(150px, 28svh, 240px);
   }
   .entry-tools .toggle-row {
     font-size: 11px;
