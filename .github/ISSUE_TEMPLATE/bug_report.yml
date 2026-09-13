@@ -1,0 +1,71 @@
+name: Bug report
+description: Report a reproducible problem in Duckrace
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Duckrace. Please include enough detail for the problem to be reproduced.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Choose ...
+        3. Start ...
+        4. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 152
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device / operating system
+      placeholder: Windows 11 desktop, iPhone, Android tablet, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, recordings, or console output
+      description: Drag visual evidence or relevant logs here when available.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Home / navigation
+        - Race setup
+        - Duck garage
+        - Stages / environment
+        - 3D race / rendering
+        - Results / replay
+        - Settings / accessibility
+        - Offline / installation
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked for an existing issue describing the same problem.
+          required: true
+        - label: I did not include private names, credentials, or sensitive data in the report.
+          required: true
