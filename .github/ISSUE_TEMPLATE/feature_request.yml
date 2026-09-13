@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest a focused improvement for Duckrace
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the user need before describing the implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Explain how you imagine the feature working from the user's point of view.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Race setup / randomizer
+        - Duck customization
+        - Stages / environment
+        - Race presentation
+        - Results / replay / export
+        - Accessibility / responsive UI
+        - Performance / rendering
+        - Developer tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: visuals
+    attributes:
+      label: Visual references or mockups
+      description: Add sketches, screenshots, or examples if this is a visual request.
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Project principles
+      options:
+        - label: The idea can keep randomization independent from visual presentation.
+          required: true
+        - label: I checked for an existing issue or pull request covering the same idea.
+          required: true
