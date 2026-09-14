@@ -49,8 +49,8 @@ Duckrace turns a random draw into an animated 3D race. Add up to **100 names**, 
     </td>
     <td width="50%" align="center">
       <strong>4 · Watch the race live</strong><br/>
-      <img src="docs/showcase/race.webp" alt="Duckrace live race promotional screen" /><br/>
-      <sub>Follow the field from start to finish with standings, camera controls, and race progress.</sub>
+      <img src="docs/evidence/local/race-desktop.png" alt="Actual Duckrace live race screen" /><br/>
+      <sub>Actual in-game capture: follow the field from start to finish with standings, camera controls, and race progress.</sub>
     </td>
   </tr>
   <tr>
