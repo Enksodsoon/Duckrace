@@ -32,34 +32,34 @@ These polished repository images are based on Duckrace's real screens, duck desi
   <tr>
     <td width="33%" align="center">
       <strong>Welcome to Duck Race</strong><br/>
-      <img src="docs/showcase/home.webp" width="320" alt="Duckrace promotional home screen" /><br/>
+      <img src="docs/showcase/home.webp" width="240" alt="Duckrace promotional home screen" /><br/>
       <sub>Start a new draw and discover the main game features.</sub>
     </td>
     <td width="33%" align="center">
       <strong>Set up your race</strong><br/>
-      <img src="docs/showcase/setup.webp" width="320" alt="Duckrace promotional race setup screen" /><br/>
+      <img src="docs/showcase/setup.webp" width="240" alt="Duckrace promotional race setup screen" /><br/>
       <sub>Add entries, choose winners, and start in seconds.</sub>
     </td>
     <td width="33%" align="center">
       <strong>Customize your duck</strong><br/>
-      <img src="docs/showcase/garage.webp" width="320" alt="Duckrace promotional duck garage screen" /><br/>
+      <img src="docs/showcase/garage.webp" width="200" alt="Duckrace promotional duck garage screen" /><br/>
       <sub>Choose a breed and cosmetics without changing anyone's odds.</sub>
     </td>
   </tr>
   <tr>
     <td width="33%" align="center">
       <strong>Choose a stage</strong><br/>
-      <img src="docs/showcase/stages.webp" width="320" alt="Duckrace promotional stage selection screen" /><br/>
+      <img src="docs/showcase/stages.webp" width="240" alt="Duckrace promotional stage selection screen" /><br/>
       <sub>Five environments. The same fair chance.</sub>
     </td>
     <td width="33%" align="center">
       <strong>Watch the race live</strong><br/>
-      <img src="docs/showcase/race.webp" width="320" alt="Duckrace promotional live race screen" /><br/>
+      <img src="docs/showcase/race.webp" width="240" alt="Duckrace promotional live race screen" /><br/>
       <sub>Follow the field with standings, progress, and camera controls.</sub>
     </td>
     <td width="33%" align="center">
       <strong>View the results</strong><br/>
-      <img src="docs/showcase/results.webp" width="320" alt="Duckrace promotional results screen" /><br/>
+      <img src="docs/showcase/results.webp" width="240" alt="Duckrace promotional results screen" /><br/>
       <sub>See the winner, replay the race, and export the outcome.</sub>
     </td>
   </tr>
