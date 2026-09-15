@@ -1,0 +1,38 @@
+name: Materialize welcome showcase hero
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches:
+      - fix/welcome-hero-main
+    paths:
+      - .github/workflows/materialize-welcome-hero.yml
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/welcome-hero-main
+      - name: Decode welcome hero
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/showcase
+          cat .tmp-showcase/home.part0 .tmp-showcase/home.part1 .tmp-showcase/home.part2 .tmp-showcase/home.part3 | base64 --decode > docs/showcase/home.webp
+          test "$(stat -c%s docs/showcase/home.webp)" -eq 46250
+          file docs/showcase/home.webp | grep -q 'Web/P image'
+      - name: Commit final binary and clean staging files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/showcase/home.webp
+          git rm -r .tmp-showcase
+          git rm .github/workflows/materialize-welcome-hero.yml
+          git commit -m "docs: add welcome showcase hero"
+          git push origin HEAD:fix/welcome-hero-main
