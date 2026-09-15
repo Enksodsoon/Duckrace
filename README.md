@@ -5,9 +5,9 @@
   <p>
     <a href="https://duckrace-six.vercel.app"><strong>Play live</strong></a>
     ·
-    <a href="#how-duckrace-works"><strong>See how it works</strong></a>
+    <a href="#promotional-showcase"><strong>Showcase</strong></a>
     ·
-    <a href="#gameplay-gallery"><strong>Gameplay gallery</strong></a>
+    <a href="#actual-gameplay"><strong>Actual gameplay</strong></a>
     ·
     <a href="#run-locally"><strong>Run locally</strong></a>
   </p>
@@ -24,43 +24,64 @@
 
 Duckrace turns a random draw into an animated 3D race. Add up to **100 names**, choose a duck and a stage, then run a timed race or an instant draw. The finish order is decided **before** the animation begins, so camera motion, frame rate, graphics quality, duck models, and stage effects cannot change the result.
 
-## How Duckrace works
+## Promotional showcase
 
-Every image in this walkthrough is an **untouched capture from the running game**.
+These polished repository images are based on Duckrace's real screens, duck designs, environments, and visual language. They are **promotional artwork**, not untouched gameplay captures; the current game is shown separately in the [Actual gameplay](#actual-gameplay) section.
 
 <table>
   <tr>
-    <td width="50%" align="center">
-      <strong>1 · Set up the race</strong><br/>
-      <img src="docs/evidence/local/setup-desktop.png" alt="Actual Duckrace race setup screen" /><br/>
-      <sub>Add up to 100 entries, choose race length and winners, or run an instant pick.</sub>
+    <td width="33%" align="center">
+      <strong>Welcome to Duck Race</strong><br/>
+      <img src="docs/showcase/home.webp" width="320" alt="Duckrace promotional home screen" /><br/>
+      <sub>Start a new draw and discover the main game features.</sub>
     </td>
-    <td width="50%" align="center">
-      <strong>2 · Customize your ducks</strong><br/>
-      <img src="docs/evidence/local/garage-desktop.png" alt="Actual Duckrace duck garage screen" /><br/>
-      <sub>Choose a breed and cosmetic look without changing anyone's odds.</sub>
+    <td width="33%" align="center">
+      <strong>Set up your race</strong><br/>
+      <img src="docs/showcase/setup.webp" width="320" alt="Duckrace promotional race setup screen" /><br/>
+      <sub>Add entries, choose winners, and start in seconds.</sub>
     </td>
-  </tr>
-  <tr>
-    <td width="50%" align="center">
-      <strong>3 · Choose a stage</strong><br/>
-      <img src="docs/evidence/local/stages-desktop.png" alt="Actual Duckrace stage selection screen" /><br/>
-      <sub>Race across Forest Lake, Mountain River, Lotus Pond, Sunset Marsh, or Village Canal.</sub>
-    </td>
-    <td width="50%" align="center">
-      <strong>4 · Watch the race live</strong><br/>
-      <img src="docs/evidence/local/race-desktop.png" alt="Actual Duckrace live race screen" /><br/>
-      <sub>Follow the field from start to finish with standings, camera controls, and race progress.</sub>
+    <td width="33%" align="center">
+      <strong>Customize your duck</strong><br/>
+      <img src="docs/showcase/garage.webp" width="320" alt="Duckrace promotional duck garage screen" /><br/>
+      <sub>Choose a breed and cosmetics without changing anyone's odds.</sub>
     </td>
   </tr>
   <tr>
-    <td colspan="2" align="center">
-      <strong>5 · Review the results</strong><br/>
-      <img src="docs/evidence/local/results-desktop.png" width="75%" alt="Actual Duckrace results screen" /><br/>
-      <sub>See the winner, replay the race, export results, and continue an elimination session.</sub>
+    <td width="33%" align="center">
+      <strong>Choose a stage</strong><br/>
+      <img src="docs/showcase/stages.webp" width="320" alt="Duckrace promotional stage selection screen" /><br/>
+      <sub>Five environments. The same fair chance.</sub>
+    </td>
+    <td width="33%" align="center">
+      <strong>Watch the race live</strong><br/>
+      <img src="docs/showcase/race.webp" width="320" alt="Duckrace promotional live race screen" /><br/>
+      <sub>Follow the field with standings, progress, and camera controls.</sub>
+    </td>
+    <td width="33%" align="center">
+      <strong>View the results</strong><br/>
+      <img src="docs/showcase/results.webp" width="320" alt="Duckrace promotional results screen" /><br/>
+      <sub>See the winner, replay the race, and export the outcome.</sub>
     </td>
   </tr>
 </table>
+
+## How Duckrace works
+
+```text
+Add names
+   │
+   ▼
+Choose duck + stage
+   │
+   ▼
+Result is fixed fairly before animation
+   │
+   ▼
+Watch the 3D race
+   │
+   ▼
+Review / replay / export
+```
 
 ## Why Duckrace
 
@@ -73,7 +94,38 @@ Every image in this walkthrough is an **untouched capture from the running game*
 | **Reproducible when needed** | Explicit seeds can reproduce a draw; replay reads the saved result rather than running the randomizer again. |
 | **Resilient** | The app includes offline shell caching, graceful WebGL failure handling, reduced-motion support, and adaptive graphics. |
 
-## Gameplay gallery
+## Actual gameplay
+
+Everything in this section is an **untouched capture from the running project**.
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <strong>Race setup</strong><br/>
+      <img src="docs/evidence/local/setup-desktop.png" alt="Actual Duckrace race setup screen" />
+    </td>
+    <td width="50%" align="center">
+      <strong>Duck garage</strong><br/>
+      <img src="docs/evidence/local/garage-desktop.png" alt="Actual Duckrace duck garage screen" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <strong>Stage selection</strong><br/>
+      <img src="docs/evidence/local/stages-desktop.png" alt="Actual Duckrace stage selection screen" />
+    </td>
+    <td width="50%" align="center">
+      <strong>Live 3D race</strong><br/>
+      <img src="docs/evidence/local/race-desktop.png" alt="Actual Duckrace live race screen" />
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <strong>Results</strong><br/>
+      <img src="docs/evidence/local/results-desktop.png" width="75%" alt="Actual Duckrace results screen" />
+    </td>
+  </tr>
+</table>
 
 ### Five race environments
 
@@ -206,6 +258,7 @@ Duckrace/
 ├─ art-source/          Editable Blender sources and art references
 ├─ scripts/             Build, release, performance, and art tooling
 ├─ e2e/                 Playwright browser coverage
+├─ docs/showcase/       Optimized promotional repository artwork
 ├─ docs/evidence/       Untouched UI, visual, and performance evidence
 └─ docs/                Asset rights and release verification notes
 ```
@@ -221,6 +274,8 @@ Do not create a duplicate Vercel project for this repository.
 ## Assets & attribution
 
 Duckrace includes original rigged duck models and project-authored runtime assets. Editable Blender sources are kept in `art-source`; authoring tools live under `scripts/art`.
+
+The `docs/showcase/` images are optimized promotional README artwork derived from the project's established characters and visual direction; `docs/evidence/` contains the untouched gameplay evidence.
 
 - [Duck asset rights and attribution](docs/asset-rights.md)
 - [Environment asset notes](docs/environment-assets.md)
