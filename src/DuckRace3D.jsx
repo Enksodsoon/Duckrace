@@ -32,8 +32,8 @@ function laneZ(index, count) {
   return (index - (count - 1) / 2) * spacing;
 }
 
-function makeMaterial(color) {
-  return new THREE.MeshLambertMaterial({ color });
+function makeMaterial(color, roughness = 0.5, metalness = 0) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
 
 function DuckAccessory3D({ variant }) {

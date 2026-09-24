@@ -71,7 +71,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => hit);
+        .catch(() => hit || new Response(null, { status: 504, statusText: 'Gateway Timeout' }));
       return network;
     }),
   );

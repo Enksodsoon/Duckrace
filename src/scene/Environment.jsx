@@ -10,6 +10,7 @@ import { assetUrl, skyAssetUrl } from './assetUrl';
 function InstanceCell({ geometry, material, entries, shadow = false, receiveShadow = true }) {
   const ref = useRef();
   useLayoutEffect(() => {
+    if (!ref.current) return;
     const matrix = new THREE.Matrix4(), quaternion = new THREE.Quaternion(), vector = new THREE.Vector3();
     entries.forEach((item, index) => {
       quaternion.setFromEuler(new THREE.Euler(...(item.rotation || [0, 0, 0])));
@@ -238,7 +239,9 @@ function Finish({ width }) {
       ctx.fillRect(x * 32, y * 32, 32, 32); ctx.fillRect(768 + x * 32, y * 32, 32, 32);
     }
     ctx.fillStyle = '#f5ead4'; ctx.font = 'bold 86px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('FINISH', 512, 96);
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    t.repeat.x = -1; t.offset.x = 1;
+    return t;
   }, []);
   useEffect(() => () => texture.dispose(), [texture]);
   return <group position={[0, 0, 78]}>

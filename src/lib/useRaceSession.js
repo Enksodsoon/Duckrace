@@ -49,7 +49,7 @@ export default function useRaceSession() {
   const params = new URLSearchParams(window.location.search);
   const overlay = params.get("view") === "overlay";
   const [audience, setAudience] = useState(
-    overlay || ["1", "true"].includes(params.get("audience")),
+    overlay || ["1", "true", "yes"].includes(String(params.get("audience")).toLowerCase()),
   );
   const [screen, setScreen] = useState(audience ? "race" : "home");
   const participants = useMemo(
@@ -99,7 +99,9 @@ export default function useRaceSession() {
         JSON.stringify({ version: 3, settings, history, legacyHistory }),
       );
     } catch {
-      setNotice("Browser storage is unavailable or full. Export results to keep them.");
+      window.setTimeout(() => {
+        setNotice("Browser storage is unavailable or full. Export results to keep them.");
+      }, 0);
     }
   }, [settings, history, legacyHistory]);
   useEffect(
@@ -126,7 +128,7 @@ export default function useRaceSession() {
     try {
       const Audio = window.AudioContext || window.webkitAudioContext;
       if (!Audio) return;
-      if (!audio.current) audio.current = new Audio();
+      if (!audio.current || audio.current.state === "closed") audio.current = new Audio();
       const ctx = audio.current;
       const play = () => {
         const notes =
@@ -333,6 +335,11 @@ export default function useRaceSession() {
     setUndo(null);
     setNotice("Saved session cleared.");
   }
+  const actionsRef = useRef({});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    actionsRef.current = { start, busy, setAudience, setSettings };
+  });
   useEffect(() => {
     const keydown = (e) => {
       if (
@@ -343,20 +350,21 @@ export default function useRaceSession() {
         ["INPUT", "TEXTAREA", "SELECT"].includes(e.target?.tagName)
       )
         return;
+      const { start: runStart, busy: isBusy, setAudience: updateAudience, setSettings: updateSettings } = actionsRef.current;
       if (e.key.toLowerCase() === "r") {
         e.preventDefault();
-        start();
+        runStart();
       }
       if (e.key.toLowerCase() === "i") {
         e.preventDefault();
-        start(true);
+        runStart(true);
       }
-      if (e.key.toLowerCase() === "m") setSettings((s) => ({ ...s, sound: !s.sound }));
-      if (e.key === "Escape" && !busy) setAudience(false);
+      if (e.key.toLowerCase() === "m") updateSettings((s) => ({ ...s, sound: !s.sound }));
+      if (e.key === "Escape" && !isBusy) updateAudience(false);
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  });
+  }, []);
   return {
     settings,
     patch,

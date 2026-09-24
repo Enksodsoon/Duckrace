@@ -1,12 +1,25 @@
-import { Camera, Expand, Flag, Trophy, Volume2, VolumeX, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Camera, Expand, Flag, Minimize, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { Button, DuckIcon } from "./design.jsx";
 import { COLORS, formatTime, STAGES } from "../lib/catalog.js";
 import { StartButtons } from "./SetupScreen.jsx";
-export default function RaceScreen({ session: s, setFollowId }) {
+export default function RaceScreen({ session: s, followId, setFollowId }) {
   const o = s.settings,
     record = s.record;
+  const [isFullscreen, setIsFullscreen] = useState(
+    () => typeof document !== "undefined" && Boolean(document.fullscreenElement),
+  );
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
   const live = record
-    ? s.frame.ranking.map((id) => record.participants.find((p) => p.id === id))
+    ? s.frame.ranking
+        .map((id) => record.participants.find((p) => p.id === id))
+        .filter(Boolean)
     : s.participants;
   const winner = record?.participants.find((p) => p.id === record.order[0]);
   return (
@@ -17,29 +30,28 @@ export default function RaceScreen({ session: s, setFollowId }) {
             {s.replaying ? "Replay" : s.phase === "finished" ? "Finish order" : "Live standings"}
           </div>
           <ol>
-            {live.slice(0, o.compact ? 4 : 6).map((p, i) => (
-              <li key={p.id} style={{ "--duck-color": COLORS[i % COLORS.length] }}>
-                <span className="rank-number">{i + 1}</span>
-                <DuckIcon size={19} />
-                <button
-                  onClick={() => {
-                    setFollowId(p.id);
-                    s.patch({ camera: "follow" });
-                  }}
-                  title={`Follow ${p.name}`}
-                >
-                  {p.name}
-                </button>
-                <span className="rank-progress">
-                  {record
-                    ? Math.floor(
-                        s.frame.progress[record.participants.findIndex((x) => x.id === p.id)],
-                      )
-                    : 0}
-                  %
-                </span>
-              </li>
-            ))}
+            {live.slice(0, o.compact ? 4 : 6).map((p, i) => {
+              const pIndex = record ? record.participants.findIndex((x) => x.id === p.id) : -1;
+              const pProgress = pIndex >= 0 ? s.frame.progress[pIndex] : 0;
+              return (
+                <li key={p.id} style={{ "--duck-color": COLORS[i % COLORS.length] }}>
+                  <span className="rank-number">{i + 1}</span>
+                  <DuckIcon size={19} />
+                  <button
+                    onClick={() => {
+                      setFollowId(p.id);
+                      s.patch({ camera: "follow" });
+                    }}
+                    title={`Follow ${p.name}`}
+                  >
+                    {p.name}
+                  </button>
+                  <span className="rank-progress">
+                    {record ? Math.floor(pProgress || 0) : 0}%
+                  </span>
+                </li>
+              );
+            })}
           </ol>
           {live.length > 6 && <span className="muted">{live.length} ducks racing</span>}
         </div>
@@ -109,7 +121,7 @@ export default function RaceScreen({ session: s, setFollowId }) {
                 className="progress-duck"
                 title={p.name}
                 style={{
-                  left: `${record ? s.frame.progress[i] : 0}%`,
+                  left: `${record && s.frame.progress[i] != null ? s.frame.progress[i] : 0}%`,
                   color: COLORS[i % COLORS.length],
                   zIndex: i,
                 }}
@@ -137,7 +149,7 @@ export default function RaceScreen({ session: s, setFollowId }) {
             <span className="sr-only">Follow participant</span>
             <select
               aria-label="Follow participant"
-              defaultValue=""
+              value={followId || ""}
               onChange={(e) => {
                 setFollowId(e.target.value);
                 s.patch({ camera: "follow" });
@@ -157,7 +169,7 @@ export default function RaceScreen({ session: s, setFollowId }) {
             {o.sound ? "Sound on" : "Sound off"}
           </Button>
           <Button
-            icon={Expand}
+            icon={isFullscreen ? Minimize : Expand}
             onClick={() =>
               document.fullscreenElement
                 ? document.exitFullscreen?.()
@@ -166,7 +178,7 @@ export default function RaceScreen({ session: s, setFollowId }) {
                     .catch(() => s.setNotice("Fullscreen is unavailable."))
             }
           >
-            Fullscreen
+            {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
           </Button>
           <Button
             icon={X}

@@ -11,10 +11,16 @@ export function exportEntries(participants, csv = false) {
 }
 export function exportResults(record, xls = false) {
   if (!record) return;
-  const ranked = record.order.map((id) => record.participants.find((p) => p.id === id));
+  const ranked = record.order
+    .map((id) => record.participants.find((p) => p.id === id))
+    .filter(Boolean);
   if (xls) {
     const escape = (value) =>
-      String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     downloadText(
       "results.xls",
       `<html><head><meta charset="UTF-8"></head><body><table><tr><th>rank</th><th>name</th></tr>${ranked.map((p, i) => `<tr><td>${i + 1}</td><td style='mso-number-format:"\\@"'>${escape(p.name)}</td></tr>`).join("")}</table></body></html>`,

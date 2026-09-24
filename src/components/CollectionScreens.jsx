@@ -65,8 +65,8 @@ export function GarageScreen({ session: s, navigate }) {
         Choose your look. Every duck races with equal odds.
       </Heading>
       <div className="garage-preview-label">
-        <h2>{BREEDS.find((x) => x.id === o.breed).name}</h2>
-        <span>{BREEDS.find((x) => x.id === o.breed).description}</span>
+        <h2>{(BREEDS.find((x) => x.id === o.breed) || BREEDS[0]).name}</h2>
+        <span>{(BREEDS.find((x) => x.id === o.breed) || BREEDS[0]).description}</span>
       </div>
       <div className="garage-controls panel">
         <div className="breed-tabs" role="group" aria-label="Duck breeds">

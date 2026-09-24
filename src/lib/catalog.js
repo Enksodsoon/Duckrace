@@ -49,6 +49,7 @@ export const ACCESSORIES = [
 export const SAMPLE = "Group 1\nGroup 2\nGroup 3\nGroup 4\nGroup 5\nGroup 6";
 export const COLORS = ["#d9b345", "#55a66a", "#e9e7db", "#b18a62", "#649dcc", "#b089c4"];
 export function formatTime(ms) {
-  const value = Math.max(0, Math.floor(ms / 10));
+  const safeMs = Number.isFinite(ms) ? ms : 0;
+  const value = Math.max(0, Math.floor(safeMs / 10));
   return `${String(Math.floor(value / 6000)).padStart(2, "0")}:${String(Math.floor(value / 100) % 60).padStart(2, "0")}.${String(value % 100).padStart(2, "0")}`;
 }

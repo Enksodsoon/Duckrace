@@ -136,7 +136,12 @@ export default function SetupScreen({ session: s, navigate }) {
                       : e.target.value === "first"
                         ? [0]
                         : Array.from(
-                            { length: Math.min(o.podiumCount, s.participants.length) },
+                            {
+                              length: Math.min(
+                                o.podiumCount,
+                                s.participants.length || o.podiumCount,
+                              ),
+                            },
                             (_, i) => i,
                           ),
                 })
@@ -201,7 +206,13 @@ export default function SetupScreen({ session: s, navigate }) {
               <legend>Eliminate finishing places</legend>
               <div className="place-chips">
                 {Array.from(
-                  { length: Math.min(o.podiumCount, s.participants.length, 100) },
+                  {
+                    length: Math.min(
+                      o.podiumCount,
+                      s.participants.length || o.podiumCount,
+                      100,
+                    ),
+                  },
                   (_, i) => (
                     <label key={i}>
                       <input
@@ -267,7 +278,7 @@ export default function SetupScreen({ session: s, navigate }) {
         <Mountain size={24} />
         <div>
           <small>Selected stage</small>
-          <h2>{STAGES.find((x) => x.id === o.stage).name}</h2>
+          <h2>{(STAGES.find((x) => x.id === o.stage) || STAGES[0]).name}</h2>
         </div>
         <Button icon={ArrowRight} onClick={() => navigate("stages")}>
           Change Stage

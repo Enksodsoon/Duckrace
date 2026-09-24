@@ -73,20 +73,36 @@ describe("session compatibility and entry identity", () => {
     expect(() => parseImport('"Unfinished', "a.csv")).toThrow("unclosed");
     expect(() => parseImport('name\n"Alice\nBob"', "a.csv")).toThrow("one line");
   });
-  it("neutralizes spreadsheet formulas and bounds saved settings", () => {
+  it("preserves comma-containing names when importing multiline text files", () => {
+    const textNames = parseImport("Smith, Jane\nDoe, John", "entries.txt");
+    expect(textNames).toEqual(["Smith, Jane", "Doe, John"]);
+    const singleLine = parseImport("Alpha, Beta, Gamma", "entries.txt");
+    expect(singleLine).toEqual(["Alpha", "Beta", "Gamma"]);
+  });
+  it("correctly imports results.csv roundtrip and multi-column files", () => {
+    const resultsCsv = '"rank","name"\n"1","Mallard Prime"\n"2","Pekin Swift"';
+    expect(parseImport(resultsCsv, "results.csv")).toEqual(["Mallard Prime", "Pekin Swift"]);
+
+    const multiCol = '"#","score","Participant"\n"1","99","Duck A"\n"2","88","Duck B"';
+    expect(parseImport(multiCol, "data.csv")).toEqual(["Duck A", "Duck B"]);
+
+    const noHeader = '"Racer 1","10"\n"Racer 2","20"';
+    expect(parseImport(noHeader, "raw.csv")).toEqual(["Racer 1", "Racer 2"]);
+  });
+  it("neutralizes spreadsheet formulas, sorts elimination places and bounds saved settings", () => {
     expect(csvCell("=1+2")).toBe('"\'=1+2"');
     expect(
       validateSettings({
         duration: Infinity,
         podiumCount: 900,
         stage: "unknown",
-        eliminationPlaces: [0, 0, -1, 101],
+        eliminationPlaces: [2, 0, 0, -1, 101],
       }),
     ).toMatchObject({
       duration: 15,
       podiumCount: 100,
       stage: "forest-lake",
-      eliminationPlaces: [0],
+      eliminationPlaces: [0, 2],
     });
   });
 });

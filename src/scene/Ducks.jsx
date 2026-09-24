@@ -47,6 +47,7 @@ function AnimatedDuck({ model, position, rotation, scale, accessory, moving, fin
   }, [mixer, model, moving, finished, reducedMotion]);
   useEffect(() => () => mixer.uncacheRoot(object), [mixer, object]);
   useFrame(({ clock }, delta) => {
+    if (!group.current) return;
     if (!reducedMotion) {
       mixer.update(Math.min(delta, .05));
       // The exported celebration translation follows the tilted body bone's
@@ -164,6 +165,7 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
   const uniforms = useMemo(() => ({ time: { value: 0 }, moving: { value: 0 } }), []);
   const matrix = useMemo(() => new THREE.Matrix4(), []);
   useFrame(({ clock }) => {
+    if (!ref.current) return;
     if (shader.current) {
       shader.current.uniforms.time.value = reducedMotion ? 0 : clock.elapsedTime;
       shader.current.uniforms.moving.value = isRacing && !reducedMotion ? 1 : .12;
@@ -238,7 +240,11 @@ function RaceDucks({ participants, progress, appearances, reducedMotion, isRacin
 
 function HeroDuck({ screen, appearances, finished, reducedMotion }) {
   const [model] = useGLTF(duckAssetUrls(duckAssetPlan(screen, [], appearances)));
-  return <AnimatedDuck model={model} position={[-4, 1.26, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={appearances[0]?.accessory || (screen === 'results' ? 'medal' : undefined)} moving={false} finished={finished} reducedMotion={reducedMotion} />;
+  const chosenAccessory = appearances[0]?.accessory;
+  const accessory = (chosenAccessory && chosenAccessory !== 'none')
+    ? chosenAccessory
+    : (screen === 'results' ? 'medal' : 'none');
+  return <AnimatedDuck model={model} position={[-4, 1.26, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={accessory} moving={false} finished={finished} reducedMotion={reducedMotion} />;
 }
 
 export default function Ducks(props) {

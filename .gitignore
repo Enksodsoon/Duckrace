@@ -7,3 +7,7 @@ test-results/
 eslint-report.json
 .tooling/
 art-source/*.blend1
+.agents/
+.freebuff/
+.worktrees/
+tmp/

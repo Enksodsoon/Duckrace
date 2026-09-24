@@ -11,7 +11,10 @@ function RacerLabel({ participant, index, count, progress, selected, leader }) {
     const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 96;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = selected ? 'rgba(12,56,51,.92)' : 'rgba(19,30,29,.82)';
-    ctx.beginPath(); ctx.roundRect(4, 4, 504, 88, 24); ctx.fill();
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') ctx.roundRect(4, 4, 504, 88, 24);
+    else ctx.rect(4, 4, 504, 88);
+    ctx.fill();
     ctx.strokeStyle = selected ? '#96e5cf' : leader ? '#f2d57f' : '#c6d5ce'; ctx.lineWidth = selected ? 4 : 2; ctx.stroke();
     ctx.fillStyle = selected ? '#b8f4e1' : leader ? '#f2d57f' : '#edf4f0';
     ctx.font = '600 38px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -21,11 +24,13 @@ function RacerLabel({ participant, index, count, progress, selected, leader }) {
   }, [participant.name, selected, leader]);
   useEffect(() => () => texture.dispose(), [texture]);
   useFrame(({ camera }) => {
+    if (!ref.current) return;
     ref.current.position.set(laneX(index, count), selected ? 1.48 : 1.10 + (index % 2) * .30, raceZ(value.current));
     const distance = camera.position.distanceTo(ref.current.position);
-    const width = Math.max(1.1, Math.min(selected ? 3.2 : 2.3, distance * (selected ? .15 : .115)));
+    const isPriority = selected || leader;
+    const width = Math.max(1.1, Math.min(isPriority ? 3.2 : 2.3, distance * (isPriority ? .15 : .115)));
     ref.current.scale.set(width, width * 96 / 512, 1);
-    ref.current.visible = distance < (selected ? 130 : 65);
+    ref.current.visible = distance < (isPriority ? 130 : 65);
   });
   return <sprite ref={ref} renderOrder={5}><spriteMaterial map={texture} transparent depthWrite={false} depthTest={false} toneMapped={false} /></sprite>;
 }

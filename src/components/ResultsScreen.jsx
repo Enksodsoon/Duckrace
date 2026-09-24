@@ -6,7 +6,9 @@ import { exportHistory, exportResults } from "../lib/exports.js";
 export default function ResultsScreen({ session: s, navigate }) {
   const record = s.record || s.history[0]?.record;
   const ranked = record
-    ? record.order.map((id) => record.participants.find((p) => p.id === id))
+    ? record.order
+        .map((id) => record.participants.find((p) => p.id === id))
+        .filter(Boolean)
     : [];
   return (
     <section className="results-screen">

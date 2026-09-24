@@ -67,7 +67,7 @@ export function validateSettings(s = {}) {
         ...new Set(
           s.eliminationPlaces.filter((n) => Number.isInteger(n) && n >= 0 && n < next.podiumCount),
         ),
-      ]
+      ].sort((a, b) => a - b)
     : [];
   next.channels = Object.fromEntries(
     Object.entries(DEFAULTS.channels).map(([k, fallback]) => [
@@ -164,7 +164,11 @@ export function entryLines(text) {
 // Parse quoted CSV (including newlines) without treating commas inside a name as separators.
 export function parseImport(content, filename = "") {
   const raw = String(content).replace(/^\uFEFF/, "");
-  if (!filename.toLowerCase().endsWith(".csv")) return splitEntries(raw);
+  if (!filename.toLowerCase().endsWith(".csv")) {
+    return raw.includes("\n")
+      ? raw.split(/\r?\n/).map((x) => x.trim()).filter(Boolean)
+      : splitEntries(raw);
+  }
   const rows = [];
   let row = [],
     cell = "",
@@ -188,8 +192,33 @@ export function parseImport(content, filename = "") {
   }
   if (quoted) throw new Error("CSV contains an unclosed quoted field.");
   if (cell || row.length) rows.push([...row, cell.trim()]);
-  const names = rows.map((r) => r[0]).filter(Boolean);
-  if (["entry", "name", "participant"].includes(names[0]?.toLowerCase())) names.shift();
+  const header = rows[0]?.map((c) => c.toLowerCase());
+  let nameCol = 0;
+  let hasHeader = false;
+  if (header && rows.length > 0) {
+    const knownHeaders = [
+      "name",
+      "entry",
+      "participant",
+      "duck",
+      "racer",
+      "names",
+      "entries",
+      "participants",
+      "ducks",
+      "racers",
+    ];
+    const foundIdx = header.findIndex((h) => knownHeaders.includes(h));
+    if (foundIdx >= 0) {
+      nameCol = foundIdx;
+      hasHeader = true;
+    } else if (["rank", "pos", "position", "#", "place"].includes(header[0]) && header.length > 1) {
+      nameCol = 1;
+      hasHeader = true;
+    }
+  }
+  const dataRows = hasHeader ? rows.slice(1) : rows;
+  const names = dataRows.map((r) => r[nameCol]).filter(Boolean);
   if (names.some((name) => /[\r\n]/.test(name)))
     throw new Error(
       "Entry names must fit on one line. Remove embedded line breaks from CSV names.",

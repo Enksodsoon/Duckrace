@@ -90,8 +90,8 @@ export default function App() {
     if (s.screen === "results") {
       const winner = sceneRecord.participants.findIndex((p) => p.id === sceneRecord.order[0]);
       return {
-        participants: [sceneRecord.participants[winner]],
-        appearances: [sceneRecord.appearances[winner]],
+        participants: [sceneRecord.participants[winner] || { id: "winner", name: "Winner" }],
+        appearances: [sceneRecord.appearances?.[winner] || { breed: o.breed, accessory: o.accessory }],
         progress: [100],
       };
     }
@@ -102,9 +102,13 @@ export default function App() {
           hashString(`${sceneRecord.presentationSeed}:${sceneRecord.participants[a].id}`) -
           hashString(`${sceneRecord.presentationSeed}:${sceneRecord.participants[b].id}`),
       );
+    const recAppearances =
+      sceneRecord.appearances?.length === sceneRecord.participants.length
+        ? sceneRecord.appearances
+        : sceneRecord.participants.map(() => ({ breed: o.breed, accessory: o.accessory }));
     return {
       participants: indices.map((i) => sceneRecord.participants[i]),
-      appearances: indices.map((i) => sceneRecord.appearances[i]),
+      appearances: indices.map((i) => recAppearances[i]),
       indices,
     };
   }, [s.screen, s.participants, s.appearances, sceneRecord, o.breed, o.accessory]);
@@ -205,7 +209,7 @@ export default function App() {
             </div>
             <div className="home-caption">
               <span className="hairline" />
-              <span>{STAGES.find((x) => x.id === o.stage).name}</span>
+              <span>{(STAGES.find((x) => x.id === o.stage) || STAGES[0]).name}</span>
             </div>
           </section>
         )}
@@ -213,7 +217,7 @@ export default function App() {
         {s.screen === "stages" && <StagesScreen session={s} navigate={navigate} />}
         {s.screen === "garage" && <GarageScreen session={s} navigate={navigate} />}
         {s.screen === "results" && <ResultsScreen session={s} navigate={navigate} />}
-        {s.screen === "race" && <RaceScreen session={s} setFollowId={setFollowId} />}
+        {s.screen === "race" && <RaceScreen session={s} followId={followId} setFollowId={setFollowId} />}
         {s.screen === "settings" && (
           <SettingsScreen session={s} navigate={navigate} systemMotion={systemMotion} />
         )}

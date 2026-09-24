@@ -7,16 +7,18 @@ export function clearFailedSceneLoads(screen, participants, appearances, stage) 
   const urls = duckAssetUrls(duckAssetPlan(screen, participants, appearances));
   if (urls.length) useGLTF.clear(urls);
   useEnvironment.clear({ files: skyAssetUrl(stage) });
-  useTexture.clear(
-    [
-      "rock-color.jpg",
-      "rock-normal.jpg",
-      "ground-color.jpg",
-      "ground-normal.jpg",
-      "pine-twig-color.jpg",
-      "pine-twig-alpha.jpg",
-      "pine-bark-color.jpg",
-      "pine-bark-normal.jpg",
-    ].map((name) => assetUrl(`/assets/environment/${name}`)),
-  );
+  const textureNames = [
+    "foliage-atlas.png",
+    "rock-color.jpg",
+    "rock-normal.jpg",
+    "ground-color.jpg",
+    "ground-normal.jpg",
+    "pine-bark-color.jpg",
+    "pine-bark-normal.jpg",
+    "pine-twig-color.jpg",
+    "pine-twig-alpha.jpg",
+  ];
+  const textureUrls = textureNames.map((name) => assetUrl(`/assets/environment/${name}`));
+  useTexture.clear(textureUrls);
+  textureUrls.forEach((url) => useTexture.clear(url));
 }
