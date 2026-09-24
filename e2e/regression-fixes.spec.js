@@ -23,15 +23,20 @@ test('importing multiline TXT file preserves commas within entry names', async (
 });
 
 test('follow dropdown stays synchronized when clicking a duck in the live standings', async ({ page }) => {
+  test.setTimeout(process.env.CI ? 60_000 : 30_000);
   await setup(page);
   await page.getByLabel('Race entries').fill('Alpha Duck\nBeta Duck\nGamma Duck');
-  await page.getByLabel('Race duration').selectOption('5');
+  await page.getByLabel('Race duration').selectOption('30');
   await page.getByRole('button', { name: 'Start Race', exact: true }).click();
 
   // Wait for live standings to appear
   const betaButton = page.locator('.leaderboard li button', { hasText: 'Beta Duck' });
-  await expect(betaButton).toBeVisible({ timeout: 15000 });
+  await expect(betaButton).toBeVisible({ timeout: 25000 });
   await betaButton.click();
+
+  // Camera mode select should switch to 'follow'
+  const cameraSelect = page.getByLabel('Race camera', { exact: true });
+  await expect(cameraSelect).toHaveValue('follow');
 
   // The follow select dropdown must now reflect the selected duck's ID
   const followSelect = page.getByLabel('Follow participant', { exact: true });
@@ -39,10 +44,6 @@ test('follow dropdown stays synchronized when clicking a duck in the live standi
     (el) => el.options[el.selectedIndex]?.text
   );
   expect(selectedOptionText).toContain('Beta Duck');
-
-  // Camera mode select should switch to 'follow'
-  const cameraSelect = page.getByLabel('Race camera', { exact: true });
-  await expect(cameraSelect).toHaveValue('follow');
 });
 
 test('elimination finishing places remain sorted in ascending order', async ({ page }) => {
