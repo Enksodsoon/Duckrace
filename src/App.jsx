@@ -112,9 +112,13 @@ export default function App() {
       indices,
     };
   }, [s.screen, s.participants, s.appearances, sceneRecord, o.breed, o.accessory]);
-  const sceneProgress = sceneData.indices
-    ? sceneData.indices.map((i) => s.frame.progress[i])
-    : sceneData.progress;
+  const sceneProgress = useMemo(
+    () =>
+      sceneData.indices
+        ? sceneData.indices.map((i) => s.frame.progress[i])
+        : sceneData.progress,
+    [sceneData.indices, sceneData.progress, s.frame.progress],
+  );
   return (
     <div
       className={`app screen-${s.screen} ${s.audience ? "audience" : ""} ${o.compact ? "compact" : ""} ${chroma ? "chroma" : ""}`}

@@ -138,6 +138,7 @@ small {
   inset: 0;
   z-index: -3;
   background: #213631;
+  contain: strict;
 }
 .scene-layer > div {
   height: 100% !important;
@@ -963,11 +964,14 @@ legend {
   flex: 1;
   position: relative;
   margin: 0 10px;
+  contain: layout style;
 }
 .progress-duck {
   position: absolute;
   top: -12px;
   transform: translateX(-50%);
+  will-change: left;
+  contain: layout style;
 }
 .race-toolbar {
   display: flex;

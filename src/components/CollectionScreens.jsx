@@ -33,6 +33,8 @@ export function StagesScreen({ session: s, navigate }) {
               <img
                 src={assetUrl(`/assets/stages/${item.id}.png`)}
                 alt=""
+                loading="lazy"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.hidden = true;
                 }}

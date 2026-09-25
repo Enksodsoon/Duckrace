@@ -363,9 +363,58 @@ function presentationFraction(presentationSeed, participantId) {
   return seededUint32(`${presentationSeed}\u0000${participantId}`, 'duck-race/motion/v1')() / UINT32_RANGE;
 }
 
-function finishTailMs(record) {
+export function finishTailMs(record) {
   if (record.participants.length === 1) return 0;
   return Math.min(1200, Math.max(150, record.durationMs * 0.08));
+}
+
+const recordSamplingCache = new WeakMap();
+
+function getPreparedSamplingData(record) {
+  let prepared = recordSamplingCache.get(record);
+  if (prepared) return prepared;
+
+  const participantCount = record.participants.length;
+  const tailMs = finishTailMs(record);
+  const finishGapMs = participantCount > 1 ? tailMs / (participantCount - 1) : 0;
+  const totalDurationMs = record.durationMs + tailMs;
+  const orderIndex = new Map(record.order.map((id, index) => [id, index]));
+  const participantIndex = new Map(record.participants.map(({ id }, index) => [id, index]));
+
+  const participantData = record.participants.map(({ id }, index) => {
+    const rank = orderIndex.get(id);
+    const finishMs = record.durationMs + rank * finishGapMs;
+    const rankFraction = participantCount === 1 ? 0 : rank / (participantCount - 1);
+    const variation = (presentationFraction(record.presentationSeed, id) - 0.5) * 0.08;
+    const exponent = 1.24 - rankFraction * 0.46 + variation;
+    return {
+      id,
+      index,
+      rank,
+      finishMs,
+      exponent,
+    };
+  });
+
+  const participantIds = record.participants.map(({ id }) => id);
+  const finishOrder = [...record.order];
+  const indices = Object.freeze(Array.from({ length: participantCount }, (_, i) => i));
+  const finishedProgress = Object.freeze(new Array(participantCount).fill(100));
+
+  prepared = {
+    participantCount,
+    totalDurationMs,
+    orderIndex,
+    participantIndex,
+    participantData,
+    participantIds,
+    finishOrder,
+    indices,
+    finishedProgress,
+  };
+
+  recordSamplingCache.set(record, prepared);
+  return prepared;
 }
 
 /**
@@ -385,37 +434,40 @@ export function sampleRace(record, elapsedMs) {
     throw new TypeError('elapsedMs must be a finite number');
   }
 
-  const participantCount = record.participants.length;
-  const tailMs = finishTailMs(record);
-  const finishGapMs = participantCount > 1 ? tailMs / (participantCount - 1) : 0;
-  const totalDurationMs = record.durationMs + tailMs;
+  const prepared = getPreparedSamplingData(record);
+  const totalDurationMs = prepared.totalDurationMs;
   const sampledElapsedMs = Math.min(Math.max(0, elapsedMs), totalDurationMs);
   const finished = sampledElapsedMs >= totalDurationMs;
-  const orderIndex = new Map(record.order.map((id, index) => [id, index]));
-  const participantIndex = new Map(record.participants.map(({ id }, index) => [id, index]));
 
-  const progress = record.participants.map(({ id }) => {
-    const rank = orderIndex.get(id);
-    const finishMs = record.durationMs + rank * finishGapMs;
-    if (finished || sampledElapsedMs >= finishMs) return 100;
-    const normalizedTime = sampledElapsedMs / finishMs;
-    const rankFraction = participantCount === 1 ? 0 : rank / (participantCount - 1);
-    // Lower placed ducks lead early; the later finish times force real overtakes.
-    // A small deterministic variation keeps the motion from looking uniform.
-    const variation = (presentationFraction(record.presentationSeed, id) - 0.5) * 0.08;
-    const exponent = 1.24 - rankFraction * 0.46 + variation;
-    return 100 * normalizedTime ** exponent;
-  });
+  if (finished) {
+    return {
+      progress: prepared.finishedProgress,
+      ranking: prepared.finishOrder,
+      finished: true,
+      elapsedMs: totalDurationMs,
+    };
+  }
 
-  const ranking = record.participants
-    .map(({ id }) => id)
-    .sort((left, right) => {
-      const leftProgress = progress[participantIndex.get(left)];
-      const rightProgress = progress[participantIndex.get(right)];
-      if (rightProgress !== leftProgress) return rightProgress - leftProgress;
-      if (leftProgress === 100) return orderIndex.get(left) - orderIndex.get(right);
-      return participantIndex.get(left) - participantIndex.get(right);
-    });
+  const data = prepared.participantData;
+  const length = data.length;
+  const progress = new Array(length);
+  for (let i = 0; i < length; i++) {
+    const p = data[i];
+    if (sampledElapsedMs >= p.finishMs) {
+      progress[i] = 100;
+    } else {
+      const normalizedTime = sampledElapsedMs / p.finishMs;
+      progress[i] = 100 * normalizedTime ** p.exponent;
+    }
+  }
+
+  const ranking = prepared.indices.slice().sort((leftIdx, rightIdx) => {
+    const leftProgress = progress[leftIdx];
+    const rightProgress = progress[rightIdx];
+    if (rightProgress !== leftProgress) return rightProgress - leftProgress;
+    if (leftProgress === 100) return data[leftIdx].rank - data[rightIdx].rank;
+    return leftIdx - rightIdx;
+  }).map(idx => data[idx].id);
 
   return {
     progress,

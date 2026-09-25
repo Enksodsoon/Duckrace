@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ChevronDown, Download, Play, RotateCcw, Trophy } from "lucide-react";
 import { Button, DuckIcon, Heading } from "./design.jsx";
 import { COLORS } from "../lib/catalog.js";
@@ -5,11 +6,11 @@ import { placeLabel } from "../lib/raceUtils.js";
 import { exportHistory, exportResults } from "../lib/exports.js";
 export default function ResultsScreen({ session: s, navigate }) {
   const record = s.record || s.history[0]?.record;
-  const ranked = record
-    ? record.order
-        .map((id) => record.participants.find((p) => p.id === id))
-        .filter(Boolean)
-    : [];
+  const ranked = useMemo(() => {
+    if (!record) return [];
+    const map = new Map(record.participants.map((p) => [p.id, p]));
+    return record.order.map((id) => map.get(id)).filter(Boolean);
+  }, [record]);
   return (
     <section className="results-screen">
       <Heading icon={Trophy} title="Results">

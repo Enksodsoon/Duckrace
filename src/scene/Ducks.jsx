@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unknown-property */
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -97,12 +97,16 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     return { meshes: results, rigs };
   }, [model, cosmeticModel]);
   const meshes = animated.meshes;
+  const rowList = useMemo(() => rows.map((row, localIndex) => ({ ...row, localIndex })), [rows]);
+  const rowMatrices = useRef([]);
+  const rowVisible = useRef([]);
   // A zero-scale instance still executes the full vertex shader. Compact cosmetic
   // batches so only the racers wearing an accessory submit its geometry.
   const batches = useMemo(() => meshes.map(mesh => ({
     ...mesh,
-    entries: mesh.cosmetic ? rows.filter(row => mesh.cosmetic === accessoryId(appearances[row.index]?.accessory)) : rows,
-  })).filter(batch => batch.entries.length), [meshes, rows, appearances]);
+    isIdentity: mesh.transform.elements.every((v, i) => v === (i % 5 === 0 ? 1 : 0)),
+    entries: mesh.cosmetic ? rowList.filter(row => mesh.cosmetic === accessoryId(appearances[row.index]?.accessory)) : rowList,
+  })).filter(batch => batch.entries.length), [meshes, rowList, appearances]);
   useEffect(() => () => {
     animated.meshes.forEach(mesh => mesh.material.dispose());
     animated.rigs.forEach(rig => { rig.mixer.stopAllAction(); rig.mixer.uncacheRoot(rig.scene); rig.skeletons.forEach(skeleton => skeleton.dispose()); });
@@ -110,36 +114,74 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
   const refs = useRef([]);
   const state = useRef(progress);
   useLayoutEffect(() => { state.current = progress; }, [progress]);
-  const scratch = useMemo(() => ({ matrix: new THREE.Matrix4(), out: new THREE.Matrix4(), quaternion: new THREE.Quaternion(), euler: new THREE.Euler(), position: new THREE.Vector3(), scale: new THREE.Vector3(), viewProjection: new THREE.Matrix4(), frustum: new THREE.Frustum(), bounds: new THREE.Sphere(new THREE.Vector3(), 1.4) }), []);
+  const scratch = useRef(null);
+  if (scratch.current == null) {
+    scratch.current = {
+      matrix: new THREE.Matrix4(),
+      out: new THREE.Matrix4(),
+      quaternion: new THREE.Quaternion(),
+      euler: new THREE.Euler(),
+      position: new THREE.Vector3(),
+      scale: new THREE.Vector3(),
+      viewProjection: new THREE.Matrix4(),
+      frustum: new THREE.Frustum(),
+      bounds: new THREE.Sphere(new THREE.Vector3(), 1.4),
+    };
+  }
   useFrame(({ clock, camera }, delta) => {
-    const values = state.current;
+    const s = scratch.current;
+    const values = state.current?.current || state.current;
     const time = reducedMotion ? 0 : clock.elapsedTime;
-    scratch.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    scratch.frustum.setFromProjectionMatrix(scratch.viewProjection);
+    s.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    s.frustum.setFromProjectionMatrix(s.viewProjection);
     animated.rigs.forEach(rig => {
       if (isRacing && !reducedMotion) rig.mixer.update(Math.min(delta, .05));
       rig.scene.updateMatrixWorld(true);
       rig.skeletons.forEach(skeleton => skeleton.update());
     });
+
+    while (rowMatrices.current.length < rowList.length) {
+      rowMatrices.current.push(new THREE.Matrix4());
+    }
+
+    // Compute duck root transform and frustum culling once per racer
+    for (let r = 0; r < rowList.length; r++) {
+      const row = rowList[r];
+      const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
+      s.position.set(laneX(row.index, row.total), y - .035, raceZ(values[row.index]));
+      s.bounds.center.copy(s.position);
+      s.bounds.center.y += .4;
+      if (!s.frustum.intersectsSphere(s.bounds)) {
+        rowVisible.current[r] = false;
+        continue;
+      }
+      rowVisible.current[r] = true;
+      s.euler.set(0, Math.sin(time * 1.2 + row.index) * (isRacing ? .025 : .07), reducedMotion ? 0 : Math.sin(time * 1.7 + row.index) * .015);
+      s.quaternion.setFromEuler(s.euler);
+      s.scale.setScalar(.53);
+      rowMatrices.current[r].compose(s.position, s.quaternion, s.scale);
+    }
+
     batches.forEach((mesh, meshIndex) => {
+      const targetMesh = refs.current[meshIndex];
+      if (!targetMesh) return;
       let visibleCount = 0;
-      mesh.entries.forEach(row => {
-        const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
-        scratch.position.set(laneX(row.index, row.total), y - .035, raceZ(values[row.index]));
-        scratch.bounds.center.copy(scratch.position); scratch.bounds.center.y += .4;
-        // Bounds include the full wing span and tallest cosmetic. Off-screen
-        // racers retain their simulation positions and re-enter without LOD swaps.
-        if (!scratch.frustum.intersectsSphere(scratch.bounds)) return;
-        scratch.euler.set(0, Math.sin(time * 1.2 + row.index) * (isRacing ? .025 : .07), reducedMotion ? 0 : Math.sin(time * 1.7 + row.index) * .015);
-        scratch.quaternion.setFromEuler(scratch.euler);
-        scratch.scale.setScalar(.53);
-        scratch.matrix.compose(scratch.position, scratch.quaternion, scratch.scale);
-        scratch.out.multiplyMatrices(scratch.matrix, mesh.transform);
-        refs.current[meshIndex]?.setMatrixAt(visibleCount++, scratch.out);
-      });
-      if (refs.current[meshIndex]) refs.current[meshIndex].count = visibleCount;
+      const entries = mesh.entries;
+      const isId = mesh.isIdentity;
+      for (let e = 0; e < entries.length; e++) {
+        const row = entries[e];
+        const r = row.localIndex;
+        if (!rowVisible.current[r]) continue;
+        if (isId) {
+          targetMesh.setMatrixAt(visibleCount++, rowMatrices.current[r]);
+        } else {
+          s.out.multiplyMatrices(rowMatrices.current[r], mesh.transform);
+          targetMesh.setMatrixAt(visibleCount++, s.out);
+        }
+      }
+      targetMesh.count = visibleCount;
+      targetMesh.instanceMatrix.needsUpdate = true;
     });
-    refs.current.forEach(mesh => { if (mesh) mesh.instanceMatrix.needsUpdate = true; });
   });
   return batches.map((mesh, i) => <instancedMesh key={mesh.name + i} ref={node => { refs.current[i] = node; }} args={[mesh.geometry, mesh.material, mesh.entries.length]} frustumCulled={false} receiveShadow dispose={null} />);
 }
@@ -163,17 +205,26 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); g.setIndex(indices); return g;
   }, []);
   const uniforms = useMemo(() => ({ time: { value: 0 }, moving: { value: 0 } }), []);
-  const matrix = useMemo(() => new THREE.Matrix4(), []);
-  useFrame(({ clock }) => {
+  useFrame(({ clock, camera }) => {
     if (!ref.current) return;
     if (shader.current) {
       shader.current.uniforms.time.value = reducedMotion ? 0 : clock.elapsedTime;
       shader.current.uniforms.moving.value = isRacing && !reducedMotion ? 1 : .12;
     }
+    const values = state.current?.current || state.current;
+    const array = ref.current.instanceMatrix.array;
+    const camZ = camera.position.z;
+    let visibleCount = 0;
     for (let i = 0; i < count; i++) {
-      matrix.makeTranslation(laneX(i, count), .026, raceZ(state.current[i]) - .20);
-      ref.current.setMatrixAt(i, matrix);
+      const z = raceZ(values[i]) - .20;
+      if (z < camZ - 20 || z > camZ + 120) continue;
+      const offset = visibleCount * 16;
+      array[offset + 12] = laneX(i, count);
+      array[offset + 13] = .026;
+      array[offset + 14] = z;
+      visibleCount++;
     }
+    ref.current.count = visibleCount;
     ref.current.instanceMatrix.needsUpdate = true;
   });
   return <instancedMesh ref={ref} args={[geometry, undefined, count]} frustumCulled={false}>
@@ -201,20 +252,36 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
 
 function BowSpray({ count, progress, reducedMotion, isRacing }) {
   const ref = useRef();
-  const scratch = useMemo(() => new THREE.Object3D(), []);
   const state = useRef(progress);
   useLayoutEffect(() => { state.current = progress; }, [progress]);
-  useFrame(({ clock }) => {
+  useFrame(({ clock, camera }) => {
     if (!ref.current) return;
     ref.current.visible = isRacing && !reducedMotion;
     if (!ref.current.visible) return;
-    for (let i = 0; i < count; i++) for (let j = 0; j < 8; j++) {
-      const t = (clock.elapsedTime * 1.6 + j / 8 + i * .37) % 1;
-      const side = j % 2 ? 1 : -1;
-      scratch.position.set(laneX(i, count) + side * (.19 + t * .19), .025 + Math.sin(t * Math.PI) * .12, raceZ(state.current[i]) + .16 - t * .58);
-      scratch.scale.setScalar(.011 * (1 - t) + .003);
-      scratch.updateMatrix(); ref.current.setMatrixAt(i * 8 + j, scratch.matrix);
+    const values = state.current?.current || state.current;
+    const array = ref.current.instanceMatrix.array;
+    const time = clock.elapsedTime;
+    const camZ = camera.position.z;
+    let visibleCount = 0;
+    for (let i = 0; i < count; i++) {
+      const duckZ = raceZ(values[i]);
+      if (duckZ < camZ - 15 || duckZ > camZ + 90) continue;
+      const lx = laneX(i, count);
+      for (let j = 0; j < 8; j++) {
+        const t = (time * 1.6 + j * .125 + i * .37) % 1;
+        const side = j % 2 ? 1 : -1;
+        const s = .011 * (1 - t) + .003;
+        const offset = visibleCount * 16;
+        array[offset] = s;
+        array[offset + 5] = s;
+        array[offset + 10] = s;
+        array[offset + 12] = lx + side * (.19 + t * .19);
+        array[offset + 13] = .025 + Math.sin(t * Math.PI) * .12;
+        array[offset + 14] = duckZ + .16 - t * .58;
+        visibleCount++;
+      }
     }
+    ref.current.count = visibleCount;
     ref.current.instanceMatrix.needsUpdate = true;
   });
   return <instancedMesh ref={ref} args={[undefined, undefined, count * 8]} frustumCulled={false}>
@@ -247,8 +314,10 @@ function HeroDuck({ screen, appearances, finished, reducedMotion }) {
   return <AnimatedDuck model={model} position={[-4, 1.26, -15.8]} rotation={[0, 2.12, 0]} scale={1.7} accessory={accessory} moving={false} finished={finished} reducedMotion={reducedMotion} />;
 }
 
-export default function Ducks(props) {
+function Ducks(props) {
   if (props.screen === 'stages' || (props.screen === 'race' && !props.participants.length)) return null;
   return props.screen === 'race' ? <RaceDucks {...props} /> : <HeroDuck {...props} />;
 }
+
+export default memo(Ducks);
 

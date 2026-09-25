@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createRaceRecord, sampleRace } from "./raceEngine.js";
+import { createRaceRecord, sampleRace, finishTailMs } from "./raceEngine.js";
 import {
   DEFAULTS,
   STORAGE_KEY,
@@ -213,7 +213,7 @@ export default function useRaceSession() {
           sound("race");
         }
         setElapsed(time);
-        if (sampleRace(run.record, time).finished) {
+        if (time >= run.record.durationMs + finishTailMs(run.record)) {
           complete(run);
           tick.current = null;
           return;

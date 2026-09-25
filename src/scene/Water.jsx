@@ -72,7 +72,7 @@ const fragment = `
   }
 `;
 
-export default function Water({ config, stage, reducedMotion, low, medium }) {
+export default function Water({ config, stage, screen, reducedMotion, low, medium }) {
   const material = useRef();
   const surface = useRef();
   const frame = useRef(0);
@@ -91,17 +91,25 @@ export default function Water({ config, stage, reducedMotion, low, medium }) {
   }), [config, stage, environment, reflector]);
   useFrame(({ clock, gl, scene, camera }) => {
     if (material.current && !reducedMotion) material.current.uniforms.uTime.value = clock.elapsedTime;
-    if (reflector && surface.current && (clock.elapsedTime - frame.current >= (medium ? 1 / 20 : 1 / 30) || frame.current === 0)) {
+    const interval = screen !== 'race' ? 1 / 15 : (medium ? 1 / 20 : 1 / 30);
+    if (reflector && surface.current && (clock.elapsedTime - frame.current >= interval || frame.current === 0)) {
       frame.current = clock.elapsedTime;
       surface.current.updateMatrixWorld();
       reflector.matrixWorld.copy(surface.current.matrixWorld);
-      // Screen-facing names are UI, not physical objects floating on the lake.
+      // Screen-facing names and high-density grass/reeds are omitted from blurry water reflection
       const labels = scene.getObjectByName('race-labels');
+      const details = scene.getObjectByName('environment-detail');
       const labelsVisible = labels?.visible;
+      const detailsVisible = details?.visible;
       if (labels) labels.visible = false;
+      if (details) details.visible = false;
       surface.current.visible = false;
       try { reflector.onBeforeRender(gl, scene, camera); }
-      finally { surface.current.visible = true; if (labels) labels.visible = labelsVisible; }
+      finally {
+        surface.current.visible = true;
+        if (labels) labels.visible = labelsVisible;
+        if (details) details.visible = detailsVisible;
+      }
     }
   }, -1);
   return <mesh ref={surface} rotation={[-Math.PI / 2, 0, 0]} position={[0, -.025, 40]} receiveShadow>

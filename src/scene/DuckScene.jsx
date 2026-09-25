@@ -1,4 +1,4 @@
-import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Component, Suspense, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import RaceEnvironment from './Environment';
@@ -14,7 +14,7 @@ class SceneBoundary extends Component {
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-function CameraRig({ screen, participants, progress, cameraMode, followId, reducedMotion }) {
+const CameraRig = memo(function CameraRig({ screen, participants, progress, cameraMode, followId, reducedMotion }) {
   const { camera, size } = useThree();
   const look = useRef(new THREE.Vector3(0, 1, 25));
   const previousScreen = useRef(null);
@@ -23,11 +23,14 @@ function CameraRig({ screen, participants, progress, cameraMode, followId, reduc
   useFrame((_state, delta) => {
     const mobile = size.width < 680;
     if (screen === 'race') {
-      const requested = followId == null ? -1 : participants.findIndex(p => p.id === followId);
+      const p = progress?.current || progress;
+      const requested = followId == null ? -1 : participants.findIndex(item => item.id === followId);
       let leader = 0;
-      progress.forEach((value, i) => { if (value > (progress[leader] || 0)) leader = i; });
+      for (let i = 1; i < p.length; i++) {
+        if (p[i] > (p[leader] || 0)) leader = i;
+      }
       const index = cameraMode === 'follow' && requested >= 0 ? requested : leader;
-      const z = raceZ(progress[index]);
+      const z = raceZ(p[index]);
       const lane = laneX(index, participants.length);
       if (cameraMode === 'overview') {
         const spread = Math.max(12, participants.length * .6);
@@ -61,7 +64,7 @@ function CameraRig({ screen, participants, progress, cameraMode, followId, reduc
     previousScreen.current = screen;
   });
   return null;
-}
+});
 
 function Health({ onError, onMetrics, onSlow, quality, count }) {
   const { gl } = useThree();

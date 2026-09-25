@@ -1,8 +1,40 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Camera, Expand, Flag, Minimize, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { Button, DuckIcon } from "./design.jsx";
 import { COLORS, formatTime, STAGES } from "../lib/catalog.js";
 import { StartButtons } from "./SetupScreen.jsx";
+
+const ProgressDuck = memo(function ProgressDuck({ name, index, progress }) {
+  return (
+    <span
+      className="progress-duck"
+      title={name}
+      style={{
+        left: `${progress}%`,
+        color: COLORS[index % COLORS.length],
+        zIndex: index,
+      }}
+    >
+      <DuckIcon size={21} />
+    </span>
+  );
+});
+
+const LeaderboardRow = memo(function LeaderboardRow({ p, rank, color, onFollow }) {
+  return (
+    <li style={{ "--duck-color": color }}>
+      <span className="rank-number">{rank}</span>
+      <DuckIcon size={19} />
+      <button onClick={onFollow} title={`Follow ${p.name}`}>
+        {p.name}
+      </button>
+      <span className="rank-progress">
+        {Math.floor(p.progress || 0)}%
+      </span>
+    </li>
+  );
+});
+
 export default function RaceScreen({ session: s, followId, setFollowId }) {
   const o = s.settings,
     record = s.record;
@@ -16,11 +48,33 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
-  const live = record
-    ? s.frame.ranking
-        .map((id) => record.participants.find((p) => p.id === id))
-        .filter(Boolean)
-    : s.participants;
+
+  const participantsList = record?.participants || s.participants;
+  const participantMap = useMemo(
+    () => new Map(participantsList.map((p, idx) => [p.id, { ...p, index: idx }])),
+    [participantsList],
+  );
+
+  const displayLimit = o.compact ? 4 : 6;
+  const live = useMemo(() => {
+    if (!record) return participantsList.slice(0, displayLimit).map((p) => ({ ...p, progress: 0 }));
+    return s.frame.ranking.slice(0, displayLimit).map((id) => {
+      const p = participantMap.get(id);
+      return p ? { ...p, progress: s.frame.progress[p.index] || 0 } : null;
+    }).filter(Boolean);
+  }, [record, s.frame.ranking, s.frame.progress, displayLimit, participantMap, participantsList]);
+
+  const followOptions = useMemo(
+    () =>
+      participantsList.map((p, i) => (
+        <option key={p.id} value={p.id}>
+          {i + 1}. {p.name}
+        </option>
+      )),
+    [participantsList],
+  );
+
+  const totalDucksRacing = record ? record.participants.length : s.participants.length;
   const winner = record?.participants.find((p) => p.id === record.order[0]);
   return (
     <section className="race-screen" aria-label="Live race">
@@ -30,30 +84,20 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
             {s.replaying ? "Replay" : s.phase === "finished" ? "Finish order" : "Live standings"}
           </div>
           <ol>
-            {live.slice(0, o.compact ? 4 : 6).map((p, i) => {
-              const pIndex = record ? record.participants.findIndex((x) => x.id === p.id) : -1;
-              const pProgress = pIndex >= 0 ? s.frame.progress[pIndex] : 0;
-              return (
-                <li key={p.id} style={{ "--duck-color": COLORS[i % COLORS.length] }}>
-                  <span className="rank-number">{i + 1}</span>
-                  <DuckIcon size={19} />
-                  <button
-                    onClick={() => {
-                      setFollowId(p.id);
-                      s.patch({ camera: "follow" });
-                    }}
-                    title={`Follow ${p.name}`}
-                  >
-                    {p.name}
-                  </button>
-                  <span className="rank-progress">
-                    {record ? Math.floor(pProgress || 0) : 0}%
-                  </span>
-                </li>
-              );
-            })}
+            {live.map((p, i) => (
+              <LeaderboardRow
+                key={p.id}
+                p={p}
+                rank={i + 1}
+                color={COLORS[i % COLORS.length]}
+                onFollow={() => {
+                  setFollowId(p.id);
+                  s.patch({ camera: "follow" });
+                }}
+              />
+            ))}
           </ol>
-          {live.length > 6 && <span className="muted">{live.length} ducks racing</span>}
+          {totalDucksRacing > 6 && <span className="muted">{totalDucksRacing} ducks racing</span>}
         </div>
         <div className="timer panel">
           <small>
@@ -115,19 +159,13 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
         <div className="race-progress panel">
           <span>START</span>
           <div className="progress-track">
-            {(record?.participants || s.participants).slice(0, 100).map((p, i) => (
-              <span
+            {participantsList.slice(0, 100).map((p, i) => (
+              <ProgressDuck
                 key={p.id}
-                className="progress-duck"
-                title={p.name}
-                style={{
-                  left: `${record && s.frame.progress[i] != null ? s.frame.progress[i] : 0}%`,
-                  color: COLORS[i % COLORS.length],
-                  zIndex: i,
-                }}
-              >
-                <DuckIcon size={21} />
-              </span>
+                name={p.name}
+                index={i}
+                progress={record && s.frame.progress[i] != null ? Math.round(s.frame.progress[i] * 10) / 10 : 0}
+              />
             ))}
           </div>
           <Flag size={24} />
@@ -158,11 +196,7 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
               <option value="" disabled>
                 Follow a duck…
               </option>
-              {(record?.participants || s.participants).map((p, i) => (
-                <option key={p.id} value={p.id}>
-                  {i + 1}. {p.name}
-                </option>
-              ))}
+              {followOptions}
             </select>
           </label>
           <Button icon={o.sound ? Volume2 : VolumeX} onClick={() => s.patch({ sound: !o.sound })}>

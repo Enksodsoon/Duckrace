@@ -171,10 +171,12 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
     {config.pine ? [g.needles, g.needlesB, g.needlesC].map((geometry, index) => <Instances key={index} geometry={geometry} material={m.needles} entries={resources.crownGroups[index]} shadow={!low} receiveShadow={false} />) : <Instances geometry={g.leaf} material={m.needles} entries={resources.crowns} shadow={!low} receiveShadow={false} />}
     {config.pine && resources.distantCrowns.length > 0 && <Instances geometry={g.distantNeedles} material={m.needles} entries={resources.distantCrowns} receiveShadow={false} />}
     <Instances geometry={g.rock} material={m.rock} entries={resources.rocks} shadow={!low} />
-    <Instances geometry={g.reed} material={m.reed} entries={resources.reeds} />
-    {resources.grasses.length > 0 && <><Instances geometry={g.grass} material={m.grass} entries={resources.grasses} /><Instances geometry={g.leaf} material={m.shrub} entries={resources.shrubs} /></>}
-    <Instances geometry={g.lily} material={m.lily} entries={resources.lilies} />
-    {resources.petals.length > 0 && <Instances geometry={g.petal} material={m.petal} entries={resources.petals} />}
+    <group name="environment-detail">
+      <Instances geometry={g.reed} material={m.reed} entries={resources.reeds} />
+      {resources.grasses.length > 0 && <><Instances geometry={g.grass} material={m.grass} entries={resources.grasses} /><Instances geometry={g.leaf} material={m.shrub} entries={resources.shrubs} /></>}
+      <Instances geometry={g.lily} material={m.lily} entries={resources.lilies} />
+      {resources.petals.length > 0 && <Instances geometry={g.petal} material={m.petal} entries={resources.petals} />}
+    </group>
   </group>;
 }
 
@@ -284,7 +286,7 @@ function RaceEnvironment({ config, stage, screen, width, low, medium, reducedMot
     {screen !== 'race' && <directionalLight position={[15, 8, -28]} color={golden ? '#ffd19a' : '#ffe6b9'} intensity={golden ? 1.45 : 2.0} />}
     <LightingEnvironment files={skyAssetUrl(stage)} background={!golden} backgroundBlurriness={.03} environmentIntensity={.95} backgroundIntensity={stage === 'sunset-marsh' ? .6 : .9} environmentRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} backgroundRotation={[0, stage === 'sunset-marsh' ? .2 : 1.2, 0]} />
     {golden && <Sky distance={1000} sunPosition={config.sunPosition} turbidity={2.6} rayleigh={1.4} mieCoefficient={.003} mieDirectionalG={.8} />}
-    <Water config={config} stage={stage} reducedMotion={reducedMotion} low={low} medium={medium} />
+    <Water config={config} stage={stage} screen={screen} reducedMotion={reducedMotion} low={low} medium={medium} />
     <Shore config={config} width={width} low={low} medium={medium} stage={stage} reducedMotion={reducedMotion} />
     <Dock position={[width - .5, 0, -17]} rotation={[0, -.18, 0]} long />
     {screen !== 'race' && screen !== 'stages' && <HeroDock />}
