@@ -3,6 +3,7 @@ import {
   RACE_RECORD_VERSION,
   createRaceRecord,
   sampleRace,
+  sampleRaceProgress,
   validateRaceRecord,
 } from './raceEngine.js';
 
@@ -189,6 +190,20 @@ describe('sampleRace', () => {
     expect(completed.progress).toHaveLength(100);
     expect(completed.progress.every((value) => value === 100)).toBe(true);
     expect(completed.ranking).toEqual(record.order);
+  });
+});
+
+describe('sampleRaceProgress', () => {
+  it('samples progress into a preallocated array and matches sampleRace progress', () => {
+    const record = createRaceRecord({ entries: ['Alice', 'Bob', 'Charlie'], seed: 'test-seed', duration: 10 });
+    const buffer = new Array(3).fill(0);
+    const progressOut = sampleRaceProgress(record, 5000, buffer);
+    expect(progressOut).toBe(buffer);
+    const fullSample = sampleRace(record, 5000);
+    expect(progressOut).toEqual(fullSample.progress);
+
+    const finishOut = sampleRaceProgress(record, 20000, buffer);
+    expect(finishOut).toEqual([100, 100, 100]);
   });
 });
 

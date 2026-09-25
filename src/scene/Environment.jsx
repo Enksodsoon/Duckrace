@@ -12,12 +12,22 @@ function InstanceCell({ geometry, material, entries, shadow = false, receiveShad
   useLayoutEffect(() => {
     if (!ref.current) return;
     const matrix = new THREE.Matrix4(), quaternion = new THREE.Quaternion(), vector = new THREE.Vector3();
-    entries.forEach((item, index) => {
-      quaternion.setFromEuler(new THREE.Euler(...(item.rotation || [0, 0, 0])));
-      matrix.compose(vector.set(...item.position), quaternion, new THREE.Vector3(...(item.scale || [1, 1, 1])));
+    const euler = new THREE.Euler(), scaleVec = new THREE.Vector3(), colorObj = new THREE.Color();
+    for (let index = 0; index < entries.length; index++) {
+      const item = entries[index];
+      if (item.rotation) euler.set(item.rotation[0], item.rotation[1], item.rotation[2]);
+      else euler.set(0, 0, 0);
+      quaternion.setFromEuler(euler);
+      if (item.scale) scaleVec.set(item.scale[0], item.scale[1], item.scale[2]);
+      else scaleVec.set(1, 1, 1);
+      vector.set(item.position[0], item.position[1], item.position[2]);
+      matrix.compose(vector, quaternion, scaleVec);
       ref.current.setMatrixAt(index, matrix);
-      if (item.color) ref.current.setColorAt(index, new THREE.Color(item.color));
-    });
+      if (item.color) {
+        colorObj.set(item.color);
+        ref.current.setColorAt(index, colorObj);
+      }
+    }
     ref.current.instanceMatrix.needsUpdate = true;
     if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
     ref.current.computeBoundingSphere();
@@ -100,6 +110,10 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
     materials.needles.customProgramCacheKey = () => `foliage-wind-transmission-${config.pine}`;
     const trunks = [], crowns = [], rocks = [], reeds = [], lilies = [], petals = [], grasses = [], shrubs = [];
     const treeCount = Math.round((low ? 170 : medium ? 230 : 310) * config.density);
+    const whiteColor = new THREE.Color('#ffffff'), pineGreen = new THREE.Color('#94a978');
+    const leafA = new THREE.Color('#d0d6a2'), leafB = new THREE.Color('#94b672');
+    const rockBase = new THREE.Color('#929389');
+    const scratchColor = new THREE.Color();
     for (let i = 0; i < treeCount; i++) {
       const cluster = Math.floor(i / 7);
       const side = cluster % 2 ? 1 : -1;
@@ -111,11 +125,11 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
       const ground = bankHeight(spread, z), heightScale = scale * (.9 + noise(i, 17) * .5);
       const rotation = [(noise(i, 18) - .5) * .06, noise(i, 14) * 6.28, (noise(i, 19) - .5) * .07];
       trunks.push({ position: [x, ground + 3.5 * heightScale, z], rotation, scale: [scale, heightScale, scale] });
-      if (config.pine) crowns.push({ position: [x, ground, z], rotation, scale: [scale, heightScale, scale], color: new THREE.Color('#ffffff').lerp(new THREE.Color('#94a978'), noise(i, 72) * .45).getStyle() });
+      if (config.pine) crowns.push({ position: [x, ground, z], rotation, scale: [scale, heightScale, scale], color: scratchColor.copy(whiteColor).lerp(pineGreen, noise(i, 72) * .45).getHex() });
       else {
         for (let j = 0; j < 5; j++) {
           const angle = j * 2.4 + rotation[1], radius = j === 4 ? 0 : 1.35 * scale;
-          crowns.push({ position: [x + Math.sin(angle) * radius, ground + (j === 4 ? 6.4 : 5.3 + (j % 2) * .7) * heightScale, z + Math.cos(angle) * radius], rotation: [0, angle, 0], scale: [scale * 1.55, heightScale * (stage === 'lotus-pond' || stage === 'sunset-marsh' ? 1.85 : 1.45), scale * 1.55], color: new THREE.Color('#d0d6a2').lerp(new THREE.Color('#94b672'), noise(i + j, 9)).getStyle() });
+          crowns.push({ position: [x + Math.sin(angle) * radius, ground + (j === 4 ? 6.4 : 5.3 + (j % 2) * .7) * heightScale, z + Math.cos(angle) * radius], rotation: [0, angle, 0], scale: [scale * 1.55, heightScale * (stage === 'lotus-pond' || stage === 'sunset-marsh' ? 1.85 : 1.45), scale * 1.55], color: scratchColor.copy(leafA).lerp(leafB, noise(i + j, 9)).getHex() });
         }
       }
     }
@@ -123,7 +137,7 @@ function Shore({ config, width, low, medium, stage, reducedMotion }) {
       const side = i % 2 ? 1 : -1, z = -45 + noise(i, 21) * 190;
       const x = bankX(z, side, width) + side * noise(i, 22) * 2;
       const s = .3 + noise(i, 23) * 1.5;
-      rocks.push({ position: [x, .05 + s * .14, z], scale: [s * 1.5, s * .65, s], rotation: [noise(i) * 2, noise(i, 2) * 6, noise(i, 3)], color: new THREE.Color('#929389').multiplyScalar(.67 + noise(i, 20) * .5).getStyle() });
+      rocks.push({ position: [x, .05 + s * .14, z], scale: [s * 1.5, s * .65, s], rotation: [noise(i) * 2, noise(i, 2) * 6, noise(i, 3)], color: scratchColor.copy(rockBase).multiplyScalar(.67 + noise(i, 20) * .5).getHex() });
     }
     for (let i = 0; i < (low ? 600 : medium ? 1000 : 1500); i++) {
       const side = i % 2 ? 1 : -1, z = -38 + noise(Math.floor(i / 7), 35) * 174 + noise(i, 31) * 2;

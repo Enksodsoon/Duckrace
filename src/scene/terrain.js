@@ -28,6 +28,7 @@ export function makeBank(side, config, width) {
   const positions = [], colors = [], indices = [], uvs = [];
   const base = new THREE.Color(config.land);
   const rock = new THREE.Color('#909087');
+  const tmpColor = new THREE.Color();
   for (let iz = 0; iz <= rows; iz++) {
     const z = -65 + iz * 3.6;
     for (let ix = 0; ix <= columns; ix++) {
@@ -37,8 +38,8 @@ export function makeBank(side, config, width) {
       positions.push(x, y, z);
       uvs.push(x / 5, z / 5);
       const shade = .7 + noise(ix * 17 + iz, 8) * .5;
-      const color = base.clone().lerp(rock, ix < 2 ? .45 : .06).multiplyScalar(shade);
-      colors.push(color.r, color.g, color.b);
+      tmpColor.copy(base).lerp(rock, ix < 2 ? .45 : .06).multiplyScalar(shade);
+      colors.push(tmpColor.r, tmpColor.g, tmpColor.b);
     }
   }
   for (let z = 0; z < rows; z++) for (let x = 0; x < columns; x++) {
@@ -58,6 +59,7 @@ export function makeMountain(seed, config, distant = false) {
   const width = 270, depth = 100, cols = 100, rows = 36;
   const positions = [], colors = [], indices = [], uvs = [];
   const stone = new THREE.Color(config.mountain), snow = new THREE.Color('#e0e5e0');
+  const tmpColor = new THREE.Color();
   const peakCenters = [-116, -91, -45, -18, 28, 76, 108];
   const peakHeights = [46, 63, 78, 51, 70, 57, 42];
   for (let z = 0; z <= rows; z++) for (let x = 0; x <= cols; x++) {
@@ -85,8 +87,8 @@ export function makeMountain(seed, config, distant = false) {
     uvs.push(wx / 18, wz / 18 + h / 18);
     const snowline = (distant ? 33 : 28) + Math.sin(wx * .11 + wz * .07) * 4 + noise(x + z * 39) * 3;
     const snowCover = config.snow ? THREE.MathUtils.smoothstep(h, snowline, snowline + 7) : 0;
-    const color = stone.clone().lerp(snow, snowCover).multiplyScalar(.78 + noise(x + z * 32, 7) * .22);
-    colors.push(color.r, color.g, color.b);
+    tmpColor.copy(stone).lerp(snow, snowCover).multiplyScalar(.78 + noise(x + z * 32, 7) * .22);
+    colors.push(tmpColor.r, tmpColor.g, tmpColor.b);
   }
   for (let z = 0; z < rows; z++) for (let x = 0; x < cols; x++) {
     const a = z * (cols + 1) + x, b = a + cols + 1;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createRaceRecord, sampleRace, finishTailMs } from "./raceEngine.js";
+import { createRaceRecord, sampleRace, sampleRaceProgress, finishTailMs } from "./raceEngine.js";
 import {
   DEFAULTS,
   STORAGE_KEY,
@@ -213,7 +213,7 @@ export default function useRaceSession() {
           run.lastSound = second;
           sound("race");
         }
-        rafProgressRef.current = sampleRace(run.record, time).progress;
+        sampleRaceProgress(run.record, time, rafProgressRef.current);
         if (!run.lastUi || now - run.lastUi >= 33 || time >= run.record.durationMs) {
           run.lastUi = now;
           setElapsed(time);

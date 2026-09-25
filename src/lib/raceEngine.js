@@ -418,6 +418,48 @@ function getPreparedSamplingData(record) {
 }
 
 /**
+ * High-frequency progress sampling for animation loops. Writes directly into `out`
+ * if supplied, avoiding garbage collection pressure and sort overhead in the RAF loop.
+ *
+ * @param {RaceRecordV1} record
+ * @param {number} elapsedMs
+ * @param {number[]|Float64Array} [out]
+ * @returns {number[]|Float64Array}
+ */
+export function sampleRaceProgress(record, elapsedMs, out = null) {
+  if (!validateRaceRecord(record)) throw new TypeError('invalid race record');
+  if (typeof elapsedMs !== 'number' || !Number.isFinite(elapsedMs)) {
+    throw new TypeError('elapsedMs must be a finite number');
+  }
+
+  const prepared = getPreparedSamplingData(record);
+  const totalDurationMs = prepared.totalDurationMs;
+  const sampledElapsedMs = Math.min(Math.max(0, elapsedMs), totalDurationMs);
+  const length = prepared.participantCount;
+
+  if (sampledElapsedMs >= totalDurationMs) {
+    if (out && out.length === length) {
+      for (let i = 0; i < length; i++) out[i] = 100;
+      return out;
+    }
+    return prepared.finishedProgress;
+  }
+
+  const data = prepared.participantData;
+  const progress = out && out.length === length ? out : new Array(length);
+  for (let i = 0; i < length; i++) {
+    const p = data[i];
+    if (sampledElapsedMs >= p.finishMs) {
+      progress[i] = 100;
+    } else {
+      const normalizedTime = sampledElapsedMs / p.finishMs;
+      progress[i] = 100 * normalizedTime ** p.exponent;
+    }
+  }
+  return progress;
+}
+
+/**
  * Samples a replay without consuming randomness or causing effects. Progress is
  * aligned with `record.participants`. The winner crosses at `durationMs`; other
  * ducks cross at unique, evenly-spaced times during a short tail of at most

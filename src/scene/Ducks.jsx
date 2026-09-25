@@ -134,11 +134,14 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     const time = reducedMotion ? 0 : clock.elapsedTime;
     s.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     s.frustum.setFromProjectionMatrix(s.viewProjection);
-    animated.rigs.forEach(rig => {
-      if (isRacing && !reducedMotion) rig.mixer.update(Math.min(delta, .05));
-      rig.scene.updateMatrixWorld(true);
-      rig.skeletons.forEach(skeleton => skeleton.update());
-    });
+    if (isRacing && !reducedMotion) {
+      const step = Math.min(delta, .05);
+      animated.rigs.forEach(rig => {
+        rig.mixer.update(step);
+        rig.scene.updateMatrixWorld(true);
+        rig.skeletons.forEach(skeleton => skeleton.update());
+      });
+    }
 
     while (rowMatrices.current.length < rowList.length) {
       rowMatrices.current.push(new THREE.Matrix4());
@@ -252,7 +255,8 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
 
 function BowSpray({ count, progress, reducedMotion, isRacing }) {
   const ref = useRef();
-  const scratch = useMemo(() => new THREE.Object3D(), []);
+  const scratchMatrix = useMemo(() => new THREE.Matrix4(), []);
+  const hiddenMatrix = useMemo(() => new THREE.Matrix4().makeTranslation(0, -999, 0), []);
   const state = useRef(progress);
   useLayoutEffect(() => { state.current = progress; }, [progress]);
   useFrame(({ clock, camera }) => {
@@ -266,20 +270,21 @@ function BowSpray({ count, progress, reducedMotion, isRacing }) {
       const val = values && values[i] != null ? values[i] : 0;
       const duckZ = raceZ(val);
       const inRange = duckZ >= camZ - 15 && duckZ <= camZ + 90;
-      const lx = laneX(i, count);
-      for (let j = 0; j < 8; j++) {
-        const index = i * 8 + j;
-        if (!inRange) {
-          scratch.position.set(0, -999, 0);
-          scratch.scale.setScalar(0);
-        } else {
+      if (!inRange) {
+        for (let j = 0; j < 8; j++) {
+          ref.current.setMatrixAt(i * 8 + j, hiddenMatrix);
+        }
+      } else {
+        const lx = laneX(i, count);
+        for (let j = 0; j < 8; j++) {
+          const index = i * 8 + j;
           const t = (time * 1.6 + j * .125 + i * .37) % 1;
           const side = j % 2 ? 1 : -1;
-          scratch.position.set(lx + side * (.19 + t * .19), .025 + Math.sin(t * Math.PI) * .12, duckZ + .16 - t * .58);
-          scratch.scale.setScalar(.011 * (1 - t) + .003);
+          const s = .011 * (1 - t) + .003;
+          scratchMatrix.makeScale(s, s, s);
+          scratchMatrix.setPosition(lx + side * (.19 + t * .19), .025 + Math.sin(t * Math.PI) * .12, duckZ + .16 - t * .58);
+          ref.current.setMatrixAt(index, scratchMatrix);
         }
-        scratch.updateMatrix();
-        ref.current.setMatrixAt(index, scratch.matrix);
       }
     }
     ref.current.instanceMatrix.needsUpdate = true;
