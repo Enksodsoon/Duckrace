@@ -283,7 +283,7 @@ export default function useRaceSession() {
           run.lastSound = second;
           sound("race");
         }
-        sampleRaceProgress(run.record, time, rafProgressRef.current);
+        rafProgressRef.current = sampleRaceProgress(run.record, time, rafProgressRef.current);
         if (!run.lastUi || now - run.lastUi >= 33 || time >= run.record.durationMs) {
           run.lastUi = now;
           setElapsed(time);
@@ -351,6 +351,7 @@ export default function useRaceSession() {
       };
       locked.current = !instant;
       clock.current = run;
+      rafProgressRef.current = new Array(next.participants.length).fill(0);
       pausedRef.current = false;
       setPaused(false);
       setRecord(next);
@@ -380,6 +381,7 @@ export default function useRaceSession() {
   function cancel() {
     if (tick.current) cancelAnimationFrame(tick.current);
     clock.current = null;
+    rafProgressRef.current = [];
     pausedRef.current = false;
     setPaused(false);
     locked.current = false;
@@ -395,6 +397,7 @@ export default function useRaceSession() {
     const run = { record: target, start: performance.now(), replay: true, completed: false };
     locked.current = true;
     clock.current = run;
+    rafProgressRef.current = new Array(target.participants.length).fill(0);
     pausedRef.current = false;
     setPaused(false);
     run.begin = () => {

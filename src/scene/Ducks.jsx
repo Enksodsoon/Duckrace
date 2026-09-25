@@ -90,6 +90,8 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
         }
         results.push({ geometry: object.geometry, material, transform: object.matrixWorld.clone(), cosmetic, name: object.name });
       });
+      scene.updateMatrixWorld(true);
+      skeletons.forEach(skeleton => skeleton.update());
       rigs.push({ scene, mixer, skeletons });
     }
     prepare(model, false);
@@ -134,14 +136,14 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     const time = reducedMotion ? 0 : clock.elapsedTime;
     s.viewProjection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
     s.frustum.setFromProjectionMatrix(s.viewProjection);
-    if (isRacing && !reducedMotion) {
-      const step = Math.min(delta, .05);
-      animated.rigs.forEach(rig => {
+    animated.rigs.forEach(rig => {
+      if (isRacing && !reducedMotion) {
+        const step = Math.min(delta, .05);
         rig.mixer.update(step);
         rig.scene.updateMatrixWorld(true);
-        rig.skeletons.forEach(skeleton => skeleton.update());
-      });
-    }
+      }
+      rig.skeletons.forEach(skeleton => skeleton.update());
+    });
 
     while (rowMatrices.current.length < rowList.length) {
       rowMatrices.current.push(new THREE.Matrix4());

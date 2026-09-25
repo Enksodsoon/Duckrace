@@ -119,12 +119,22 @@ export default function App() {
         : sceneData.progress,
     [sceneData.indices, sceneData.progress, s.frame.progress],
   );
+  const mappedProgressRef = useRef([]);
   const progressSource = useMemo(
     () => ({
       get current() {
         const raw = s.rafProgressRef?.current;
         if (s.screen === "race" && raw && raw.length) {
-          return sceneData.indices ? sceneData.indices.map((i) => raw[i]) : raw;
+          const indices = sceneData.indices;
+          if (indices) {
+            const mapped = mappedProgressRef.current;
+            if (mapped.length !== indices.length) mapped.length = indices.length;
+            for (let i = 0; i < indices.length; i++) {
+              mapped[i] = raw[indices[i]];
+            }
+            return mapped;
+          }
+          return raw;
         }
         return sceneProgress;
       },

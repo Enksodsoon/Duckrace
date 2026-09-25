@@ -20,6 +20,7 @@ const CameraRig = memo(function CameraRig({ screen, participants, progress, came
   const previousScreen = useRef(null);
   const desired = useMemo(() => new THREE.Vector3(), []);
   const target = useMemo(() => new THREE.Vector3(), []);
+  const currentLane = useRef(0);
   useFrame((_state, delta) => {
     const mobile = size.width < 680;
     if (screen === 'race') {
@@ -32,18 +33,24 @@ const CameraRig = memo(function CameraRig({ screen, participants, progress, came
       const index = cameraMode === 'follow' && requested >= 0 ? requested : leader;
       const z = raceZ(p[index]);
       const lane = laneX(index, participants.length);
+      if (previousScreen.current !== screen) {
+        currentLane.current = lane;
+      } else {
+        currentLane.current += (lane - currentLane.current) * (1 - Math.exp(-delta * 3.5));
+      }
+      const smoothLane = currentLane.current;
       if (cameraMode === 'overview') {
         const spread = Math.max(12, participants.length * .6);
         desired.set(spread * .5, Math.max(16, spread * (mobile ? 1.4 : .85)), z - Math.max(20, spread * .6));
         target.set(0, 0, z + 8);
       } else if (cameraMode === 'follow') {
-        desired.set(lane + (mobile ? 2.2 : 3.4), 2.3, z - 7.8);
-        target.set(lane, .38, z + 2);
+        desired.set(smoothLane + (mobile ? 2.2 : 3.4), 2.3, z - 7.8);
+        target.set(smoothLane, .38, z + 2);
       } else {
         const half = participants.length < 12 ? .12 : .9;
         const closePack = participants.length <= 6;
-        desired.set(lane * half, mobile ? 5.5 : closePack ? 2.5 : 3.8, z - (mobile ? 16 : closePack ? 10.5 : 14));
-        target.set(lane * half, .35, z + 3);
+        desired.set(smoothLane * half, mobile ? 5.5 : closePack ? 2.8 : 3.8, z - (mobile ? 16 : closePack ? 13.5 : 14));
+        target.set(smoothLane * half, .35, z + 3);
       }
     } else if (screen === 'garage') {
       desired.set(mobile ? -4 : .5, 3.0, mobile ? -25.5 : -24);
@@ -61,6 +68,7 @@ const CameraRig = memo(function CameraRig({ screen, participants, progress, came
     const snap = reducedMotion || previousScreen.current !== screen;
     const blend = snap ? 1 : 1 - Math.exp(-delta * 2.8);
     camera.position.lerp(desired, blend); look.current.lerp(target, blend); camera.lookAt(look.current);
+    camera.updateMatrixWorld();
     previousScreen.current = screen;
   });
   return null;

@@ -93,8 +93,8 @@ function Water({ config, stage, screen, reducedMotion, low, medium }) {
   const detailsRef = useRef(null);
   useFrame(({ clock, gl, scene, camera }) => {
     if (material.current && !reducedMotion) material.current.uniforms.uTime.value = clock.elapsedTime;
-    const interval = screen !== 'race' ? 1 / 15 : (medium ? 1 / 20 : 1 / 30);
-    if (reflector && surface.current && (clock.elapsedTime - frame.current >= interval || frame.current === 0)) {
+    const interval = medium ? 1 / 15 : 1 / 20;
+    if (reflector && surface.current && screen !== 'race' && (clock.elapsedTime - frame.current >= interval || frame.current === 0)) {
       frame.current = clock.elapsedTime;
       surface.current.updateMatrixWorld();
       reflector.matrixWorld.copy(surface.current.matrixWorld);
