@@ -8,7 +8,7 @@ export default defineConfig({
   maxFailures: process.env.CI ? 1 : 0,
   // Hosted Linux runners rasterize WebGL in software; full GPU timings are
   // qualified separately by the opt-in real-time performance suite.
-  timeout: process.env.CI ? 240_000 : 60_000,
+  timeout: process.env.CI ? 300_000 : 60_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL: 'http://localhost:4173',

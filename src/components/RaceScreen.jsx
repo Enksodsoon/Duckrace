@@ -208,7 +208,7 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
               {followOptions}
             </select>
           </label>
-          {s.busy && s.phase === "racing" && (
+          {s.busy && (
             <Button
               icon={s.paused ? Play : Pause}
               onClick={s.togglePause}

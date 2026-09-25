@@ -41,7 +41,7 @@ test.describe('Exhaustive UI Button & Service Journey Audit', () => {
     await expect(page.locator('.nav.open')).not.toBeVisible();
   });
 
-  test('exercises all Setup Screen buttons, number generator, presets, and seed tools', async ({ page }) => {
+  test('exercises Setup Screen number generator and presets', async ({ page }) => {
     await openSetup(page);
 
     // Advanced options disclosure
@@ -61,6 +61,13 @@ test.describe('Exhaustive UI Button & Service Journey Audit', () => {
     // Test Sample button
     await page.getByRole('button', { name: 'Sample', exact: true }).click();
     await expect(page.getByLabel('Race entries')).toContainText('Group 1');
+  });
+
+  test('exercises Setup Screen seed tools, elimination presets, and toggles', async ({ page }) => {
+    await openSetup(page);
+
+    // Advanced options disclosure
+    await page.getByText('Advanced options', { exact: true }).click();
 
     // Test Randomize Seed button
     const seedInput = page.getByLabel('Race seed');
