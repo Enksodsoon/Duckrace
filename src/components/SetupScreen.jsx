@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { Button, Field, Heading, Toggle } from "./design.jsx";
 import { SAMPLE, STAGES } from "../lib/catalog.js";
-import { placeLabel } from "../lib/raceUtils.js";
-import { parseImport } from "../lib/session.js";
+import { placeLabel, shuffleTextEntries } from "../lib/raceUtils.js";
+import { getDuplicateCount, parseImport } from "../lib/session.js";
 import { exportEntries } from "../lib/exports.js";
 export function StartButtons({ session: s }) {
   return (
@@ -93,6 +93,11 @@ export default function SetupScreen({ session: s, navigate }) {
             checked={o.dedupe}
             onChange={(dedupe) => patch({ dedupe })}
           />
+          {o.dedupe && getDuplicateCount(o.entriesText) > 0 && (
+            <span className="duplicate-count-badge" role="status">
+              {getDuplicateCount(o.entriesText)} duplicates removed
+            </span>
+          )}
         </div>
         <div className="form-stack">
           <Field label="Duration">
@@ -199,6 +204,9 @@ export default function SetupScreen({ session: s, navigate }) {
             <div className="button-row">
               <Button onClick={() => patch({ entriesText: SAMPLE, filter: "" })}>Sample</Button>
               <Button onClick={() => patch({ entriesText: "", filter: "" })}>Clear</Button>
+              <Button onClick={() => patch({ entriesText: shuffleTextEntries(o.entriesText) })}>
+                Shuffle Entries
+              </Button>
               <Button onClick={() => exportEntries(s.participants)}>Export TXT</Button>
               <Button onClick={() => exportEntries(s.participants, true)}>Export CSV</Button>
             </div>

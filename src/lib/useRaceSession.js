@@ -29,6 +29,8 @@ export default function useRaceSession() {
   const [countdown, setCountdown] = useState(null);
   const [undo, setUndo] = useState(null);
   const [replaying, setReplaying] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
   const clock = useRef(null),
     tick = useRef(null),
     locked = useRef(false),
@@ -41,6 +43,19 @@ export default function useRaceSession() {
   const sceneFailed = useCallback(() => {
     rendererUnavailable.current = true;
     clock.current?.begin?.();
+  }, []);
+  const ensureAudioContext = useCallback(() => {
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return null;
+      if (!audio.current || audio.current.state === "closed") audio.current = new Audio();
+      if (audio.current && audio.current.state === "suspended") {
+        audio.current.resume().catch(() => {});
+      }
+      return audio.current;
+    } catch {
+      return null;
+    }
   }, []);
   const audioSettings = useRef(settings);
   const rafProgressRef = useRef([]);
@@ -100,6 +115,22 @@ export default function useRaceSession() {
         JSON.stringify({ version: 3, settings, history, legacyHistory }),
       );
     } catch {
+      try {
+        if (history.length > 5) {
+          const trimmed = history.slice(0, Math.floor(history.length / 2));
+          window.localStorage.setItem(
+            STORAGE_KEY,
+            JSON.stringify({ version: 3, settings, history: trimmed, legacyHistory: [] }),
+          );
+          window.setTimeout(() => {
+            setHistory(trimmed);
+            setLegacyHistory([]);
+          }, 0);
+          return;
+        }
+      } catch {
+        /* Storage permanently unavailable or full */
+      }
       window.setTimeout(() => {
         setNotice("Browser storage is unavailable or full. Export results to keep them.");
       }, 0);
@@ -127,11 +158,44 @@ export default function useRaceSession() {
     const current = audioSettings.current;
     if (!current.sound && !force) return;
     try {
-      const Audio = window.AudioContext || window.webkitAudioContext;
-      if (!Audio) return;
-      if (!audio.current || audio.current.state === "closed") audio.current = new Audio();
-      const ctx = audio.current;
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
       const play = () => {
+        if (kind === "quack") {
+          const osc = ctx.createOscillator();
+          const filter1 = ctx.createBiquadFilter();
+          const filter2 = ctx.createBiquadFilter();
+          const gain = ctx.createGain();
+          const at = ctx.currentTime;
+          const vol = Math.max(0.0001, (0.12 * current.volume) / 100);
+
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(580, at);
+          osc.frequency.exponentialRampToValueAtTime(240, at + 0.22);
+
+          filter1.type = "bandpass";
+          filter1.frequency.setValueAtTime(750, at);
+          filter1.Q.setValueAtTime(3.5, at);
+
+          filter2.type = "bandpass";
+          filter2.frequency.setValueAtTime(1550, at);
+          filter2.Q.setValueAtTime(3.0, at);
+
+          gain.gain.setValueAtTime(0.0001, at);
+          gain.gain.exponentialRampToValueAtTime(vol, at + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.22);
+
+          osc.connect(filter1);
+          filter1.connect(gain);
+          osc.connect(filter2);
+          filter2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start(at);
+          osc.stop(at + 0.24);
+          return;
+        }
+
         const notes =
           kind === "finish" ? [523, 659, 784, 1046] : kind === "start" ? [440, 660] : [330];
         const minimal = current.soundPreset === "minimal";
@@ -165,6 +229,8 @@ export default function useRaceSession() {
   function complete(run) {
     if (run.completed) return;
     run.completed = true;
+    pausedRef.current = false;
+    setPaused(false);
     locked.current = false;
     setPhase("finished");
     setCountdown(null);
@@ -193,6 +259,10 @@ export default function useRaceSession() {
   function animate(run) {
     const loop = (now) => {
       if (clock.current !== run) return;
+      if (pausedRef.current) {
+        tick.current = requestAnimationFrame(loop);
+        return;
+      }
       const time = now - run.start;
       if (time < 0) {
         const n = Math.ceil(-time / 1000);
@@ -229,7 +299,29 @@ export default function useRaceSession() {
     };
     tick.current = requestAnimationFrame(loop);
   }
+  function pause() {
+    if (!busy || phase === "finished" || pausedRef.current) return;
+    pausedRef.current = true;
+    setPaused(true);
+    if (clock.current) clock.current.pausedAt = performance.now();
+  }
+  function resume() {
+    if (!pausedRef.current) return;
+    pausedRef.current = false;
+    setPaused(false);
+    if (clock.current && clock.current.pausedAt) {
+      const pauseDuration = performance.now() - clock.current.pausedAt;
+      clock.current.start += pauseDuration;
+      clock.current.pausedAt = null;
+    }
+    ensureAudioContext();
+  }
+  function togglePause() {
+    if (pausedRef.current) resume();
+    else pause();
+  }
   function start(instant = false) {
+    ensureAudioContext();
     if (locked.current) return;
     if (error) {
       setNotice(error);
@@ -259,6 +351,8 @@ export default function useRaceSession() {
       };
       locked.current = !instant;
       clock.current = run;
+      pausedRef.current = false;
+      setPaused(false);
       setRecord(next);
       setElapsed(instant ? next.durationMs + 2000 : 0);
       setReplaying(false);
@@ -286,6 +380,8 @@ export default function useRaceSession() {
   function cancel() {
     if (tick.current) cancelAnimationFrame(tick.current);
     clock.current = null;
+    pausedRef.current = false;
+    setPaused(false);
     locked.current = false;
     setPhase("ready");
     setCountdown(null);
@@ -294,10 +390,13 @@ export default function useRaceSession() {
     setReplaying(false);
   }
   function replay(target = history[0]?.record) {
+    ensureAudioContext();
     if (!target || locked.current) return;
     const run = { record: target, start: performance.now(), replay: true, completed: false };
     locked.current = true;
     clock.current = run;
+    pausedRef.current = false;
+    setPaused(false);
     run.begin = () => {
       if (clock.current !== run || run.presentationStarted) return;
       run.presentationStarted = true;
@@ -344,7 +443,7 @@ export default function useRaceSession() {
   const actionsRef = useRef({});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    actionsRef.current = { start, busy, setAudience, setSettings };
+    actionsRef.current = { start, busy, setAudience, setSettings, togglePause, screen };
   });
   useEffect(() => {
     const keydown = (e) => {
@@ -356,7 +455,21 @@ export default function useRaceSession() {
         ["INPUT", "TEXTAREA", "SELECT"].includes(e.target?.tagName)
       )
         return;
-      const { start: runStart, busy: isBusy, setAudience: updateAudience, setSettings: updateSettings } = actionsRef.current;
+      const {
+        start: runStart,
+        busy: isBusy,
+        setAudience: updateAudience,
+        setSettings: updateSettings,
+        togglePause: handleTogglePause,
+        screen: currentScreen,
+      } = actionsRef.current;
+      if (e.code === "Space" || e.key === " ") {
+        if (currentScreen === "race" && isBusy) {
+          e.preventDefault();
+          handleTogglePause?.();
+          return;
+        }
+      }
       if (e.key.toLowerCase() === "r") {
         e.preventDefault();
         runStart();
@@ -383,6 +496,10 @@ export default function useRaceSession() {
     phase,
     countdown,
     busy,
+    paused,
+    pause,
+    resume,
+    togglePause,
     error,
     participants,
     appearances,

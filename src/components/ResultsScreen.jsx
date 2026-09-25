@@ -1,16 +1,63 @@
-import { useMemo } from "react";
-import { ChevronDown, Download, Play, RotateCcw, Trophy } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Check, ChevronDown, Copy, Download, Play, RotateCcw, Trophy } from "lucide-react";
 import { Button, DuckIcon, Heading } from "./design.jsx";
-import { COLORS } from "../lib/catalog.js";
-import { placeLabel } from "../lib/raceUtils.js";
+import { COLORS, STAGES } from "../lib/catalog.js";
+import { formatResultsText, placeLabel } from "../lib/raceUtils.js";
 import { exportHistory, exportResults } from "../lib/exports.js";
+
+function ConfettiCelebration({ active, reducedMotion }) {
+  if (!active || reducedMotion) return null;
+  const particles = Array.from({ length: 28 }, (_, i) => ({
+    id: i,
+    left: `${(i * 3.6) % 100}%`,
+    delay: `${(i % 7) * 0.12}s`,
+    bg: COLORS[i % COLORS.length],
+    size: 7 + (i % 5),
+    duration: `${1.6 + (i % 4) * 0.3}s`,
+  }));
+  return (
+    <div className="confetti-container" aria-hidden="true">
+      {particles.map((p) => (
+        <span
+          key={p.id}
+          className="confetti-piece"
+          style={{
+            left: p.left,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+            backgroundColor: p.bg,
+            width: p.size,
+            height: p.size * 1.5,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function ResultsScreen({ session: s, navigate }) {
+  const [copied, setCopied] = useState(false);
   const record = s.record || s.history[0]?.record;
   const ranked = useMemo(() => {
     if (!record) return [];
     const map = new Map(record.participants.map((p) => [p.id, p]));
     return record.order.map((id) => map.get(id)).filter(Boolean);
   }, [record]);
+
+  const stageName = STAGES.find((x) => x.id === (record?.stage || s.settings.stage))?.name;
+
+  async function handleCopy() {
+    try {
+      const text = formatResultsText(record, stageName);
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+      s.setNotice("Podium results copied to clipboard!");
+    } catch {
+      s.setNotice("Could not copy to clipboard.");
+    }
+  }
+
   return (
     <section className="results-screen">
       <Heading icon={Trophy} title="Results">
@@ -21,6 +68,7 @@ export default function ResultsScreen({ session: s, navigate }) {
       {record ? (
         <>
           <div className="results-panel panel">
+            <ConfettiCelebration active={Boolean(record)} reducedMotion={s.settings.reducedMotion} />
             <div className="results-title">
               <Trophy size={40} />
               <div>
@@ -57,6 +105,9 @@ export default function ResultsScreen({ session: s, navigate }) {
             </Button>
             <Button icon={RotateCcw} onClick={() => s.replay(record)}>
               Replay
+            </Button>
+            <Button icon={copied ? Check : Copy} onClick={handleCopy}>
+              {copied ? "Copied!" : "Copy Results"}
             </Button>
             <Button icon={Download} onClick={() => exportResults(record)}>
               Results CSV

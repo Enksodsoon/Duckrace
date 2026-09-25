@@ -174,7 +174,14 @@ export default function App() {
       <div className="scene-vignette" aria-hidden="true" />
       {!s.audience && (
         <header className="topbar">
-          <button className="brand" onClick={() => navigate("home")} disabled={s.busy}>
+          <button
+            className="brand"
+            onClick={() => {
+              s.sound("quack", true);
+              navigate("home");
+            }}
+            disabled={s.busy}
+          >
             <DuckIcon size={30} />
             <span>Duck Race</span>
           </button>
@@ -212,7 +219,12 @@ export default function App() {
       <main id="main-content">
         {s.screen === "home" && (
           <section className="home-panel">
-            <div className="timber-title">
+            <div
+              className="timber-title"
+              style={{ cursor: "pointer" }}
+              onClick={() => s.sound("quack", true)}
+              title="Quack!"
+            >
               <DuckIcon size={53} />
               <h1>Duck Race</h1>
             </div>

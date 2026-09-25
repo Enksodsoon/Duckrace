@@ -18,6 +18,8 @@ import {
   readPersistedState,
   PERSISTED_STORAGE_KEY,
   LEGACY_STORAGE_KEY,
+  shuffleTextEntries,
+  formatResultsText,
 } from './raceUtils.js';
 
 function memoryStorage(initial = {}) {
@@ -244,3 +246,37 @@ describe('readPersistedState', () => {
     expect(readPersistedState(storage).entriesText).toBe('New');
   });
 });
+
+describe('shuffleTextEntries', () => {
+  it('returns same text for empty or single line', () => {
+    expect(shuffleTextEntries('')).toBe('');
+    expect(shuffleTextEntries('One')).toBe('One');
+  });
+
+  it('preserves all items after shuffling multiline entries', () => {
+    const text = 'Alpha\nBeta\nGamma\nDelta';
+    const shuffled = shuffleTextEntries(text);
+    const originalSorted = text.split('\n').sort();
+    const shuffledSorted = shuffled.trim().split('\n').sort();
+    expect(shuffledSorted).toEqual(originalSorted);
+  });
+});
+
+describe('formatResultsText', () => {
+  it('formats podium results with medals and stage name', () => {
+    const record = {
+      participants: [
+        { id: 'p1', name: 'Mallard' },
+        { id: 'p2', name: 'Runner' },
+        { id: 'p3', name: 'Mandarin' },
+      ],
+      order: ['p2', 'p1', 'p3'],
+    };
+    const formatted = formatResultsText(record, 'Forest Lake');
+    expect(formatted).toContain('🦆 Duck Race Results (Forest Lake)');
+    expect(formatted).toContain('🥇 1st: Runner');
+    expect(formatted).toContain('🥈 2nd: Mallard');
+    expect(formatted).toContain('🥉 3rd: Mandarin');
+  });
+});
+

@@ -132,6 +132,17 @@ export function loadSession(storage, search = "") {
     if (params.has(param)) settings[key] = ["1", "true", "yes"].includes(params.get(param));
   return { settings, history, legacyHistory, notice };
 }
+export function getDuplicateCount(text) {
+  const lines = entryLines(text);
+  const seen = new Set();
+  let duplicates = 0;
+  for (const rawName of lines) {
+    const name = rawName.toLowerCase();
+    if (seen.has(name)) duplicates++;
+    else seen.add(name);
+  }
+  return duplicates;
+}
 export function getParticipants(text, dedupe = true, filter = "") {
   const seen = new Set();
   return entryLines(text)

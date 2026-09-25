@@ -89,3 +89,64 @@ test('elimination place chips remain configurable when entries list is empty', a
   await expect(chips.filter({ hasText: '2nd' }).locator('input')).toBeChecked();
 });
 
+test('shuffle entries and duplicate badge work properly in setup screen', async ({ page }) => {
+  await setup(page);
+  await page.getByLabel('Race entries').fill('Duck A\nDuck B\nDuck A\nDuck C');
+  await expect(page.locator('.duplicate-count-badge')).toBeVisible();
+  await expect(page.locator('.duplicate-count-badge')).toHaveText('1 duplicates removed');
+
+  await page.getByText('Advanced options', { exact: true }).click();
+  await page.getByRole('button', { name: 'Shuffle Entries' }).click();
+  const shuffledText = await page.getByLabel('Race entries').inputValue();
+  expect(shuffledText).toContain('Duck A');
+  expect(shuffledText).toContain('Duck B');
+  expect(shuffledText).toContain('Duck C');
+});
+
+test('pause and resume controls toggle race state and resume seamlessly', async ({ page }) => {
+  test.setTimeout(process.env.CI ? 60_000 : 30_000);
+  await setup(page);
+  await page.getByLabel('Race entries').fill('Racer 1\nRacer 2\nRacer 3');
+  await page.getByLabel('Race duration').selectOption('30');
+  await page.getByRole('button', { name: 'Start Race', exact: true }).click();
+
+  // Wait for countdown to finish and racing to begin
+  const pauseBtn = page.getByRole('button', { name: 'Pause', exact: true });
+  await expect(pauseBtn).toBeVisible({ timeout: 20000 });
+
+  // Click Pause
+  await pauseBtn.click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Race Paused');
+
+  // Resume via button
+  await page.getByRole('button', { name: 'Resume Race', exact: true }).click();
+  await expect(page.getByRole('alert')).not.toBeVisible();
+
+  // Test spacebar pause
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('alert')).toBeVisible();
+
+  // Test spacebar resume
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('alert')).not.toBeVisible();
+
+  // Cancel race to exit cleanly
+  await page.getByRole('button', { name: 'Cancel race', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Race Setup' })).toBeVisible();
+});
+
+test('copy results button writes formatted text to clipboard or feedback', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
+  await setup(page);
+  await page.getByLabel('Race entries').fill('Winner Duck\nSecond Duck');
+  await page.getByRole('button', { name: 'Instant Pick', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Results' })).toBeVisible();
+  const copyBtn = page.getByRole('button', { name: 'Copy Results', exact: true });
+  await expect(copyBtn).toBeVisible();
+  await copyBtn.click();
+  await expect(page.getByRole('button', { name: 'Copied!' })).toBeVisible();
+});
+
+

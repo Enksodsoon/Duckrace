@@ -2073,3 +2073,72 @@ legend {
 .race-preparing p {
   margin: 10px 0 16px;
 }
+
+.race-paused-overlay {
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  text-align: center;
+  padding: 26px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: rgba(17, 25, 23, 0.96);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65);
+}
+.race-paused-overlay h2 {
+  font-size: 28px;
+  color: var(--gold-bright);
+  margin: 0;
+}
+.race-paused-overlay p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.confetti-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 10;
+  border-radius: inherit;
+}
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  opacity: 0.9;
+  border-radius: 2px;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(0.8);
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(600px) rotate(720deg) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.duplicate-count-badge {
+  font-size: 12px;
+  color: var(--gold-bright);
+  background: rgba(220, 192, 113, 0.15);
+  border: 1px solid rgba(220, 192, 113, 0.35);
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+}
+

@@ -49,17 +49,7 @@ export default [
     },
   },
   {
-    // react-three-fiber uses lowercase host elements (<mesh>, <group>, …)
-    // which look like unknown DOM properties to eslint-plugin-react.
-    files: ["src/DuckRace3D.jsx"],
-    rules: {
-      "react/no-unknown-property": "off",
-      // Syncing the latest progress into a ref for useFrame is the
-      // documented R3F pattern; keep as warning.
-      "react-hooks/refs": "warn",
-    },
-  },
-  {
     ignores: ["dist/", "node_modules/"],
   },
 ];
+

@@ -3,6 +3,7 @@ import { createRaceRecord } from "./raceEngine.js";
 import {
   csvCell,
   eliminateEntries,
+  getDuplicateCount,
   getParticipants,
   loadSession,
   parseImport,
@@ -105,4 +106,10 @@ describe("session compatibility and entry identity", () => {
       eliminationPlaces: [0, 2],
     });
   });
+  it("counts duplicates accurately ignoring case", () => {
+    expect(getDuplicateCount("Duck\nduck\nDUCK\nGoose")).toBe(2);
+    expect(getDuplicateCount("A, B, C")).toBe(0);
+    expect(getDuplicateCount("")).toBe(0);
+  });
 });
+

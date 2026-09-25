@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Camera, Expand, Flag, Minimize, Trophy, Volume2, VolumeX, X } from "lucide-react";
+import { Camera, Expand, Flag, Minimize, Pause, Play, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import { Button, DuckIcon } from "./design.jsx";
 import { COLORS, formatTime, STAGES } from "../lib/catalog.js";
 import { StartButtons } from "./SetupScreen.jsx";
@@ -155,6 +155,15 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
           </Button>
         </div>
       )}
+      {s.paused && (
+        <div className="race-paused-overlay panel" role="alert">
+          <h2>Race Paused</h2>
+          <p>Press Space or click Resume to continue</p>
+          <Button primary icon={Play} onClick={s.resume}>
+            Resume Race
+          </Button>
+        </div>
+      )}
       <div className="race-bottom">
         <div className="race-progress panel">
           <span>START</span>
@@ -199,6 +208,15 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
               {followOptions}
             </select>
           </label>
+          {s.busy && s.phase === "racing" && (
+            <Button
+              icon={s.paused ? Play : Pause}
+              onClick={s.togglePause}
+              title={s.paused ? "Resume race (Space)" : "Pause race (Space)"}
+            >
+              {s.paused ? "Resume" : "Pause"}
+            </Button>
+          )}
           <Button icon={o.sound ? Volume2 : VolumeX} onClick={() => s.patch({ sound: !o.sound })}>
             {o.sound ? "Sound on" : "Sound off"}
           </Button>

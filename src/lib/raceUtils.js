@@ -240,3 +240,25 @@ export function readPersistedState(storage) {
     return null;
   }
 }
+
+export function shuffleTextEntries(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (lines.length <= 1) return text;
+  return shuffleArray(lines).join("\n") + "\n";
+}
+
+export function formatResultsText(record, stageName = "") {
+  if (!record || !record.order || !record.participants) return "";
+  const map = new Map(record.participants.map((p) => [p.id, p.name]));
+  const title = `🦆 Duck Race Results${stageName ? ` (${stageName})` : ""}`;
+  const lines = record.order.map((id, index) => {
+    const label = placeLabel(index);
+    const medal = index === 0 ? "🥇 " : index === 1 ? "🥈 " : index === 2 ? "🥉 " : "";
+    return `${medal}${label}: ${map.get(id) || "Unknown"}`;
+  });
+  return `${title}\n${lines.join("\n")}`;
+}
+
