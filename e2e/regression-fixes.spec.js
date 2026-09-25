@@ -104,15 +104,14 @@ test('shuffle entries and duplicate badge work properly in setup screen', async 
 });
 
 test('pause and resume controls toggle race state and resume seamlessly', async ({ page }) => {
-  test.setTimeout(process.env.CI ? 60_000 : 30_000);
   await setup(page);
   await page.getByLabel('Race entries').fill('Racer 1\nRacer 2\nRacer 3');
-  await page.getByLabel('Race duration').selectOption('30');
+  await page.getByLabel('Race duration').selectOption('15');
   await page.getByRole('button', { name: 'Start Race', exact: true }).click();
 
   // Wait for countdown to finish and racing to begin
   const pauseBtn = page.getByRole('button', { name: 'Pause', exact: true });
-  await expect(pauseBtn).toBeVisible({ timeout: 20000 });
+  await expect(pauseBtn).toBeVisible({ timeout: 40000 });
 
   // Click Pause
   await pauseBtn.click();

@@ -71,12 +71,9 @@ test.describe('Exhaustive UI Button & Service Journey Audit', () => {
 
     // Test Elimination Quick Buttons
     await page.getByRole('button', { name: 'No elimination', exact: true }).click();
-    const chips = page.locator('.place-chips input[type="checkbox"]');
-    for (const chip of await chips.all()) {
-      await expect(chip).not.toBeChecked();
-    }
+    await expect(page.locator('.place-chips input[type="checkbox"]:checked')).toHaveCount(0);
     await page.getByRole('button', { name: 'Eliminate 1st only', exact: true }).click();
-    await expect(chips.first()).toBeChecked();
+    await expect(page.locator('.place-chips input[type="checkbox"]').first()).toBeChecked();
 
     // Test Toggles
     const dedupeToggle = page.getByRole('switch', { name: 'Remove duplicates' });
