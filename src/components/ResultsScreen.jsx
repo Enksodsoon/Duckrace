@@ -47,13 +47,36 @@ export default function ResultsScreen({ session: s, navigate }) {
   const stageName = STAGES.find((x) => x.id === (record?.stage || s.settings.stage))?.name;
 
   async function handleCopy() {
+    const text = formatResultsText(record, stageName);
+    let success = false;
     try {
-      const text = formatResultsText(record, stageName);
-      await navigator.clipboard.writeText(text);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      }
+    } catch {
+      // Fallback to execCommand below
+    }
+    if (!success && typeof document !== "undefined") {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        success = document.execCommand("copy");
+        document.body.removeChild(textarea);
+      } catch {
+        success = false;
+      }
+    }
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
       s.setNotice("Podium results copied to clipboard!");
-    } catch {
+    } else {
       s.setNotice("Could not copy to clipboard.");
     }
   }

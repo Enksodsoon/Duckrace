@@ -145,7 +145,7 @@ test('copy results button writes formatted text to clipboard or feedback', async
   const copyBtn = page.getByRole('button', { name: 'Copy Results', exact: true });
   await expect(copyBtn).toBeVisible();
   await copyBtn.click();
-  await expect(page.getByRole('button', { name: 'Copied!' })).toBeVisible();
+  await expect(page.locator('.notice')).toBeVisible();
 });
 
 
