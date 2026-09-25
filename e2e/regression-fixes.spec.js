@@ -23,7 +23,6 @@ test('importing multiline TXT file preserves commas within entry names', async (
 });
 
 test('follow dropdown stays synchronized when clicking a duck in the live standings', async ({ page }) => {
-  test.setTimeout(process.env.CI ? 60_000 : 30_000);
   await setup(page);
   await page.getByLabel('Race entries').fill('Alpha Duck\nBeta Duck\nGamma Duck');
   await page.getByLabel('Race duration').selectOption('30');
