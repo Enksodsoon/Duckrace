@@ -1,10 +1,22 @@
-import { readdir, readFile, writeFile, mkdir, rename } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir, rename, rm, cp } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { assetVersion } from "./asset-version.mjs";
 const version = assetVersion();
+await rm(`dist/assets/releases/${version}`, { recursive: true, force: true });
 await mkdir(`dist/assets/releases/${version}`, { recursive: true });
 for (const item of await readdir("public/assets", { withFileTypes: true })) {
-  await rename(`dist/assets/${item.name}`, `dist/assets/releases/${version}/${item.name}`);
+  const src = `dist/assets/${item.name}`;
+  const dest = `dist/assets/releases/${version}/${item.name}`;
+  try {
+    await rename(src, dest);
+  } catch (err) {
+    if (err.code === "EPERM" || err.code === "EXDEV") {
+      await cp(src, dest, { recursive: true });
+      await rm(src, { recursive: true, force: true });
+    } else {
+      throw err;
+    }
+  }
 }
 const files = (await readdir("dist/assets")).filter((x) => /\.(js|css)$/.test(x));
 const hash = createHash("sha256")
