@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unknown-property */
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnvironment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -72,7 +72,7 @@ const fragment = `
   }
 `;
 
-export default function Water({ config, stage, screen, reducedMotion, low, medium }) {
+function Water({ config, stage, screen, reducedMotion, low, medium }) {
   const material = useRef();
   const surface = useRef();
   const frame = useRef(0);
@@ -89,6 +89,8 @@ export default function Water({ config, stage, screen, reducedMotion, low, mediu
     uReflectionMatrix: { value: reflector ? reflector.material.uniforms.textureMatrix.value : new THREE.Matrix4() },
     uHasReflection: { value: reflector ? 1 : 0 },
   }), [config, stage, environment, reflector]);
+  const labelsRef = useRef(null);
+  const detailsRef = useRef(null);
   useFrame(({ clock, gl, scene, camera }) => {
     if (material.current && !reducedMotion) material.current.uniforms.uTime.value = clock.elapsedTime;
     const interval = screen !== 'race' ? 1 / 15 : (medium ? 1 / 20 : 1 / 30);
@@ -97,8 +99,10 @@ export default function Water({ config, stage, screen, reducedMotion, low, mediu
       surface.current.updateMatrixWorld();
       reflector.matrixWorld.copy(surface.current.matrixWorld);
       // Screen-facing names and high-density grass/reeds are omitted from blurry water reflection
-      const labels = scene.getObjectByName('race-labels');
-      const details = scene.getObjectByName('environment-detail');
+      if (!labelsRef.current || labelsRef.current.parent == null) labelsRef.current = scene.getObjectByName('race-labels');
+      if (!detailsRef.current || detailsRef.current.parent == null) detailsRef.current = scene.getObjectByName('environment-detail');
+      const labels = labelsRef.current;
+      const details = detailsRef.current;
       const labelsVisible = labels?.visible;
       const detailsVisible = details?.visible;
       if (labels) labels.visible = false;
@@ -117,3 +121,5 @@ export default function Water({ config, stage, screen, reducedMotion, low, mediu
     <shaderMaterial ref={material} vertexShader={vertex} fragmentShader={fragment} defines={defines} uniforms={uniforms} />
   </mesh>;
 }
+
+export default memo(Water);

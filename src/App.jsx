@@ -119,6 +119,18 @@ export default function App() {
         : sceneData.progress,
     [sceneData.indices, sceneData.progress, s.frame.progress],
   );
+  const progressSource = useMemo(
+    () => ({
+      get current() {
+        const raw = s.rafProgressRef?.current;
+        if (s.screen === "race" && raw && raw.length) {
+          return sceneData.indices ? sceneData.indices.map((i) => raw[i]) : raw;
+        }
+        return sceneProgress;
+      },
+    }),
+    [s.rafProgressRef, s.screen, sceneData.indices, sceneProgress],
+  );
   return (
     <div
       className={`app screen-${s.screen} ${s.audience ? "audience" : ""} ${o.compact ? "compact" : ""} ${chroma ? "chroma" : ""}`}
@@ -143,7 +155,7 @@ export default function App() {
                 screen={s.screen}
                 stage={sceneRecord?.stage || o.stage}
                 {...sceneData}
-                progress={sceneProgress}
+                progress={progressSource}
                 isRacing={s.phase === "racing"}
                 finished={s.phase === "finished" || (s.screen === "results" && !!sceneRecord)}
                 cameraMode={o.camera}

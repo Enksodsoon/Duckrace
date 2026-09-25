@@ -143,9 +143,14 @@ function ReadySignal({ onReady, requestKey }) {
 }
 
 /** A single 3D renderer. All race positions are inputs; no outcome generation occurs here. */
-export default function DuckScene({ screen = 'home', stage = 'forest-lake', participants = [], progress = [], appearances = [], isRacing = false, preparing = false, finished = false, cameraMode = 'chase', followId = null, quality = 'auto', reducedMotion = false, onReady, onLoading, onError, onMetrics }) {
+function DuckScene({ screen = 'home', stage = 'forest-lake', participants = [], progress = [], appearances = [], isRacing = false, preparing = false, finished = false, cameraMode = 'chase', followId = null, quality = 'auto', reducedMotion = false, onReady, onLoading, onError, onMetrics }) {
   const [renderDpr, setRenderDpr] = useState(1);
-  const [adaptiveQuality, setAdaptiveQuality] = useState(() => typeof window !== 'undefined' && (window.innerWidth < 720 || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)) ? 'low' : 'high');
+  const [adaptiveQuality, setAdaptiveQuality] = useState(() => {
+    if (typeof window === 'undefined') return 'high';
+    const isMobile = window.innerWidth < 768 || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
+    const lowCores = typeof navigator !== 'undefined' && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4;
+    return isMobile || lowCores ? 'medium' : 'high';
+  });
   const effectiveQuality = quality === 'auto' ? adaptiveQuality : quality;
   const low = effectiveQuality === 'low';
   const medium = effectiveQuality === 'medium';
@@ -161,7 +166,10 @@ export default function DuckScene({ screen = 'home', stage = 'forest-lake', part
   const readyRef = useRef(onReady);
   useEffect(() => { readyRef.current = onReady; }, [onReady]);
   const handleReady = useCallback(info => readyRef.current?.(info), []);
-  const requestKey = JSON.stringify([screen, stage, preparing, ...duckAssetUrls(duckAssetPlan(screen, participants, appearances))]);
+  const requestKey = useMemo(
+    () => JSON.stringify([screen, stage, preparing, ...duckAssetUrls(duckAssetPlan(screen, participants, appearances))]),
+    [screen, stage, preparing, participants, appearances],
+  );
   const createRenderer = useCallback(canvas => {
     try {
       return new THREE.WebGLRenderer({ canvas, antialias: !low, powerPreference: low ? 'low-power' : 'high-performance', alpha: false });
@@ -188,3 +196,5 @@ export default function DuckScene({ screen = 'home', stage = 'forest-lake', part
     </SceneBoundary>
   </div>;
 }
+
+export default memo(DuckScene);

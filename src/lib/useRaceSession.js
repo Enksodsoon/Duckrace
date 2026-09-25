@@ -43,6 +43,7 @@ export default function useRaceSession() {
     clock.current?.begin?.();
   }, []);
   const audioSettings = useRef(settings);
+  const rafProgressRef = useRef([]);
   useEffect(() => {
     audioSettings.current = settings;
   }, [settings]);
@@ -212,8 +213,13 @@ export default function useRaceSession() {
           run.lastSound = second;
           sound("race");
         }
-        setElapsed(time);
+        rafProgressRef.current = sampleRace(run.record, time).progress;
+        if (!run.lastUi || now - run.lastUi >= 33 || time >= run.record.durationMs) {
+          run.lastUi = now;
+          setElapsed(time);
+        }
         if (time >= run.record.durationMs + finishTailMs(run.record)) {
+          setElapsed(time);
           complete(run);
           tick.current = null;
           return;
@@ -395,5 +401,6 @@ export default function useRaceSession() {
     sound,
     sceneReady,
     sceneFailed,
+    rafProgressRef,
   };
 }

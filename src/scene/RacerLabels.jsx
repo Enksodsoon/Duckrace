@@ -52,7 +52,10 @@ function RacerLabels({ participants, progress, followId, cameraMode }) {
   }, []);
   const [leader, setLeader] = useState(0);
   const leaderRef = useRef(0);
-  useFrame(() => {
+  const lastLeaderCheck = useRef(0);
+  useFrame(({ clock }) => {
+    if (clock.elapsedTime - lastLeaderCheck.current < 0.1) return;
+    lastLeaderCheck.current = clock.elapsedTime;
     const p = progress.current || progress;
     let nextLeader = 0;
     for (let i = 1; i < p.length; i++) {

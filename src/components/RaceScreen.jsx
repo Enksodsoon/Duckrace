@@ -164,7 +164,7 @@ export default function RaceScreen({ session: s, followId, setFollowId }) {
                 key={p.id}
                 name={p.name}
                 index={i}
-                progress={record && s.frame.progress[i] != null ? Math.round(s.frame.progress[i] * 10) / 10 : 0}
+                progress={record && s.frame.progress[i] != null ? Math.round(s.frame.progress[i]) : 0}
               />
             ))}
           </div>

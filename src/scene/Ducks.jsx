@@ -148,7 +148,8 @@ function DuckInstances({ model, cosmeticModel, rows, appearances, progress, redu
     for (let r = 0; r < rowList.length; r++) {
       const row = rowList[r];
       const y = reducedMotion ? 0 : Math.sin(time * 2.1 + row.index * 1.77) * .018;
-      s.position.set(laneX(row.index, row.total), y - .035, raceZ(values[row.index]));
+      const progressVal = values && values[row.index] != null ? values[row.index] : 0;
+      s.position.set(laneX(row.index, row.total), y - .035, raceZ(progressVal));
       s.bounds.center.copy(s.position);
       s.bounds.center.y += .4;
       if (!s.frustum.intersectsSphere(s.bounds)) {
@@ -205,6 +206,7 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); g.setIndex(indices); return g;
   }, []);
   const uniforms = useMemo(() => ({ time: { value: 0 }, moving: { value: 0 } }), []);
+  const matrix = useMemo(() => new THREE.Matrix4(), []);
   useFrame(({ clock, camera }) => {
     if (!ref.current) return;
     if (shader.current) {
@@ -212,19 +214,17 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
       shader.current.uniforms.moving.value = isRacing && !reducedMotion ? 1 : .12;
     }
     const values = state.current?.current || state.current;
-    const array = ref.current.instanceMatrix.array;
     const camZ = camera.position.z;
-    let visibleCount = 0;
     for (let i = 0; i < count; i++) {
-      const z = raceZ(values[i]) - .20;
-      if (z < camZ - 20 || z > camZ + 120) continue;
-      const offset = visibleCount * 16;
-      array[offset + 12] = laneX(i, count);
-      array[offset + 13] = .026;
-      array[offset + 14] = z;
-      visibleCount++;
+      const val = values && values[i] != null ? values[i] : 0;
+      const z = raceZ(val) - .20;
+      if (z < camZ - 20 || z > camZ + 120) {
+        matrix.makeTranslation(0, -999, 0);
+      } else {
+        matrix.makeTranslation(laneX(i, count), .026, z);
+      }
+      ref.current.setMatrixAt(i, matrix);
     }
-    ref.current.count = visibleCount;
     ref.current.instanceMatrix.needsUpdate = true;
   });
   return <instancedMesh ref={ref} args={[geometry, undefined, count]} frustumCulled={false}>
@@ -252,6 +252,7 @@ function Wakes({ count, progress, reducedMotion, isRacing }) {
 
 function BowSpray({ count, progress, reducedMotion, isRacing }) {
   const ref = useRef();
+  const scratch = useMemo(() => new THREE.Object3D(), []);
   const state = useRef(progress);
   useLayoutEffect(() => { state.current = progress; }, [progress]);
   useFrame(({ clock, camera }) => {
@@ -259,29 +260,28 @@ function BowSpray({ count, progress, reducedMotion, isRacing }) {
     ref.current.visible = isRacing && !reducedMotion;
     if (!ref.current.visible) return;
     const values = state.current?.current || state.current;
-    const array = ref.current.instanceMatrix.array;
     const time = clock.elapsedTime;
     const camZ = camera.position.z;
-    let visibleCount = 0;
     for (let i = 0; i < count; i++) {
-      const duckZ = raceZ(values[i]);
-      if (duckZ < camZ - 15 || duckZ > camZ + 90) continue;
+      const val = values && values[i] != null ? values[i] : 0;
+      const duckZ = raceZ(val);
+      const inRange = duckZ >= camZ - 15 && duckZ <= camZ + 90;
       const lx = laneX(i, count);
       for (let j = 0; j < 8; j++) {
-        const t = (time * 1.6 + j * .125 + i * .37) % 1;
-        const side = j % 2 ? 1 : -1;
-        const s = .011 * (1 - t) + .003;
-        const offset = visibleCount * 16;
-        array[offset] = s;
-        array[offset + 5] = s;
-        array[offset + 10] = s;
-        array[offset + 12] = lx + side * (.19 + t * .19);
-        array[offset + 13] = .025 + Math.sin(t * Math.PI) * .12;
-        array[offset + 14] = duckZ + .16 - t * .58;
-        visibleCount++;
+        const index = i * 8 + j;
+        if (!inRange) {
+          scratch.position.set(0, -999, 0);
+          scratch.scale.setScalar(0);
+        } else {
+          const t = (time * 1.6 + j * .125 + i * .37) % 1;
+          const side = j % 2 ? 1 : -1;
+          scratch.position.set(lx + side * (.19 + t * .19), .025 + Math.sin(t * Math.PI) * .12, duckZ + .16 - t * .58);
+          scratch.scale.setScalar(.011 * (1 - t) + .003);
+        }
+        scratch.updateMatrix();
+        ref.current.setMatrixAt(index, scratch.matrix);
       }
     }
-    ref.current.count = visibleCount;
     ref.current.instanceMatrix.needsUpdate = true;
   });
   return <instancedMesh ref={ref} args={[undefined, undefined, count * 8]} frustumCulled={false}>
