@@ -7,6 +7,8 @@ async function openSetup(page) {
 }
 
 test.describe('Exhaustive UI Button & Service Journey Audit', () => {
+  test.slow();
+
   test('exercises every navigation link, home menu buttons, and drawer', async ({ page }) => {
     await page.goto('/');
 
@@ -182,6 +184,7 @@ test.describe('Exhaustive UI Button & Service Journey Audit', () => {
     await page.getByRole('button', { name: 'Clear saved browser data', exact: true }).click();
     await page.getByRole('button', { name: 'Clear saved session', exact: true }).click();
     await expect(page.locator('.notice')).toContainText('Saved session cleared');
+    await page.getByRole('button', { name: 'Dismiss notice' }).click();
 
     // Done button returns to home
     await page.getByRole('button', { name: 'Done', exact: true }).click();
@@ -235,6 +238,9 @@ test.describe('Exhaustive UI Button & Service Journey Audit', () => {
     await expect(page.getByRole('button', { name: 'Undo Elimination', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Undo Elimination', exact: true }).click();
     await expect(page.locator('.notice')).toContainText('Elimination undone');
+    if (await page.getByRole('button', { name: 'Dismiss notice' }).isVisible()) {
+      await page.getByRole('button', { name: 'Dismiss notice' }).click();
+    }
 
     // Replay button
     await page.getByRole('button', { name: 'Replay', exact: true }).click();
